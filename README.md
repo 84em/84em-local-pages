@@ -10,26 +10,27 @@ If you chose to use & install it, you do so at your own risk.
 
 # 84EM Local Pages Generator Plugin
 
-A WordPress plugin that automatically generates SEO-optimized Local Pages for each US state using Claude AI and WP-CLI, designed specifically for 84em.com.
+A WordPress plugin that automatically generates SEO-optimized Local Pages for each US state and city using Claude AI and WP-CLI, designed specifically for 84em.com.
 
 ## Overview
 
-This plugin creates unique, locally-focused landing pages for WordPress development services in all 50 US states. Each page targets state-specific keywords while incorporating the 6 largest cities and geographic relevance to avoid duplicate content penalties.
+This plugin creates unique, locally-focused landing pages for WordPress development services in all 50 US states and their major cities. Each page targets location-specific keywords while incorporating geographic relevance and automatic interlinking to avoid duplicate content penalties.
 
 ## Features
 
-- **Custom Post Type**: Creates "Local Pages" with clean URLs (no /local/ slug)
+- **Hierarchical Post Type**: Creates "Local Pages" with parent-child relationships (states → cities)
+- **Comprehensive Coverage**: 50 state pages + 300 city pages (6 cities per state) = 350 total pages
 - **WP-CLI Integration**: Complete command-line management interface with progress bars
-- **Claude AI Content**: Generates unique 300-400 word pages per state using Claude Sonnet 4
-- **SEO Optimization**: Built-in SEO meta data and structured content
-- **Geographic Relevance**: Each state focuses on local cities and geographic relevance only
+- **Claude AI Content**: Generates unique content using Claude Sonnet 4
+- **Automatic Interlinking**: City names link to city pages, service keywords link to contact page
+- **SEO Optimization**: Built-in SEO meta data and structured LD-JSON schema
+- **Geographic Relevance**: Each page focuses on local cities and geographic context
 - **Bulk Operations**: Create, update, or delete multiple pages efficiently
-- **State-Based Commands**: Generate/update by state name instead of post IDs
 - **Call-to-Action Integration**: Automatic CTA placement with contact links
 - **WordPress Block Editor**: Content generated in Gutenberg block format
 - **Rate Limiting**: Respects API limits with configurable delays and duration tracking
 - **Progress Indicators**: Real-time feedback on API requests and processing
-- **XML Sitemap Generation**: Generate XML sitemaps for local pages with WP-CLI
+- **XML Sitemap Generation**: Generate XML sitemaps for all local pages with WP-CLI
 - **Index Page Generation**: Create or update a master index page with alphabetized state list
 
 ## Requirements
@@ -65,19 +66,24 @@ wp 84em local-pages --set-api-key
 # You will be prompted to securely paste your API key
 ```
 
-### Step 2: Generate All State Pages
+### Step 2: Generate Everything (Recommended)
 ```bash
-wp 84em local-pages --state=all
+wp 84em local-pages --generate-all
+# Creates 50 state pages + 300 city pages = 350 total pages
 ```
 
-### Step 3: Generate Index Page
+### Step 3: Generate Supporting Pages
 ```bash
 wp 84em local-pages --generate-index
+wp 84em local-pages --generate-sitemap
 ```
 
 ### Step 4: Verify Results
 ```bash
 # Check created pages
+wp post list --post_type=local --format=count
+
+# Check hierarchical structure
 wp post list --post_type=local --format=table
 
 # Check index page
@@ -85,6 +91,26 @@ wp post list --post_type=page --name=wordpress-development-services-usa --format
 ```
 
 ## Command Reference
+
+### 🚀 Bulk Operations (Recommended)
+
+**Generate/Create Everything:**
+```bash
+# Generate all states and cities (350 pages)
+wp 84em local-pages --generate-all
+
+# Generate states only (50 pages)
+wp 84em local-pages --generate-all --states-only
+```
+
+**Update Existing Pages:**
+```bash
+# Update all existing states and cities
+wp 84em local-pages --update-all
+
+# Update existing states only
+wp 84em local-pages --update-all --states-only
+```
 
 ### API Key Management
 
@@ -94,113 +120,160 @@ wp 84em local-pages --set-api-key
 # Interactive prompt - paste your key securely without shell history
 ```
 
-### Page Generation
-
-**Generate All 50 State Pages:**
+**Validate API Key:**
 ```bash
-wp 84em local-pages --state=all
+wp 84em local-pages --validate-api-key
 ```
 
-**Generate Specific States:**
-```bash
-# Single state
-wp 84em local-pages --state="California"
+### State Operations
 
-# Multiple states
+**Generate/Update States:**
+```bash
+# All states (legacy command)
+wp 84em local-pages --state=all
+
+# Specific states
+wp 84em local-pages --state="California"
 wp 84em local-pages --state="California,New York,Texas"
 ```
 
-### Update Operations
-
-**Update All Existing Pages:**
+**Update Existing States:**
 ```bash
+# All states
 wp 84em local-pages --update --state=all
+
+# Specific states
+wp 84em local-pages --update --state="California,New York"
 ```
 
-**Update Specific States:**
-```bash
-# Single state
-wp 84em local-pages --update --state="California"
+### City Operations
 
-# Multiple states
-wp 84em local-pages --update --state="California,New York,Texas"
+**Generate/Update Cities:**
+```bash
+# All cities for a state
+wp 84em local-pages --state="California" --city=all
+
+# Specific cities
+wp 84em local-pages --state="California" --city="Los Angeles"
+wp 84em local-pages --state="California" --city="Los Angeles,San Diego,San Francisco"
 ```
 
 ### Delete Operations
 
-**Delete All Local Pages:**
+**Delete States:**
 ```bash
+# All states
 wp 84em local-pages --delete --state=all
+
+# Specific states
+wp 84em local-pages --delete --state="California,New York"
 ```
 
-**Delete Specific States:**
+**Delete Cities:**
 ```bash
-# Single state
-wp 84em local-pages --delete --state="California"
+# All cities for a state
+wp 84em local-pages --delete --state="California" --city=all
 
-# Multiple states
-wp 84em local-pages --delete --state="California,New York,Texas"
+# Specific cities
+wp 84em local-pages --delete --state="California" --city="Los Angeles,San Diego"
 ```
 
-### Help and Information
+### Supporting Operations
 
-**Show Available Commands:**
+**Generate Index Page:**
 ```bash
-wp 84em local-pages
+wp 84em local-pages --generate-index
 ```
-
-### Sitemap Generation
 
 **Generate XML Sitemap:**
 ```bash
 wp 84em local-pages --generate-sitemap
 ```
 
-### Index Page Generation
-
-**Generate Index Page with Alphabetized State List:**
+**Show Available Commands:**
 ```bash
-wp 84em local-pages --generate-index
+wp 84em local-pages
 ```
 
 ## How It Works
 
+### Hierarchical Structure
+
+The plugin creates a hierarchical structure:
+
+```
+State Page (Parent)
+├── City 1 Page (Child)
+├── City 2 Page (Child)  
+├── City 3 Page (Child)
+├── City 4 Page (Child)
+├── City 5 Page (Child)
+└── City 6 Page (Child)
+```
+
+### URL Structure
+```
+# State pages
+https://84em.com/wordpress-development-services-california/
+https://84em.com/wordpress-development-services-texas/
+
+# City pages (child pages)
+https://84em.com/wordpress-development-services-california/los-angeles/
+https://84em.com/wordpress-development-services-california/san-diego/
+https://84em.com/wordpress-development-services-texas/houston/
+https://84em.com/wordpress-development-services-texas/dallas/
+```
+
 ### Content Generation Process
 
 1. **State Analysis**: Plugin identifies the state and its 6 largest cities
-2. **Geographic Focus**: Uses state and major cities for local relevance
-3. **Claude Prompt**: Sends structured prompt to Claude AI API with remote-first emphasis
-4. **Content Creation**: Generates 300-400 words of unique content in WordPress block format
-5. **CTA Integration**: Adds call-to-action blocks before each H2 heading (except first)
-6. **SEO Integration**: Adds optimized titles, meta descriptions, and LD-JSON Schema data
-7. **Post Creation**: Saves as "local" custom post type with clean URLs
+2. **Hierarchical Creation**: Creates state page first, then child city pages
+3. **Claude Prompt**: Sends structured prompts to Claude AI API with location-specific context
+4. **Content Creation**: Generates unique content for each location
+5. **Automatic Interlinking**: Links city names to city pages, service keywords to contact page
+6. **CTA Integration**: Adds call-to-action blocks before each H2 heading
+7. **SEO Integration**: Adds optimized titles, meta descriptions, and LD-JSON Schema data
+8. **Post Creation**: Saves as hierarchical "local" custom post type with clean URLs
 
 ### Content Strategy
 
-Each state receives unique content through:
+**State Pages (300-400 words):**
+- Geographic relevance with state and major city mentions
+- Service focus on WordPress development capabilities
+- City names automatically linked to their respective city pages
+- Service keywords automatically linked to contact page
 
-- **Geographic Relevance**: State and major city mentions for local SEO
-- **Service Focus**: WordPress development capabilities and technical expertise  
-- **Remote Emphasis**: 100% remote operations and nationwide service
-- **Clear CTAs**: Multiple conversion opportunities throughout content
+**City Pages (250-350 words):**
+- City-specific benefits and local business context  
+- Geographic references to the city and state
+- Service keywords automatically linked to contact page
+- Parent-child relationship with state page
 
-*No industry-specific angles - generic services applicable to all business types*
+### Automatic Interlinking
+
+**State Pages:**
+- ✅ City names → Link to city pages
+- ✅ Service keywords → Link to https://84em.com/contact/
+
+**City Pages:**
+- ✅ Service keywords → Link to https://84em.com/contact/
 
 ### SEO Implementation
 
-Each generated page includes:
-
+**State Pages:**
 - **SEO Title**: "Expert WordPress Development Services in [State] | 84EM"
 - **Meta Description**: State and city-specific description
-- **Structured Content**: H2/H3 headings with bold formatting
-- **Local Keywords**: Natural integration of city and state names
-- **Call-to-Actions**: Inline links and prominent CTA blocks
-- **LD-JSON Schema**: For SEO purposes
+- **LD-JSON Schema**: LocalBusiness schema with city containment
+
+**City Pages:**
+- **SEO Title**: "Expert WordPress Development Services in [City], [State] | 84EM"  
+- **Meta Description**: City and state-specific description
+- **LD-JSON Schema**: LocalBusiness schema with city focus
 
 ### Call-to-Action Features
 
 - **Inline CTAs**: 2-3 contextual links throughout content linking to /contact/
-- **Prominent CTA Blocks**: Placed before every H2 heading (except first)
+- **Prominent CTA Blocks**: Placed before every H2 heading
 - **Styled Buttons**: "Start Your WordPress Project" with custom styling
 - **Natural Integration**: CTAs flow naturally within content
 
@@ -215,9 +288,10 @@ Each generated page includes:
 
 ### Cost Estimates
 
-- **Full Generation** (50 states): $2-4 per complete run (reduced content length)
+- **Full Generation** (350 pages): $14-28 per complete run
+- **State Pages Only** (50 pages): $2-4 per run
 - **Individual Updates**: $0.04-0.08 per page
-- **Monthly Maintenance**: $6-12 depending on update frequency
+- **Monthly Maintenance**: $20-40 depending on update frequency
 
 ### API Settings Used
 
@@ -233,22 +307,27 @@ Each generated page includes:
 ### Post Type Configuration
 - **Name**: Local Pages
 - **Slug**: local (but URLs don't include /local/)
+- **Hierarchical**: Yes (supports parent-child relationships)
 - **Public**: Yes
 - **Archive**: Yes
 - **REST API**: Enabled
 - **Supports**: Title, editor, thumbnail, excerpt, custom fields
 
 ### Custom Fields Stored
+
+**State Pages:**
 - `_local_page_state`: State name (e.g., "California")
 - `_local_page_cities`: Comma-separated 6 largest cities
 - `_genesis_title`: SEO title
 - `_genesis_description`: SEO meta description
+- `schema`: LD-JSON structured data
 
-### URL Structure
-```
-https://84em.com/wordpress-development-services-california/
-https://84em.com/wordpress-development-services-texas/
-```
+**City Pages:**
+- `_local_page_state`: State name (e.g., "California")
+- `_local_page_city`: City name (e.g., "Los Angeles")
+- `_genesis_title`: SEO title
+- `_genesis_description`: SEO meta description
+- `schema`: LD-JSON structured data
 
 ## Content Features
 
@@ -267,91 +346,75 @@ https://84em.com/wordpress-development-services-texas/
 ## Index Page Feature
 
 ### Overview
-The `generate-index` command creates or updates a master index page that serves as a navigation hub for all local pages. This page provides an alphabetized directory of all US states with direct links to their respective local pages.
+The `generate-index` command creates or updates a master index page that serves as a navigation hub for all state pages. This page provides an alphabetized directory of all US states with direct links to their respective state pages.
 
 ### Index Page Details
 - **Page Slug**: `wordpress-development-services-usa`
 - **Page Title**: `WordPress Development Services in USA | 84EM`
 - **Page Type**: Standard WordPress page (not custom post type)
-- **URL**: `https://yourdomain.com/wordpress-development-services-usa/`
+- **URL**: `https://84em.com/wordpress-development-services-usa/`
 
 ### Features
-- **Automatic State Discovery**: Uses WP_Query to find all published local pages
+- **Automatic State Discovery**: Uses WP_Query to find all published state pages
 - **Alphabetical Sorting**: States are automatically sorted A-Z for easy navigation
 - **Smart Create/Update**: Detects existing page and updates content, or creates new page
 - **SEO Optimized**: Includes meta description and SEO title
 - **WordPress Block Format**: Content generated in Gutenberg block syntax
 - **Professional Content**: Includes service overview and call-to-action
 
-### Generated Content Structure
-The index page includes:
-1. **Introduction**: Overview of 84EM's nationwide WordPress development services
-2. **State Directory**: Alphabetized list of all states with links to local pages
-3. **Service Overview**: Key WordPress development services offered
-4. **Call-to-Action**: Link to contact page for inquiries
-
-### When to Use
-- **After Creating Local Pages**: Generate index after creating multiple state pages
-- **Regular Updates**: Refresh index when adding new state pages
-- **SEO Strategy**: Provide internal linking hub for better site structure
-- **User Navigation**: Give visitors easy access to state-specific pages
-
-### Usage in Workflows
-```bash
-# Complete workflow for new setup
-wp 84em local-pages --state=all              # Create all state pages
-wp 84em local-pages --generate-index         # Create index page
-wp 84em local-pages --generate-sitemap       # Generate XML sitemap
-
-# Monthly maintenance
-wp 84em local-pages --update --state=all     # Update existing pages
-wp 84em local-pages --generate-index         # Refresh index page
-```
-
 ## Workflow Examples
 
-### Initial Setup Workflow
+### Complete Setup Workflow
 ```bash
 # 1. Set API key
 wp 84em local-pages --set-api-key
 
-# 2. Test with a few states first
-wp 84em local-pages --state="California,New York,Texas"
+# 2. Generate everything (350 pages)
+wp 84em local-pages --generate-all
 
-# 3. Generate all states
-wp 84em local-pages --state=all
-
-# 4. Generate index page
+# 3. Generate supporting pages
 wp 84em local-pages --generate-index
-
-# 5. Monitor progress
-wp post list --post_type=local --format=count
-
-# 6. Review generated content in WordPress admin
-```
-
-### Maintenance Workflow
-```bash
-# Monthly content refresh
-wp 84em local-pages --update --state=all
-
-# Update specific states
-wp 84em local-pages --update --state="California,New York"
-
-# Generate sitemap
 wp 84em local-pages --generate-sitemap
 
-# Generate/update index page
+# 4. Verify results
+wp post list --post_type=local --format=count
+```
+
+### Monthly Maintenance Workflow
+```bash
+# Update all existing content
+wp 84em local-pages --update-all
+
+# Refresh supporting pages
 wp 84em local-pages --generate-index
+wp 84em local-pages --generate-sitemap
+```
+
+### Selective Operations
+```bash
+# Test with a few states first
+wp 84em local-pages --state="California,New York,Texas"
+
+# Generate cities for specific states
+wp 84em local-pages --state="California" --city=all
+wp 84em local-pages --state="New York" --city=all
+
+# Update specific locations
+wp 84em local-pages --update --state="California"
+wp 84em local-pages --state="California" --city="Los Angeles,San Diego"
 ```
 
 ### Troubleshooting Workflow
 ```bash
 # Check for failed pages
-wp post list --post_type=local --post_status=draft
+wp post list --post_type=local --post_status=draft --format=table
 
-# Regenerate specific failed states
-wp 84em local-pages --update --state="California,Texas"
+# Check page counts
+wp post list --post_type=local --format=count
+
+# Regenerate specific failed locations
+wp 84em local-pages --update --state="California"
+wp 84em local-pages --state="California" --city="Los Angeles"
 
 # Monitor error logs
 tail -f /path/to/wordpress/wp-content/debug.log
@@ -367,16 +430,20 @@ tail -f /path/to/wordpress/wp-content/debug.log
 wp 84em local-pages --set-api-key
 ```
 
-**"Failed to generate content for [State]"**
-- Check API key validity
+**"Failed to generate content for [Location]"**
+- Check API key validity with `--validate-api-key`
 - Verify internet connection
 - Check Anthropic service status
 - Review API usage limits
 
-**"Invalid state name"**
+**"Parent state page not found"**
+- Create state page first before generating city pages
+- Use `--generate-all` to create everything in proper order
+
+**"Invalid state name" or "City not found in [State]"**
 - Use full state names (e.g., "California", not "CA")
 - Check spelling and capitalization
-- Use exact state names from the 50 US states list
+- City names must match the predefined list in the plugin
 
 **"cURL timeout errors"**
 ```php
@@ -410,15 +477,17 @@ tail -f /wp-content/debug.log | grep "84EM"
 ### Progress Tracking
 - Real-time progress bars for bulk operations
 - API request duration tracking
-- Individual state processing indicators
+- Individual location processing indicators
 - Clear success/failure messaging with emojis
+- Comprehensive statistics showing created/updated counts
 
 ### Bulk Operation Tips
 
 1. **Monitor Progress**: Built-in progress indicators show real-time status
-2. **Batch Processing**: Process in smaller batches if timeouts occur
+2. **Hierarchical Processing**: States are created first, then their cities
 3. **Rate Limiting**: Plugin includes 1-second delays between API calls
 4. **Memory Management**: Increase PHP memory limits for large operations
+5. **Error Handling**: Graceful failures with detailed logging
 
 ### Caching Considerations
 
@@ -435,7 +504,6 @@ The plugin works with most caching plugins, but consider:
 - Only encrypted data stored in database - no plaintext API keys
 - Cryptographically secure initialization vector (IV) for each encryption
 - Not exposed in frontend or logs
-- Can be set via environment variables
 
 ### API Key Security
 - **Interactive Entry**: API keys are entered via secure prompt, not command arguments
@@ -456,14 +524,18 @@ The plugin works with most caching plugins, but consider:
 ### Monitoring Commands
 
 ```bash
-# Check page count
+# Check total page count
 wp post list --post_type=local --format=count
 
-# List all local pages
+# List all local pages with hierarchy
 wp post list --post_type=local --format=table
 
 # Check for drafts (potential failures)
 wp post list --post_type=local --post_status=draft --format=table
+
+# Count state vs city pages
+wp post list --post_type=local --meta_key=_local_page_city --format=count
+wp post list --post_type=local --meta_key=_local_page_state --format=count
 
 # Export all local pages
 wp export --post_type=local
@@ -483,7 +555,7 @@ wp export --post_type=local --dir=/backups/local-pages/
 ### Recovery Process
 ```bash
 # Restore from database backup
-wp db import 84em-local-pages-backup-20241226.sql
+wp db import 84em-local-pages-backup-20250130.sql
 
 # Or import specific posts
 wp import /backups/local-pages/local-pages-export.xml
@@ -505,7 +577,8 @@ wp import /backups/local-pages/local-pages-export.xml
 ├── 84em-local-pages.php             # Main plugin file
 ├── README.md                        # This documentation
 ├── Claude.md                        # Claude AI prompt templates
-└── cta.html                         # Call-to-action block template
+├── changelog.md                     # Version history and release notes
+├── cta.html                         # Call-to-action block template
 └── deploy.sh                        # rsync powered deployment script
 ```
 
@@ -515,7 +588,7 @@ Proprietary software developed for 84EM. All rights reserved.
 
 ---
 
-**Plugin Version**: 1.0.0  
+**Plugin Version**: 2.0.0  
 **WordPress Tested**: 6.8+  
 **PHP Minimum**: 8.2  
-**Last Updated**: July 30, 2025
+**Last Updated**: July 31, 2025

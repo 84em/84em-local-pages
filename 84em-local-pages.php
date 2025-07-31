@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 84EM Local Pages Generator
  * Description: Generates SEO-optimized Local Pages for each US state using Claude AI
- * Version: 1.0.0
+ * Version: 2.0.0
  * Author: 84EM
  * Requires at least: 6.8
  * Requires PHP: 8.2
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) or die;
 
-const EIGHTYFOUREM_LOCAL_PAGES_VERSION = '1.0.0';
+const EIGHTYFOUREM_LOCAL_PAGES_VERSION = '2.0.0';
 
 class EightyFourEM_Local_Pages_Generator {
 
@@ -78,7 +78,7 @@ class EightyFourEM_Local_Pages_Generator {
 
         // Check site URL
         $site_url = get_site_url();
-        if ( $site_url !== 'https://84em.com' ) {
+        if ( $site_url !== 'https://84em.com' && $site_url !== 'https://84em.local' && $site_url !== 'https://staging.84em.com' ) {
             add_action( 'admin_notices', function () {
                 echo '<div class="notice notice-error"><p><strong>84EM Local Pages Generator:</strong> This plugin can only be used on 84em.com. The plugin has been deactivated.  Want a version that you can run on your own site? <a href="https://84em.com/contact/" target="_blank">Contact 84EM</a>.</p></div>';
             } );
@@ -176,6 +176,21 @@ class EightyFourEM_Local_Pages_Generator {
             'WordPress migrations',
             'digital agency services',
             'WordPress plugin development',
+            'Custom WordPress plugin development',
+            'White label WordPress development',
+            'WordPress plugin development services',
+            'Custom WordPress development Cedar Rapids',
+            'WordPress development agency Iowa',
+            'WordPress WooCommerce development',
+            'Custom API integration WordPress',
+            'WordPress maintenance services',
+            'White label web development services',
+            'WordPress security audit services',
+            'Custom WordPress plugin development for agencies',
+            'WordPress plugin development for financial services',
+            'White label WordPress development Cedar Rapids',
+            'Custom WooCommerce plugin development',
+            'WordPress malware cleanup services',
         ];
     }
 
@@ -208,7 +223,7 @@ class EightyFourEM_Local_Pages_Generator {
             'rewrite'            => false,
             'capability_type'    => 'post',
             'has_archive'        => true,
-            'hierarchical'       => false,
+            'hierarchical'       => true,
             'menu_position'      => 5,
             'menu_icon'          => 'dashicons-location-alt',
             'supports'           => [ 'title', 'editor', 'thumbnail', 'excerpt', 'custom-fields' ],
@@ -250,6 +265,7 @@ class EightyFourEM_Local_Pages_Generator {
      */
     public function add_rewrite_rules(): void {
         add_rewrite_rule( '^wordpress-development-services-([a-zA-Z-]+)/?$', 'index.php?post_type=local&name=$matches[1]', 'top' );
+        add_rewrite_rule( '^wordpress-development-services-([a-zA-Z-]+)/([a-zA-Z-]+)/?$', 'index.php?post_type=local&name=$matches[2]', 'top' );
     }
 
     /**
@@ -303,6 +319,14 @@ class EightyFourEM_Local_Pages_Generator {
             return;
         }
 
+        // Handle city-specific commands (doesn't require API key for delete operations)
+        if ( isset( $assoc_args['city'] ) ) {
+            if ( isset( $assoc_args['delete'] ) ) {
+                $this->handle_city_delete_command( $assoc_args );
+                return;
+            }
+        }
+
         // Load API key using secure storage
         $this->claude_api_key = $this->get_secure_claude_api_key();
 
@@ -320,6 +344,24 @@ class EightyFourEM_Local_Pages_Generator {
         // Handle update command
         if ( isset( $assoc_args['update'] ) ) {
             $this->handle_update_command( $assoc_args );
+            return;
+        }
+
+        // Handle city-specific command (requires API key)
+        if ( isset( $assoc_args['city'] ) ) {
+            $this->handle_city_command( $assoc_args );
+            return;
+        }
+
+        // Handle generate-all command (states + cities)
+        if ( isset( $assoc_args['generate-all'] ) ) {
+            $this->handle_generate_all_command( $assoc_args );
+            return;
+        }
+
+        // Handle update-all command (states + cities)
+        if ( isset( $assoc_args['update-all'] ) ) {
+            $this->handle_update_all_command( $assoc_args );
             return;
         }
 
@@ -910,7 +952,14 @@ IMPORTANT:
 
 Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for all content.";
 
-        return $this->call_claude_api( $prompt );
+        $content = $this->call_claude_api( $prompt );
+
+        if ( $content !== false ) {
+            // Add automatic interlinking for city names and service keywords
+            $content = $this->add_automatic_links( $content, $state );
+        }
+
+        return $content;
     }
 
     /**
@@ -1057,7 +1106,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
         // Check if page already exists
         $existing_page = get_page_by_path( $page_slug );
 
-        // Get all published local pages using WP_Query
+        // Get all published state pages (not city pages) using WP_Query
         $query = new WP_Query( [
             'post_type'      => 'local',
             'post_status'    => 'publish',
@@ -1068,6 +1117,10 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                 [
                     'key'     => '_local_page_state',
                     'compare' => 'EXISTS'
+                ],
+                [
+                    'key'     => '_local_page_city',
+                    'compare' => 'NOT EXISTS'
                 ]
             ]
         ] );
@@ -1453,6 +1506,868 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
     }
 
     /**
+     * Handles city-specific commands for creating/updating city pages
+     *
+     * @param  array  $assoc_args  WP-CLI associative arguments
+     *
+     * @return void
+     */
+    private function handle_city_command( array $assoc_args ): void {
+        $state_arg = $assoc_args['state'] ?? null;
+        $city_arg = $assoc_args['city'] ?? null;
+
+        if ( empty( $state_arg ) ) {
+            WP_CLI::error( 'State is required when working with cities. Use --state="State Name"' );
+            return;
+        }
+
+        if ( empty( $city_arg ) ) {
+            WP_CLI::error( 'City is required. Use --city="City Name" or --city=all' );
+            return;
+        }
+
+        // Handle 'all' cities for a state
+        if ( $city_arg === 'all' ) {
+            $this->generate_all_city_pages_for_state( $state_arg );
+            return;
+        }
+
+        // Handle specific cities
+        $city_names = $this->parse_city_names( $city_arg );
+        $created_count = 0;
+        $updated_count = 0;
+
+        foreach ( $city_names as $city_name ) {
+            // Validate state name
+            if ( ! isset( $this->us_states_data[ $state_arg ] ) ) {
+                WP_CLI::warning( "Invalid state name: {$state_arg}. Skipping." );
+                continue;
+            }
+
+            // Validate city belongs to state
+            if ( ! in_array( $city_name, $this->us_states_data[ $state_arg ]['cities'] ) ) {
+                WP_CLI::warning( "City '{$city_name}' not found in {$state_arg}. Skipping." );
+                continue;
+            }
+
+            // Get parent state page
+            $parent_post = $this->get_state_page( $state_arg );
+            if ( ! $parent_post ) {
+                WP_CLI::error( "Parent state page for {$state_arg} not found. Create state page first." );
+                continue;
+            }
+
+            // Check if city page already exists
+            $existing_posts = get_posts( [
+                'post_type'   => 'local',
+                'meta_key'    => '_local_page_city',
+                'meta_value'  => $city_name,
+                'meta_query'  => [
+                    [
+                        'key'   => '_local_page_state',
+                        'value' => $state_arg,
+                    ],
+                ],
+                'numberposts' => 1,
+            ] );
+
+            if ( ! empty( $existing_posts ) ) {
+                if ( $this->update_city_page( $existing_posts[0]->ID, $state_arg, $city_name ) ) {
+                    $updated_count++;
+                    WP_CLI::log( "Updated City Page for {$city_name}, {$state_arg} (ID: {$existing_posts[0]->ID})" );
+                } else {
+                    WP_CLI::warning( "Failed to update City Page for {$city_name}, {$state_arg}" );
+                }
+            } else {
+                if ( $this->create_city_page( $state_arg, $city_name, $parent_post->ID ) ) {
+                    $created_count++;
+                    WP_CLI::log( "Created City Page for {$city_name}, {$state_arg}" );
+                } else {
+                    WP_CLI::warning( "Failed to create City Page for {$city_name}, {$state_arg}" );
+                }
+            }
+
+            // Add small delay to avoid API rate limits
+            if ( count( $city_names ) > 1 ) {
+                sleep( 1 );
+            }
+        }
+
+        if ( count( $city_names ) === 1 ) {
+            if ( $created_count > 0 ) {
+                WP_CLI::success( "Created City Page for {$city_names[0]}, {$state_arg}" );
+            } elseif ( $updated_count > 0 ) {
+                WP_CLI::success( "Updated City Page for {$city_names[0]}, {$state_arg}" );
+            } else {
+                WP_CLI::error( "Failed to process City Page for {$city_names[0]}, {$state_arg}" );
+            }
+        } else {
+            WP_CLI::success( "Process completed. Created: {$created_count}, Updated: {$updated_count}" );
+        }
+    }
+
+    /**
+     * Handles city delete commands
+     *
+     * @param  array  $assoc_args  WP-CLI associative arguments
+     *
+     * @return void
+     */
+    private function handle_city_delete_command( array $assoc_args ): void {
+        $state_arg = $assoc_args['state'] ?? null;
+        $city_arg = $assoc_args['city'] ?? null;
+
+        if ( empty( $state_arg ) ) {
+            WP_CLI::error( 'State is required when deleting cities. Use --state="State Name"' );
+            return;
+        }
+
+        if ( empty( $city_arg ) ) {
+            WP_CLI::error( 'City is required. Use --city="City Name" or --city=all' );
+            return;
+        }
+
+        if ( $city_arg === 'all' ) {
+            $posts = get_posts( [
+                'post_type'   => 'local',
+                'meta_key'    => '_local_page_state',
+                'meta_value'  => $state_arg,
+                'meta_query'  => [
+                    [
+                        'key'     => '_local_page_city',
+                        'compare' => 'EXISTS',
+                    ],
+                ],
+                'numberposts' => -1,
+            ] );
+
+            $deleted_count = 0;
+            foreach ( $posts as $post ) {
+                if ( wp_delete_post( $post->ID, true ) ) {
+                    $deleted_count++;
+                    $city = get_post_meta( $post->ID, '_local_page_city', true );
+                    WP_CLI::log( "Deleted City Page for {$city}, {$state_arg}" );
+                }
+            }
+
+            WP_CLI::success( "Deleted {$deleted_count} City Pages for {$state_arg}." );
+        } else {
+            $city_names = $this->parse_city_names( $city_arg );
+            $deleted_count = 0;
+
+            foreach ( $city_names as $city_name ) {
+                $existing_posts = get_posts( [
+                    'post_type'   => 'local',
+                    'meta_key'    => '_local_page_city',
+                    'meta_value'  => $city_name,
+                    'meta_query'  => [
+                        [
+                            'key'   => '_local_page_state',
+                            'value' => $state_arg,
+                        ],
+                    ],
+                    'numberposts' => 1,
+                ] );
+
+                if ( ! empty( $existing_posts ) ) {
+                    if ( wp_delete_post( $existing_posts[0]->ID, true ) ) {
+                        $deleted_count++;
+                        WP_CLI::log( "Deleted City Page for {$city_name}, {$state_arg}" );
+                    } else {
+                        WP_CLI::warning( "Failed to delete City Page for {$city_name}, {$state_arg}" );
+                    }
+                } else {
+                    WP_CLI::warning( "No existing page found for {$city_name}, {$state_arg}. Nothing to delete." );
+                }
+            }
+
+            WP_CLI::success( "Deleted {$deleted_count} City Pages." );
+        }
+    }
+
+    /**
+     * Generates all city pages for a specific state
+     *
+     * @param  string  $state  State name
+     *
+     * @return void
+     */
+    private function generate_all_city_pages_for_state( string $state ): void {
+        if ( ! isset( $this->us_states_data[ $state ] ) ) {
+            WP_CLI::error( "Invalid state name: {$state}" );
+            return;
+        }
+
+        // Get parent state page
+        $parent_post = $this->get_state_page( $state );
+        if ( ! $parent_post ) {
+            WP_CLI::error( "Parent state page for {$state} not found. Create state page first." );
+            return;
+        }
+
+        $cities = $this->us_states_data[ $state ]['cities'];
+        $created_count = 0;
+        $updated_count = 0;
+        $total_cities = count( $cities );
+
+        $progress = \WP_CLI\Utils\make_progress_bar( "Processing cities for {$state}", $total_cities );
+
+        foreach ( $cities as $city ) {
+            // Check if city page already exists
+            $existing_posts = get_posts( [
+                'post_type'   => 'local',
+                'meta_key'    => '_local_page_city',
+                'meta_value'  => $city,
+                'meta_query'  => [
+                    [
+                        'key'   => '_local_page_state',
+                        'value' => $state,
+                    ],
+                ],
+                'numberposts' => 1,
+            ] );
+
+            if ( ! empty( $existing_posts ) ) {
+                if ( $this->update_city_page( $existing_posts[0]->ID, $state, $city ) ) {
+                    $updated_count++;
+                    WP_CLI::log( "Updated City Page for {$city}, {$state}" );
+                }
+            } else {
+                if ( $this->create_city_page( $state, $city, $parent_post->ID ) ) {
+                    $created_count++;
+                    WP_CLI::log( "Created City Page for {$city}, {$state}" );
+                }
+            }
+
+            // Add small delay to avoid API rate limits
+            sleep( 1 );
+
+            $progress->tick();
+        }
+
+        $progress->finish();
+
+        WP_CLI::success( "Process completed for {$state}. Created: {$created_count}, Updated: {$updated_count}" );
+    }
+
+    /**
+     * Creates a new city page
+     *
+     * @param  string  $state       State name
+     * @param  string  $city        City name
+     * @param  int     $parent_id   Parent state page ID
+     *
+     * @return bool True if page created successfully, false otherwise
+     */
+    private function create_city_page( string $state, string $city, int $parent_id ): bool {
+        WP_CLI::log( "📝 Creating city page for {$city}, {$state}..." );
+
+        $content = $this->generate_city_content_with_claude( $state, $city );
+
+        if ( $content === false ) {
+            WP_CLI::warning( "❌ Failed to generate content for {$city}, {$state}" );
+            return false;
+        }
+
+        $post_data = [
+            'post_title'   => "WordPress Development Services in {$city}, {$state} | 84EM",
+            'post_name'    => sanitize_title( $city ),
+            'post_content' => $content,
+            'post_status'  => 'publish',
+            'post_type'    => 'local',
+            'post_author'  => 1,
+            'post_parent'  => $parent_id,
+            'meta_input'   => [
+                '_local_page_state'    => $state,
+                '_local_page_city'     => $city,
+                '_genesis_title'       => "Expert WordPress Development Services in {$city}, {$state} | 84EM",
+                '_genesis_description' => "Professional WordPress development, custom plugins, and web solutions for businesses in {$city}, {$state}. White-label services and expert support.",
+                'schema'               => $this->generate_city_ld_json_schema( $state, $city ),
+            ],
+        ];
+
+        $post_id = wp_insert_post( $post_data );
+
+        if ( $post_id && ! is_wp_error( $post_id ) ) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Updates an existing city page with new content
+     *
+     * @param  int     $post_id  WordPress post ID to update
+     * @param  string  $state    State name for content generation
+     * @param  string  $city     City name for content generation
+     *
+     * @return bool True if page updated successfully, false otherwise
+     */
+    private function update_city_page( int $post_id, string $state, string $city ): bool {
+        WP_CLI::log( "🔄 Updating city page for {$city}, {$state}..." );
+
+        $content = $this->generate_city_content_with_claude( $state, $city );
+
+        if ( $content === false ) {
+            return false;
+        }
+
+        $post_data = [
+            'ID'                => $post_id,
+            'post_content'      => $content,
+            'post_modified'     => current_time( 'mysql' ),
+            'post_modified_gmt' => current_time( 'mysql', 1 ),
+        ];
+
+        $result = wp_update_post( $post_data );
+
+        if ( $result && ! is_wp_error( $result ) ) {
+            // Update meta fields
+            update_post_meta( $post_id, '_genesis_description', "Professional WordPress development, custom plugins, and web solutions for businesses in {$city}, {$state}. White-label services and expert support." );
+            update_post_meta( $post_id, 'schema', $this->generate_city_ld_json_schema( $state, $city ) );
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Generates content for a city using Claude AI API
+     *
+     * @param  string  $state  State name for content generation
+     * @param  string  $city   City name for content generation
+     *
+     * @return string|false Generated content or false on failure
+     */
+    private function generate_city_content_with_claude( string $state, string $city ): string|false {
+        // Get relevant keywords for content generation
+        $service_keywords_list = implode( ', ', $this->service_keywords );
+
+        $prompt = "Write a concise, SEO-optimized landing page for 84EM's WordPress development services specifically for businesses in {$city}, {$state}. 
+
+IMPORTANT: Create unique, original content that is different from other city pages. Focus on local relevance through city-specific benefits and geographic context.
+
+84EM is a 100% FULLY REMOTE WordPress development company. Do NOT mention on-site visits, in-person consultations, local offices, or physical presence. All work is done remotely.
+
+Include the following key elements:
+1. A professional opening paragraph mentioning {$city}, {$state} and local business benefits
+2. WordPress development services including: {$service_keywords_list}
+3. Why businesses in {$city} choose 84EM (remote expertise, proven track record, reliable delivery)
+4. Call-to-action for {$city} businesses
+5. Include naturally-placed keywords: 'WordPress development {$city}', 'custom plugins {$city}', 'web development {$state}'
+
+Write approximately 250-350 words in a professional, factual tone. Avoid hyperbole and superlatives. Focus on concrete services, technical expertise, and actual capabilities. Make it locally relevant through geographic references while emphasizing 84EM's remote-first approach serves clients nationwide.
+
+CRITICAL: Format the content using WordPress block editor syntax (Gutenberg blocks). Use the following format:
+- Paragraphs: <!-- wp:paragraph --><p>Your paragraph text here.</p><!-- /wp:paragraph -->
+- Headings: <!-- wp:heading {\"level\":2} --><h2><strong>Your Heading</strong></h2><!-- /wp:heading -->
+- Sub-headings: <!-- wp:heading {\"level\":3} --><h3><strong>Your Sub-heading</strong></h3><!-- /wp:heading -->
+- Call-to-action links: <a href=\"/contact/\">contact us today</a> or <a href=\"/contact/\">get started</a>
+
+IMPORTANT: 
+- All headings (h2, h3) must be wrapped in <strong> tags to ensure they appear bold.
+- Include 2-3 call-to-action links throughout the content that link to /contact/ using phrases like \"contact us today\", \"get started\", \"reach out\", \"discuss your project\", etc.
+- Make the call-to-action links natural and contextual within the content.
+- Insert this exact CTA block BEFORE every H2 heading:
+
+<!-- wp:group {\"className\":\"get-started-local\",\"style\":{\"spacing\":{\"margin\":{\"top\":\"0\"},\"padding\":{\"bottom\":\"var:preset|spacing|40\",\"top\":\"var:preset|spacing|40\",\"right\":\"0\"}}},\"layout\":{\"type\":\"constrained\",\"contentSize\":\"1280px\"}} -->
+<div class=\"wp-block-group get-started-local\" style=\"margin-top:0;padding-top:var(--wp--preset--spacing--40);padding-right:0;padding-bottom:var(--wp--preset--spacing--40)\"><!-- wp:buttons {\"className\":\"animated bounceIn\",\"layout\":{\"type\":\"flex\",\"justifyContent\":\"center\"}} -->
+<div class=\"wp-block-buttons animated bounceIn\"><!-- wp:button {\"style\":{\"border\":{\"radius\":{\"topLeft\":\"0px\",\"topRight\":\"30px\",\"bottomLeft\":\"30px\",\"bottomRight\":\"0px\"}},\"shadow\":\"var:preset|shadow|crisp\"},\"fontSize\":\"large\"} -->
+<div class=\"wp-block-button\"><a class=\"wp-block-button__link has-large-font-size has-custom-font-size wp-element-button\" href=\"/contact/\" style=\"border-top-left-radius:0px;border-top-right-radius:30px;border-bottom-left-radius:30px;border-bottom-right-radius:0px;box-shadow:var(--wp--preset--shadow--crisp)\">Start Your WordPress Project</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons --></div>
+<!-- /wp:group -->
+
+Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for all content.";
+
+        $content = $this->call_claude_api( $prompt );
+
+        if ( $content !== false ) {
+            // Add automatic interlinking for service keywords (cities are handled in state pages)
+            $content = $this->add_service_keyword_links( $content );
+        }
+
+        return $content;
+    }
+
+    /**
+     * Adds automatic interlinking for service keywords only (for city pages)
+     *
+     * @param  string  $content  The content to process
+     *
+     * @return string Processed content with service keyword links added
+     */
+    private function add_service_keyword_links( string $content ): string {
+        // Add service keyword links
+        foreach ( $this->service_keywords as $keyword ) {
+            $contact_url = 'https://84em.com/contact/';
+
+            // Replace service keywords with contact links, but avoid double-linking
+            $keyword_pattern = '/\b' . preg_quote( $keyword, '/' ) . '\b(?![^<]*>)/i';
+            $keyword_replacement = '<a href="' . esc_url( $contact_url ) . '">' . $keyword . '</a>';
+
+            // Only replace if not already in a link
+            $content = preg_replace_callback( $keyword_pattern, function( $matches ) use ( $keyword_replacement, $content ) {
+                // Check if this match is already inside an HTML tag
+                $before = substr( $content, 0, strpos( $content, $matches[0] ) );
+                $open_tags = substr_count( $before, '<' );
+                $close_tags = substr_count( $before, '>' );
+
+                // If we're inside a tag, don't replace
+                if ( $open_tags > $close_tags ) {
+                    return $matches[0];
+                }
+
+                return $keyword_replacement;
+            }, $content, 1 ); // Only replace first occurrence to avoid over-linking
+        }
+
+        return $content;
+    }
+
+    /**
+     * Generates LD JSON schema for city pages
+     *
+     * @param  string  $state  State name
+     * @param  string  $city   City name
+     *
+     * @return string JSON-encoded LD schema
+     */
+    private function generate_city_ld_json_schema( string $state, string $city ): string {
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'LocalBusiness',
+            'name' => '84EM WordPress Development Services',
+            'description' => "Professional WordPress development, custom plugins, and web solutions for businesses in {$city}, {$state}",
+            'url' => home_url( '/wordpress-development-services-' . sanitize_title( $state ) . '/' . sanitize_title( $city ) . '/' ),
+            'serviceArea' => [
+                '@type' => 'City',
+                'name' => $city,
+                'addressRegion' => $state,
+                'addressCountry' => 'US'
+            ],
+            'hasOfferCatalog' => [
+                '@type' => 'OfferCatalog',
+                'name' => 'WordPress Development Services',
+                'itemListElement' => array_map( function( $service, $index ) {
+                    return [
+                        '@type' => 'Offer',
+                        'position' => $index + 1,
+                        'itemOffered' => [
+                            '@type' => 'Service',
+                            'name' => $service,
+                            'serviceType' => 'WordPress Development'
+                        ]
+                    ];
+                }, $this->service_keywords, array_keys( $this->service_keywords ) )
+            ],
+            'containedInPlace' => [
+                '@type' => 'State',
+                'name' => $state
+            ],
+            'contactPoint' => [
+                '@type' => 'ContactPoint',
+                'contactType' => 'customer service',
+                'url' => home_url( '/contact/' )
+            ],
+            'address' => [
+                '@type' => 'PostalAddress',
+                'addressLocality' => $city,
+                'addressRegion' => $state,
+                'addressCountry' => 'US'
+            ],
+            'areaServed' => [
+                '@type' => 'City',
+                'name' => $city,
+                'addressRegion' => $state
+            ]
+        ];
+
+        return wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+    }
+
+    /**
+     * Gets the state page for a given state name
+     *
+     * @param  string  $state  State name
+     *
+     * @return WP_Post|false State page post object or false if not found
+     */
+    private function get_state_page( string $state ): WP_Post|false {
+        $posts = get_posts( [
+            'post_type'   => 'local',
+            'meta_key'    => '_local_page_state',
+            'meta_value'  => $state,
+            'meta_query'  => [
+                [
+                    'key'     => '_local_page_city',
+                    'compare' => 'NOT EXISTS',
+                ],
+            ],
+            'numberposts' => 1,
+        ] );
+
+        return ! empty( $posts ) ? $posts[0] : false;
+    }
+
+    /**
+     * Parses comma-delimited city names into array
+     *
+     * @param  string  $city_arg  City name(s) - single or comma-delimited
+     *
+     * @return array Array of trimmed city names
+     */
+    private function parse_city_names( string $city_arg ): array {
+        if ( strpos( $city_arg, ',' ) !== false ) {
+            return array_map( 'trim', explode( ',', $city_arg ) );
+        } else {
+            return [ trim( $city_arg ) ];
+        }
+    }
+
+    /**
+     * Adds automatic interlinking to content for city names and service keywords
+     *
+     * @param  string  $content  The content to process
+     * @param  string  $state    The state name
+     *
+     * @return string Processed content with links added
+     */
+    private function add_automatic_links( string $content, string $state ): string {
+        // Get cities for this state
+        $cities = $this->us_states_data[ $state ]['cities'] ?? [];
+
+        // Add city links
+        foreach ( $cities as $city ) {
+            $city_url = home_url( '/wordpress-development-services-' . sanitize_title( $state ) . '/' . sanitize_title( $city ) . '/' );
+
+            // Replace city names with links, but avoid double-linking
+            $city_pattern = '/\b' . preg_quote( $city, '/' ) . '\b(?![^<]*>)/';
+            $city_replacement = '<a href="' . esc_url( $city_url ) . '">' . esc_html( $city ) . '</a>';
+
+            // Only replace if not already in a link
+            $content = preg_replace_callback( $city_pattern, function( $matches ) use ( $city_replacement, $content ) {
+                // Check if this match is already inside an HTML tag
+                $before = substr( $content, 0, strpos( $content, $matches[0] ) );
+                $open_tags = substr_count( $before, '<' );
+                $close_tags = substr_count( $before, '>' );
+
+                // If we're inside a tag, don't replace
+                if ( $open_tags > $close_tags ) {
+                    return $matches[0];
+                }
+
+                return $city_replacement;
+            }, $content, 1 ); // Only replace first occurrence to avoid over-linking
+        }
+
+        // Add service keyword links
+        foreach ( $this->service_keywords as $keyword ) {
+            $contact_url = 'https://84em.com/contact/';
+
+            // Replace service keywords with contact links, but avoid double-linking
+            $keyword_pattern = '/\b' . preg_quote( $keyword, '/' ) . '\b(?![^<]*>)/i';
+            $keyword_replacement = '<a href="' . esc_url( $contact_url ) . '">' . $keyword . '</a>';
+
+            // Only replace if not already in a link
+            $content = preg_replace_callback( $keyword_pattern, function( $matches ) use ( $keyword_replacement, $content ) {
+                // Check if this match is already inside an HTML tag
+                $before = substr( $content, 0, strpos( $content, $matches[0] ) );
+                $open_tags = substr_count( $before, '<' );
+                $close_tags = substr_count( $before, '>' );
+
+                // If we're inside a tag, don't replace
+                if ( $open_tags > $close_tags ) {
+                    return $matches[0];
+                }
+
+                return $keyword_replacement;
+            }, $content, 1 ); // Only replace first occurrence to avoid over-linking
+        }
+
+        return $content;
+    }
+
+    /**
+     * Handles generate-all command for creating/updating all states and cities
+     *
+     * @param  array  $assoc_args  WP-CLI associative arguments
+     *
+     * @return void
+     */
+    private function handle_generate_all_command( array $assoc_args ): void {
+        $include_cities = ! isset( $assoc_args['states-only'] );
+
+        WP_CLI::line( '🚀 Starting comprehensive generation process...' );
+        WP_CLI::line( '' );
+
+        if ( $include_cities ) {
+            WP_CLI::line( '📊 This will generate/update:' );
+            WP_CLI::line( '   • 50 state pages' );
+            WP_CLI::line( '   • 300 city pages (6 per state)' );
+            WP_CLI::line( '   • Total: 350 pages' );
+        } else {
+            WP_CLI::line( '📊 This will generate/update 50 state pages only.' );
+        }
+
+        WP_CLI::line( '' );
+
+        $total_states = count( $this->us_states_data );
+        $state_created_count = 0;
+        $state_updated_count = 0;
+        $city_created_count = 0;
+        $city_updated_count = 0;
+
+        // Initialize progress bar for states
+        $progress = \WP_CLI\Utils\make_progress_bar( 'Processing all states and cities', $total_states );
+
+        foreach ( $this->us_states_data as $state => $data ) {
+            WP_CLI::log( "🏛️ Processing {$state}..." );
+
+            // Generate/update state page first
+            $existing_state_posts = get_posts( [
+                'post_type'   => 'local',
+                'meta_key'    => '_local_page_state',
+                'meta_value'  => $state,
+                'meta_query'  => [
+                    [
+                        'key'     => '_local_page_city',
+                        'compare' => 'NOT EXISTS',
+                    ],
+                ],
+                'numberposts' => 1,
+            ] );
+
+            if ( ! empty( $existing_state_posts ) ) {
+                if ( $this->update_local_page( $existing_state_posts[0]->ID, $state ) ) {
+                    $state_updated_count++;
+                    WP_CLI::log( "  ✅ Updated state page for {$state}" );
+                } else {
+                    WP_CLI::warning( "  ❌ Failed to update state page for {$state}" );
+                }
+            } else {
+                if ( $this->create_local_page( $state ) ) {
+                    $state_created_count++;
+                    WP_CLI::log( "  ✅ Created state page for {$state}" );
+                } else {
+                    WP_CLI::warning( "  ❌ Failed to create state page for {$state}" );
+                    $progress->tick();
+                    continue; // Skip cities if state creation failed
+                }
+            }
+
+            // Add delay after state page
+            sleep( 1 );
+
+            // Generate/update city pages if requested
+            if ( $include_cities ) {
+                // Get the parent state page
+                $parent_post = $this->get_state_page( $state );
+                if ( $parent_post ) {
+                    $cities = $data['cities'];
+
+                    foreach ( $cities as $city ) {
+                        WP_CLI::log( "  🏙️ Processing {$city}, {$state}..." );
+
+                        // Check if city page already exists
+                        $existing_city_posts = get_posts( [
+                            'post_type'   => 'local',
+                            'meta_key'    => '_local_page_city',
+                            'meta_value'  => $city,
+                            'meta_query'  => [
+                                [
+                                    'key'   => '_local_page_state',
+                                    'value' => $state,
+                                ],
+                            ],
+                            'numberposts' => 1,
+                        ] );
+
+                        if ( ! empty( $existing_city_posts ) ) {
+                            if ( $this->update_city_page( $existing_city_posts[0]->ID, $state, $city ) ) {
+                                $city_updated_count++;
+                                WP_CLI::log( "    ✅ Updated city page for {$city}" );
+                            } else {
+                                WP_CLI::warning( "    ❌ Failed to update city page for {$city}" );
+                            }
+                        } else {
+                            if ( $this->create_city_page( $state, $city, $parent_post->ID ) ) {
+                                $city_created_count++;
+                                WP_CLI::log( "    ✅ Created city page for {$city}" );
+                            } else {
+                                WP_CLI::warning( "    ❌ Failed to create city page for {$city}" );
+                            }
+                        }
+
+                        // Add delay between cities
+                        sleep( 1 );
+                    }
+                }
+            }
+
+            $progress->tick();
+        }
+
+        $progress->finish();
+
+        WP_CLI::line( '' );
+        WP_CLI::line( '📈 Generation Summary:' );
+        WP_CLI::line( "   States Created: {$state_created_count}" );
+        WP_CLI::line( "   States Updated: {$state_updated_count}" );
+
+        if ( $include_cities ) {
+            WP_CLI::line( "   Cities Created: {$city_created_count}" );
+            WP_CLI::line( "   Cities Updated: {$city_updated_count}" );
+            $total_pages = $state_created_count + $state_updated_count + $city_created_count + $city_updated_count;
+            WP_CLI::success( "🎉 Process completed! Processed {$total_pages} total pages." );
+        } else {
+            $total_pages = $state_created_count + $state_updated_count;
+            WP_CLI::success( "🎉 Process completed! Processed {$total_pages} state pages." );
+        }
+
+        WP_CLI::line( '' );
+        WP_CLI::line( '💡 Next steps:' );
+        WP_CLI::line( '   wp 84em local-pages --generate-index    # Generate index page' );
+        WP_CLI::line( '   wp 84em local-pages --generate-sitemap  # Generate XML sitemap' );
+    }
+
+    /**
+     * Handles update-all command for updating all existing states and cities
+     *
+     * @param  array  $assoc_args  WP-CLI associative arguments
+     *
+     * @return void
+     */
+    private function handle_update_all_command( array $assoc_args ): void {
+        $include_cities = ! isset( $assoc_args['states-only'] );
+
+        WP_CLI::line( '🔄 Starting comprehensive update process...' );
+        WP_CLI::line( '' );
+
+        // Get existing state pages
+        $existing_states = get_posts( [
+            'post_type'   => 'local',
+            'post_status' => 'any',
+            'numberposts' => -1,
+            'meta_query'  => [
+                [
+                    'key'     => '_local_page_state',
+                    'compare' => 'EXISTS'
+                ],
+                [
+                    'key'     => '_local_page_city',
+                    'compare' => 'NOT EXISTS'
+                ]
+            ]
+        ] );
+
+        $state_count = count( $existing_states );
+
+        if ( $include_cities ) {
+            // Get existing city pages
+            $existing_cities = get_posts( [
+                'post_type'   => 'local',
+                'post_status' => 'any',
+                'numberposts' => -1,
+                'meta_query'  => [
+                    [
+                        'key'     => '_local_page_city',
+                        'compare' => 'EXISTS'
+                    ]
+                ]
+            ] );
+
+            $city_count = count( $existing_cities );
+
+            WP_CLI::line( '📊 Found existing pages to update:' );
+            WP_CLI::line( "   • {$state_count} state pages" );
+            WP_CLI::line( "   • {$city_count} city pages" );
+            WP_CLI::line( "   • Total: " . ( $state_count + $city_count ) . " pages" );
+        } else {
+            WP_CLI::line( "📊 Found {$state_count} existing state pages to update." );
+        }
+
+        if ( $state_count === 0 && ( ! $include_cities || count( $existing_cities ?? [] ) === 0 ) ) {
+            WP_CLI::warning( 'No existing pages found to update. Use --generate-all to create new pages.' );
+            return;
+        }
+
+        WP_CLI::line( '' );
+
+        $state_updated_count = 0;
+        $city_updated_count = 0;
+
+        // Initialize progress bar
+        $total_operations = $state_count + ( $include_cities ? count( $existing_cities ?? [] ) : 0 );
+        $progress = \WP_CLI\Utils\make_progress_bar( 'Updating existing pages', $total_operations );
+
+        // Update existing state pages
+        foreach ( $existing_states as $post ) {
+            $state = get_post_meta( $post->ID, '_local_page_state', true );
+            if ( $state ) {
+                WP_CLI::log( "🔄 Updating state page for {$state}..." );
+
+                if ( $this->update_local_page( $post->ID, $state ) ) {
+                    $state_updated_count++;
+                    WP_CLI::log( "  ✅ Updated state page for {$state}" );
+                } else {
+                    WP_CLI::warning( "  ❌ Failed to update state page for {$state}" );
+                }
+
+                // Add delay between updates
+                sleep( 1 );
+            }
+
+            $progress->tick();
+        }
+
+        // Update existing city pages if requested
+        if ( $include_cities && ! empty( $existing_cities ) ) {
+            foreach ( $existing_cities as $post ) {
+                $state = get_post_meta( $post->ID, '_local_page_state', true );
+                $city = get_post_meta( $post->ID, '_local_page_city', true );
+
+                if ( $state && $city ) {
+                    WP_CLI::log( "🔄 Updating city page for {$city}, {$state}..." );
+
+                    if ( $this->update_city_page( $post->ID, $state, $city ) ) {
+                        $city_updated_count++;
+                        WP_CLI::log( "  ✅ Updated city page for {$city}, {$state}" );
+                    } else {
+                        WP_CLI::warning( "  ❌ Failed to update city page for {$city}, {$state}" );
+                    }
+
+                    // Add delay between updates
+                    sleep( 1 );
+                }
+
+                $progress->tick();
+            }
+        }
+
+        $progress->finish();
+
+        WP_CLI::line( '' );
+        WP_CLI::line( '📈 Update Summary:' );
+        WP_CLI::line( "   States Updated: {$state_updated_count}" );
+
+        if ( $include_cities ) {
+            WP_CLI::line( "   Cities Updated: {$city_updated_count}" );
+            $total_updated = $state_updated_count + $city_updated_count;
+            WP_CLI::success( "🎉 Update completed! Updated {$total_updated} total pages." );
+        } else {
+            WP_CLI::success( "🎉 Update completed! Updated {$state_updated_count} state pages." );
+        }
+
+        WP_CLI::line( '' );
+        WP_CLI::line( '💡 Next steps:' );
+        WP_CLI::line( '   wp 84em local-pages --generate-index    # Update index page' );
+        WP_CLI::line( '   wp 84em local-pages --generate-sitemap  # Update XML sitemap' );
+    }
+
+    /**
      * Displays help information for available WP-CLI commands
      *
      * @return void
@@ -1466,7 +2381,19 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
         WP_CLI::line( 'Validate Stored API Key:' );
         WP_CLI::line( '  wp 84em local-pages --validate-api-key' );
         WP_CLI::line( '' );
-        WP_CLI::line( 'Generate/Update All Local Pages:' );
+        WP_CLI::line( 'Generate/Update ALL States and Cities (350 pages):' );
+        WP_CLI::line( '  wp 84em local-pages --generate-all' );
+        WP_CLI::line( '' );
+        WP_CLI::line( 'Generate/Update ALL States Only (50 pages):' );
+        WP_CLI::line( '  wp 84em local-pages --generate-all --states-only' );
+        WP_CLI::line( '' );
+        WP_CLI::line( 'Update ALL Existing States and Cities:' );
+        WP_CLI::line( '  wp 84em local-pages --update-all' );
+        WP_CLI::line( '' );
+        WP_CLI::line( 'Update ALL Existing States Only:' );
+        WP_CLI::line( '  wp 84em local-pages --update-all --states-only' );
+        WP_CLI::line( '' );
+        WP_CLI::line( 'Generate/Update All State Pages (legacy):' );
         WP_CLI::line( '  wp 84em local-pages --state=all' );
         WP_CLI::line( '' );
         WP_CLI::line( 'Generate/Update Specific State:' );
@@ -1488,6 +2415,15 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
         WP_CLI::line( '' );
         WP_CLI::line( 'Generate Index Page (alphabetized state list):' );
         WP_CLI::line( '  wp 84em local-pages --generate-index' );
+        WP_CLI::line( '' );
+        WP_CLI::line( 'Generate/Update City Pages:' );
+        WP_CLI::line( '  wp 84em local-pages --state="California" --city=all' );
+        WP_CLI::line( '  wp 84em local-pages --state="California" --city="Los Angeles"' );
+        WP_CLI::line( '  wp 84em local-pages --state="California" --city="Los Angeles,San Diego"' );
+        WP_CLI::line( '' );
+        WP_CLI::line( 'Delete City Pages:' );
+        WP_CLI::line( '  wp 84em local-pages --delete --state="California" --city=all' );
+        WP_CLI::line( '  wp 84em local-pages --delete --state="California" --city="Los Angeles"' );
     }
 }
 

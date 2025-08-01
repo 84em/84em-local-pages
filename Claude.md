@@ -106,13 +106,17 @@ The plugin automatically processes state page content after generation:
 1. **City Name Detection**: Identifies city names from the state's city list
 2. **Link Generation**: Creates URLs in format `/wordpress-development-services-{state}/{city}/`
 3. **Content Replacement**: Replaces first occurrence of each city name with link
-4. **Service Keyword Linking**: Links service keywords to contact page
+4. **Service Keyword Linking**: Links service keywords to contextually relevant pages
 
 ### City Page Interlinking
 City pages receive automatic service keyword linking only:
 
 1. **Service Keyword Detection**: Identifies WordPress development service terms
-2. **Contact Link Generation**: Links keywords to https://84em.com/contact/
+2. **Smart Link Generation**: Links keywords to appropriate pages based on context:
+   - Development work → /work/
+   - Service offerings → /services/
+   - Project examples → /projects/
+   - Location-specific → respective local pages
 3. **Single Replacement**: Only first occurrence of each keyword is linked
 
 ### Interlinking Logic
@@ -385,6 +389,13 @@ The `--generate-sitemap` command creates XML sitemaps. This command:
 
 ## Version History
 
+### v2.1.0 (August 1, 2025)
+- **NEW**: Smart service keyword linking - keywords now link to contextually relevant pages
+- **NEW**: Dynamic URL mapping for service keywords (work, services, projects, local pages)
+- **ENHANCED**: State page prompt updated with "30 years experience" and "diverse client industries"
+- **IMPROVED**: Title case function now properly handles "84EM" as uppercase
+- **CHANGED**: Service keywords structure from array to associative array with URL mappings
+
 ### v2.0.1 (August 1, 2025)
 - **FIXED**: H2 and H3 headings now properly formatted with title case
 - **FIXED**: Removed hyperlinks from within H2 and H3 headings  
@@ -431,4 +442,4 @@ The `--generate-sitemap` command creates XML sitemaps. This command:
 **API Version**: 2023-06-01  
 **Content Strategy**: Hierarchical location pages with automatic interlinking  
 **Total Pages**: 350 (50 states + 300 cities)  
-**Plugin Version**: 2.0.1
+**Plugin Version**: 2.1.0

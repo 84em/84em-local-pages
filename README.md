@@ -582,6 +582,36 @@ wp import /backups/local-pages/local-pages-export.xml
 └── deploy.sh                        # rsync powered deployment script
 ```
 
+## Testing
+
+The plugin includes a comprehensive WP-CLI-based testing framework.
+
+### Running Tests
+
+```bash
+# Run all tests
+wp 84em local-pages --test --all
+
+# Run specific test suite
+wp 84em local-pages --test --suite=encryption
+wp 84em local-pages --test --suite=data-structures
+wp 84em local-pages --test --suite=url-generation
+wp 84em local-pages --test --suite=content-processing
+wp 84em local-pages --test --suite=simple
+wp 84em local-pages --test --suite=basic
+```
+
+### Available Test Suites
+
+- **encryption** - API key encryption and decryption tests
+- **data-structures** - Service keywords and US states data validation
+- **url-generation** - URL generation and permalink handling (disabled due to conflicts)
+- **content-processing** - Content processing and title case conversion
+- **simple** - Basic functionality tests
+- **basic** - WordPress environment tests
+
+For detailed testing documentation, see [TESTING.md](TESTING.md).
+
 ## License
 
 Proprietary software developed for 84EM. All rights reserved.

@@ -1,0 +1,45 @@
+{
+    "name": "84em/local-pages-generator",
+    "description": "WordPress plugin for generating SEO-optimized local pages using Claude AI",
+    "type": "wordpress-plugin",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "84EM",
+            "email": "dev@84em.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.2"
+    },
+    "require-dev": {
+        "wp-cli/wp-cli": "^2.9",
+        "wp-cli/wp-cli-tests": "^4.3"
+    },
+    "autoload": {
+        "files": ["84em-local-pages.php"]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "EightyFourEM\\LocalPages\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "wp 84em local-pages --test --all",
+        "test:encryption": "wp 84em local-pages --test --suite=encryption",
+        "test:data": "wp 84em local-pages --test --suite=data-structures",
+        "test:url": "wp 84em local-pages --test --suite=url-generation",
+        "test:schema": "wp 84em local-pages --test --suite=ld-json",
+        "test:cli": "wp 84em local-pages --test --suite=cli-args"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        },
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "platform": {
+            "php": "8.4"
+        }
+    }
+}

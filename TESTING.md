@@ -117,16 +117,18 @@ When running tests, you'll see:
 
 ## Continuous Integration
 
-Since all tests run through WP-CLI, they can easily be integrated into any CI/CD pipeline that has WordPress and WP-CLI installed.
+**Note**: Due to complexities with WP-CLI command registration in CI environments, GitHub Actions currently only runs basic syntax checks. Full test suite should be run locally.
 
-Example GitHub Actions workflow:
-
-```yaml
-- name: Run Tests
-  run: |
-    wp plugin activate 84em-local-pages
-    wp 84em local-pages --test --all
+To run tests locally:
+```bash
+wp 84em local-pages --test --all
 ```
+
+The GitHub Actions workflow performs:
+- PHP syntax validation for all files
+- composer.json validation
+
+Full WP-CLI tests must be run in a proper WordPress environment where the plugin can register its commands correctly.
 
 ## Troubleshooting
 

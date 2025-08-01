@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 84EM Local Pages Generator
  * Description: Generates SEO-optimized Local Pages for each US state using Claude AI
- * Version: 2.0.0
+ * Version: 2.0.1
  * Author: 84EM
  * Requires at least: 6.8
  * Requires PHP: 8.2
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) or die;
 
-const EIGHTYFOUREM_LOCAL_PAGES_VERSION = '2.0.0';
+const EIGHTYFOUREM_LOCAL_PAGES_VERSION = '2.0.1';
 
 class EightyFourEM_Local_Pages_Generator {
 
@@ -955,6 +955,9 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
         $content = $this->call_claude_api( $prompt );
 
         if ( $content !== false ) {
+            // Process headings to remove hyperlinks and apply title case
+            $content = $this->process_headings( $content );
+            
             // Add automatic interlinking for city names and service keywords
             $content = $this->add_automatic_links( $content, $state );
         }
@@ -1885,6 +1888,9 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
         $content = $this->call_claude_api( $prompt );
 
         if ( $content !== false ) {
+            // Process headings to remove hyperlinks and apply title case
+            $content = $this->process_headings( $content );
+            
             // Add automatic interlinking for service keywords (cities are handled in state pages)
             $content = $this->add_service_keyword_links( $content );
         }
@@ -1925,6 +1931,97 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
         }
 
         return $content;
+    }
+
+    /**
+     * Processes H2 and H3 headings to remove hyperlinks and convert to title case
+     *
+     * @param  string  $content  The content to process
+     *
+     * @return string Processed content with cleaned headings
+     */
+    private function process_headings( string $content ): string {
+        // Process H2 headings in WordPress block format
+        $content = preg_replace_callback(
+            '/<!-- wp:heading {"level":2} -->.*?<h2>(.*?)<\/h2>.*?<!-- \/wp:heading -->/s',
+            function( $matches ) {
+                $heading_content = $matches[1];
+                
+                // Remove any hyperlinks from the heading
+                $heading_content = preg_replace( '/<a[^>]*>(.*?)<\/a>/i', '$1', $heading_content );
+                
+                // Extract text from strong tags if present
+                $text_only = strip_tags( $heading_content );
+                
+                // Convert to title case
+                $title_case = $this->convert_to_title_case( $text_only );
+                
+                // Rebuild the heading block with strong tags
+                return '<!-- wp:heading {"level":2} --><h2><strong>' . $title_case . '</strong></h2><!-- /wp:heading -->';
+            },
+            $content
+        );
+        
+        // Process H3 headings in WordPress block format
+        $content = preg_replace_callback(
+            '/<!-- wp:heading {"level":3} -->.*?<h3>(.*?)<\/h3>.*?<!-- \/wp:heading -->/s',
+            function( $matches ) {
+                $heading_content = $matches[1];
+                
+                // Remove any hyperlinks from the heading
+                $heading_content = preg_replace( '/<a[^>]*>(.*?)<\/a>/i', '$1', $heading_content );
+                
+                // Extract text from strong tags if present
+                $text_only = strip_tags( $heading_content );
+                
+                // Convert to title case
+                $title_case = $this->convert_to_title_case( $text_only );
+                
+                // Rebuild the heading block with strong tags
+                return '<!-- wp:heading {"level":3} --><h3><strong>' . $title_case . '</strong></h3><!-- /wp:heading -->';
+            },
+            $content
+        );
+        
+        return $content;
+    }
+
+    /**
+     * Converts a string to title case
+     *
+     * @param  string  $text  The text to convert
+     *
+     * @return string Text in title case
+     */
+    private function convert_to_title_case( string $text ): string {
+        // List of words that should remain lowercase in title case
+        $lowercase_words = ['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 
+                           'in', 'into', 'nor', 'of', 'on', 'or', 'the', 'to', 'with'];
+        
+        // Convert to lowercase first
+        $text = strtolower( $text );
+        
+        // Split into words
+        $words = explode( ' ', $text );
+        
+        // Process each word
+        $result = [];
+        foreach ( $words as $index => $word ) {
+            // Always capitalize the first and last word
+            if ( $index === 0 || $index === count( $words ) - 1 ) {
+                $result[] = ucfirst( $word );
+            }
+            // Keep lowercase words lowercase unless they're the first word
+            elseif ( in_array( $word, $lowercase_words ) ) {
+                $result[] = $word;
+            }
+            // Capitalize all other words
+            else {
+                $result[] = ucfirst( $word );
+            }
+        }
+        
+        return implode( ' ', $result );
     }
 
     /**

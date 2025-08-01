@@ -385,6 +385,13 @@ The `--generate-sitemap` command creates XML sitemaps. This command:
 
 ## Version History
 
+### v2.0.1 (August 1, 2025)
+- **FIXED**: H2 and H3 headings now properly formatted with title case
+- **FIXED**: Removed hyperlinks from within H2 and H3 headings  
+- **NEW**: `process_headings()` function to clean up heading formatting
+- **NEW**: `convert_to_title_case()` function with smart title case rules
+- **IMPROVED**: Content processing pipeline now includes heading cleanup before interlinking
+
 ### v2.0.0 (July 31, 2025)
 - **NEW**: Hierarchical post type support (parent-child relationships)  
 - **NEW**: City page generation (300 city pages, 6 per state)
@@ -418,10 +425,10 @@ The `--generate-sitemap` command creates XML sitemaps. This command:
 
 ---
 
-**Last Updated**: July 31, 2025  
+**Last Updated**: August 1, 2025  
 **Claude Model**: claude-sonnet-4-20250514  
 **Content Format**: WordPress Block Editor (Gutenberg)  
 **API Version**: 2023-06-01  
 **Content Strategy**: Hierarchical location pages with automatic interlinking  
 **Total Pages**: 350 (50 states + 300 cities)  
-**Plugin Version**: 2.0.0
+**Plugin Version**: 2.0.1

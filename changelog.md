@@ -5,6 +5,25 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - August 1, 2025
+
+### 🐛 Bug Fixes & Improvements
+
+#### Content Processing Enhancement
+- **Fixed**: H2 and H3 headings now properly formatted with title case
+- **Fixed**: Removed hyperlinks from within H2 and H3 headings
+- **Added**: `process_headings()` function to clean up heading formatting
+- **Added**: `convert_to_title_case()` function following standard title case rules
+- **Improved**: Heading processing applied before automatic interlinking to prevent conflicts
+
+### 🛠️ Technical Details
+- **Changed**: Content processing pipeline now includes heading cleanup step
+- **Added**: Regex-based heading detection for WordPress block format
+- **Added**: Smart title case conversion (keeps articles/prepositions lowercase)
+- **Improved**: Maintains WordPress block structure and `<strong>` tags in headings
+
+---
+
 ## [2.0.0] - July 31, 2025
 
 ### 🚀 Major New Features

@@ -5,6 +5,18 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2025-01-01
+
+### Fixed
+- GitHub Actions workflow simplified to basic syntax checks
+- Resolved '84em is not a registered wp command' error in CI
+- CI environment issues with WP-CLI command registration
+
+### Changed
+- GitHub Actions now only performs PHP syntax and composer.json validation
+- Full test suite must be run locally due to CI limitations
+- Updated TESTING.md to document CI restrictions
+
 ## [2.2.0] - 2025-01-01
 
 ### Added

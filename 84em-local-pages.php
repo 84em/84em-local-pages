@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 84EM Local Pages Generator
  * Description: Generates SEO-optimized Local Pages for each US state using Claude AI
- * Version: 2.1.0
+ * Version: 2.1.1
  * Author: 84EM
  * Requires at least: 6.8
  * Requires PHP: 8.2
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) or die;
 
-const EIGHTYFOUREM_LOCAL_PAGES_VERSION = '2.1.0';
+const EIGHTYFOUREM_LOCAL_PAGES_VERSION = '2.1.1';
 
 class EightyFourEM_Local_Pages_Generator {
 
@@ -919,7 +919,7 @@ class EightyFourEM_Local_Pages_Generator {
         $city_list   = implode( ', ', $main_cities );
 
         // Get relevant keywords for content generation
-        $service_keywords_list = implode( ', ', $this->service_keywords );
+        $service_keywords_list = implode( ', ', array_keys( $this->service_keywords ) );
 
         $prompt = "Write a concise, SEO-optimized landing page for 84EM's WordPress development services specifically for businesses in {$state}. 
 
@@ -1011,7 +1011,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                             'serviceType' => 'WordPress Development'
                         ]
                     ];
-                }, $this->service_keywords, array_keys( $this->service_keywords ) )
+                }, array_keys( $this->service_keywords ), range( 0, count( $this->service_keywords ) - 1 ) )
             ],
             'contactPoint' => [
                 '@type' => 'ContactPoint',
@@ -1330,7 +1330,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                                 'serviceType' => 'WordPress Development'
                             ]
                         ];
-                    }, $this->service_keywords, array_keys( $this->service_keywords ) )
+                    }, array_keys( $this->service_keywords ), range( 0, count( $this->service_keywords ) - 1 ) )
                 ]
             ],
             'breadcrumb' => [
@@ -1852,7 +1852,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
      */
     private function generate_city_content_with_claude( string $state, string $city ): string|false {
         // Get relevant keywords for content generation
-        $service_keywords_list = implode( ', ', $this->service_keywords );
+        $service_keywords_list = implode( ', ', array_keys( $this->service_keywords ) );
 
         $prompt = "Write a concise, SEO-optimized landing page for 84EM's WordPress development services specifically for businesses in {$city}, {$state}. 
 
@@ -2067,7 +2067,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                             'serviceType' => 'WordPress Development'
                         ]
                     ];
-                }, $this->service_keywords, array_keys( $this->service_keywords ) )
+                }, array_keys( $this->service_keywords ), range( 0, count( $this->service_keywords ) - 1 ) )
             ],
             'containedInPlace' => [
                 '@type' => 'State',

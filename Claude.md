@@ -389,6 +389,11 @@ The `--generate-sitemap` command creates XML sitemaps. This command:
 
 ## Version History
 
+### v2.1.1 (August 1, 2025)
+- **FIXED**: PHP TypeError in LD-JSON schema generation with associative service keywords array
+- **FIXED**: array_map position calculation now uses numeric indices
+- **FIXED**: Service keywords list extraction for content generation
+
 ### v2.1.0 (August 1, 2025)
 - **NEW**: Smart service keyword linking - keywords now link to contextually relevant pages
 - **NEW**: Dynamic URL mapping for service keywords (work, services, projects, local pages)
@@ -442,4 +447,4 @@ The `--generate-sitemap` command creates XML sitemaps. This command:
 **API Version**: 2023-06-01  
 **Content Strategy**: Hierarchical location pages with automatic interlinking  
 **Total Pages**: 350 (50 states + 300 cities)  
-**Plugin Version**: 2.1.0
+**Plugin Version**: 2.1.1

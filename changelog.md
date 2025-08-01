@@ -5,6 +5,21 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - August 1, 2025
+
+### 🐛 Bug Fixes
+
+#### Fixed PHP Fatal Error
+- **Fixed**: PHP TypeError when generating LD-JSON schema due to associative array changes
+- **Fixed**: array_map index calculation now uses numeric indices instead of string keys
+- **Fixed**: Content generation now properly extracts service keyword names from associative array
+
+### 🛠️ Technical Details
+- **Changed**: Updated array_map calls to use numeric range for position calculation
+- **Changed**: Service keywords list generation now uses array_keys() to extract keyword names
+
+---
+
 ## [2.1.0] - August 1, 2025
 
 ### ✨ New Features

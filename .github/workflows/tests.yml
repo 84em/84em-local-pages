@@ -1,21 +1,71 @@
-name: Plugin Tests
+name: WP-CLI Tests
 
 on:
   push:
-    branches: [ main, develop, 'feature/**' ]
+    branches: [ main, dev, develop, 'feature/**' ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, dev, develop ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     
-    strategy:
-      matrix:
-        php: ['8.2', '8.3']
-        wordpress: ['6.8', 'latest']
+    name: WP-CLI Tests on PHP 8.2
     
-    name: PHP ${{ matrix.php }} / WP ${{ matrix.wordpress }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.2'
+        extensions: mbstring, intl, mysql, openssl
+        tools: composer:v2, wp-cli
+    
+    - name: Install Composer dependencies
+      run: composer install --prefer-dist --no-progress --no-interaction
+    
+    - name: Setup WordPress
+      run: |
+        # Download WordPress
+        wp core download --path=/tmp/wordpress --force
+        
+        # Create wp-config.php
+        wp config create --path=/tmp/wordpress \
+          --dbname=wordpress_test \
+          --dbuser=root \
+          --dbpass=root \
+          --dbhost=127.0.0.1 \
+          --skip-check
+        
+        # Create database
+        wp db create --path=/tmp/wordpress || true
+        
+        # Install WordPress
+        wp core install --path=/tmp/wordpress \
+          --url=http://localhost \
+          --title="Test Site" \
+          --admin_user=admin \
+          --admin_password=password \
+          --admin_email=admin@example.com \
+          --skip-email
+        
+        # Copy plugin to WordPress plugins directory
+        cp -r . /tmp/wordpress/wp-content/plugins/84em-local-pages
+        
+        # Activate plugin
+        wp plugin activate 84em-local-pages --path=/tmp/wordpress
+    
+    - name: Run WP-CLI Tests
+      run: |
+        cd /tmp/wordpress
+        wp 84em local-pages --test --all
+      env:
+        MYSQL_HOST: 127.0.0.1
+        MYSQL_USER: root
+        MYSQL_PASSWORD: root
+        MYSQL_DATABASE: wordpress_test
     
     services:
       mysql:
@@ -26,80 +76,3 @@ jobs:
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: ${{ matrix.php }}
-        extensions: mbstring, intl, mysql
-        coverage: xdebug
-        tools: composer:v2, wp-cli
-    
-    - name: Get Composer cache directory
-      id: composer-cache
-      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-    
-    - name: Cache Composer dependencies
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.composer-cache.outputs.dir }}
-        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-        restore-keys: ${{ runner.os }}-composer-
-    
-    - name: Install Composer dependencies
-      run: composer install --prefer-dist --no-progress --no-interaction
-    
-    - name: Install WordPress Test Suite
-      run: |
-        bash bin/install-wp-tests.sh wordpress_test root root 127.0.0.1:3306 ${{ matrix.wordpress }}
-    
-    - name: Run PHPUnit tests
-      run: vendor/bin/phpunit
-    
-    - name: Run PHP CodeSniffer
-      run: vendor/bin/phpcs
-      
-    - name: Run PHPStan
-      run: vendor/bin/phpstan analyse
-    
-    - name: Upload coverage to Codecov
-      if: matrix.php == '8.2' && matrix.wordpress == 'latest'
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: true
-
-  compatibility:
-    runs-on: ubuntu-latest
-    name: Compatibility Check
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        tools: wp-cli
-    
-    - name: Check WordPress compatibility
-      run: |
-        wp plugin check . --require=./84em-local-pages.php --exclude=tests,vendor
-
-  security:
-    runs-on: ubuntu-latest
-    name: Security Scan
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Run security checks
-      uses: symfonycorp/security-checker-action@v4

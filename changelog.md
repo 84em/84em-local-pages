@@ -5,6 +5,31 @@ All notable changes to this plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - August 1, 2025
+
+### ✨ New Features
+
+#### Smart Service Keyword Linking
+- **Enhanced**: Service keywords now link to specific relevant pages instead of all going to /contact/
+- **Added**: Dynamic URL mapping for service keywords to appropriate pages:
+  - Development-related terms → /work/
+  - Service offerings → /services/
+  - Project examples → /projects/
+  - Location-specific terms → respective local pages
+- **Improved**: Better user experience with contextual navigation
+
+#### Content Generation Improvements
+- **Updated**: State page prompt now mentions "30 years experience" and "diverse client industries"
+- **Enhanced**: Title case function now properly handles "84EM" as all caps
+- **Added**: Special case handling for company name in headings
+
+### 🛠️ Technical Details
+- **Changed**: Service keywords array structure from simple array to associative array with URL mappings
+- **Added**: Dynamic URL generation using site_url() for proper domain handling
+- **Improved**: More sophisticated keyword-to-URL routing logic
+
+---
+
 ## [2.0.1] - August 1, 2025
 
 ### 🐛 Bug Fixes & Improvements

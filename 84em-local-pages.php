@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 84EM Local Pages Generator
  * Description: Generates SEO-optimized Local Pages for each US state using Claude AI
- * Version: 2.0.1
+ * Version: 2.1.0
  * Author: 84EM
  * Requires at least: 6.8
  * Requires PHP: 8.2
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) or die;
 
-const EIGHTYFOUREM_LOCAL_PAGES_VERSION = '2.0.1';
+const EIGHTYFOUREM_LOCAL_PAGES_VERSION = '2.1.0';
 
 class EightyFourEM_Local_Pages_Generator {
 
@@ -158,39 +158,45 @@ class EightyFourEM_Local_Pages_Generator {
             'Wyoming'        => [ 'cities' => [ 'Cheyenne', 'Casper', 'Laramie', 'Gillette', 'Rock Springs', 'Sheridan' ] ],
         ];
 
+        $work_page = site_url('/work/');
+        $services_page = site_url('/services/');
+        $projects_page = site_url('/projects/');
+        $home_page = site_url('/');
+
         // Keywords extracted from 84EM services
         $this->service_keywords = [
-            'WordPress development',
-            'custom plugin development',
-            'API integrations',
-            'security audits',
-            'white-label development',
-            'WordPress maintenance',
-            'WordPress support',
-            'data migration',
-            'platform transfers',
-            'WordPress troubleshooting',
-            'custom WordPress themes',
-            'WordPress security',
-            'web development',
-            'WordPress migrations',
-            'digital agency services',
-            'WordPress plugin development',
-            'Custom WordPress plugin development',
-            'White label WordPress development',
-            'WordPress plugin development services',
-            'Custom WordPress development Cedar Rapids',
-            'WordPress development agency Iowa',
-            'WordPress WooCommerce development',
-            'Custom API integration WordPress',
-            'WordPress maintenance services',
-            'White label web development services',
-            'WordPress security audit services',
-            'Custom WordPress plugin development for agencies',
-            'WordPress plugin development for financial services',
-            'White label WordPress development Cedar Rapids',
-            'Custom WooCommerce plugin development',
-            'WordPress malware cleanup services',
+            'WordPress development' => $work_page,
+            'custom plugin development' => $work_page,
+            'API integrations' => $work_page,
+            'security audits' => $work_page,
+            'white-label development' => $services_page,
+            'WordPress maintenance' => $services_page,
+            'WordPress support' => $services_page,
+            'data migration' => $services_page,
+            'platform transfers' => $services_page,
+            'WordPress troubleshooting' => $services_page,
+            'custom WordPress themes' => $services_page,
+            'WordPress security' => $services_page,
+            'web development' => $work_page,
+            'WordPress migrations' => $services_page,
+            'digital agency services' => $services_page,
+            'WordPress plugin development'  => $services_page,
+            'Custom WordPress plugin development' => $home_page,
+            'White label WordPress development' => $services_page,
+            'WordPress plugin development services' => $services_page,
+            'Custom WordPress development Cedar Rapids' => site_url('/wordpress-development-services-iowa/cedar-rapids/'),
+            'WordPress development agency Iowa' => site_url('/wordpress-development-services-iowa/'),
+            'WordPress WooCommerce development' => $projects_page,
+            'Custom API integration WordPress' => $projects_page,
+            'WordPress maintenance services' => $services_page,
+            'White label web development services' => $services_page,
+            'WordPress security audit services' => $services_page,
+            'Custom WordPress plugin development for agencies' => $services_page,
+            'WordPress plugin development for financial services' => $services_page,
+            'White label WordPress development Cedar Rapids' => site_url('/wordpress-development-services-iowa/cedar-rapids/'),
+            'White label WordPress development Iowa' => site_url('/wordpress-development-services-iowa/'),
+            'Custom WooCommerce plugin development' => $services_page,
+            'WordPress malware cleanup services' => $services_page,
         ];
     }
 
@@ -924,7 +930,7 @@ IMPORTANT: Create unique, original content that is different from other state pa
 Include the following key elements:
 1. A professional opening paragraph mentioning {$state} and cities like {$city_list}
 2. WordPress development services including: {$service_keywords_list}
-3. Why businesses in {$state} choose 84EM (remote expertise, proven track record, reliable delivery)
+3. Why businesses in {$state} choose 84EM (30 years experience, diverse client industries, proven track record, reliable delivery)
 4. Call-to-action for {$state} businesses
 5. Include naturally-placed keywords: 'WordPress development {$state}', 'custom plugins {$state}', 'web development {$city_list}'
 
@@ -957,7 +963,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
         if ( $content !== false ) {
             // Process headings to remove hyperlinks and apply title case
             $content = $this->process_headings( $content );
-            
+
             // Add automatic interlinking for city names and service keywords
             $content = $this->add_automatic_links( $content, $state );
         }
@@ -1890,7 +1896,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
         if ( $content !== false ) {
             // Process headings to remove hyperlinks and apply title case
             $content = $this->process_headings( $content );
-            
+
             // Add automatic interlinking for service keywords (cities are handled in state pages)
             $content = $this->add_service_keyword_links( $content );
         }
@@ -1907,12 +1913,11 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
      */
     private function add_service_keyword_links( string $content ): string {
         // Add service keyword links
-        foreach ( $this->service_keywords as $keyword ) {
-            $contact_url = 'https://84em.com/contact/';
+        foreach ( $this->service_keywords as $keyword => $url ) {
 
             // Replace service keywords with contact links, but avoid double-linking
             $keyword_pattern = '/\b' . preg_quote( $keyword, '/' ) . '\b(?![^<]*>)/i';
-            $keyword_replacement = '<a href="' . esc_url( $contact_url ) . '">' . $keyword . '</a>';
+            $keyword_replacement = '<a href="' . esc_url( $url ) . '">' . $keyword . '</a>';
 
             // Only replace if not already in a link
             $content = preg_replace_callback( $keyword_pattern, function( $matches ) use ( $keyword_replacement, $content ) {
@@ -1946,43 +1951,43 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
             '/<!-- wp:heading {"level":2} -->.*?<h2>(.*?)<\/h2>.*?<!-- \/wp:heading -->/s',
             function( $matches ) {
                 $heading_content = $matches[1];
-                
+
                 // Remove any hyperlinks from the heading
                 $heading_content = preg_replace( '/<a[^>]*>(.*?)<\/a>/i', '$1', $heading_content );
-                
+
                 // Extract text from strong tags if present
                 $text_only = strip_tags( $heading_content );
-                
+
                 // Convert to title case
                 $title_case = $this->convert_to_title_case( $text_only );
-                
+
                 // Rebuild the heading block with strong tags
                 return '<!-- wp:heading {"level":2} --><h2><strong>' . $title_case . '</strong></h2><!-- /wp:heading -->';
             },
             $content
         );
-        
+
         // Process H3 headings in WordPress block format
         $content = preg_replace_callback(
             '/<!-- wp:heading {"level":3} -->.*?<h3>(.*?)<\/h3>.*?<!-- \/wp:heading -->/s',
             function( $matches ) {
                 $heading_content = $matches[1];
-                
+
                 // Remove any hyperlinks from the heading
                 $heading_content = preg_replace( '/<a[^>]*>(.*?)<\/a>/i', '$1', $heading_content );
-                
+
                 // Extract text from strong tags if present
                 $text_only = strip_tags( $heading_content );
-                
+
                 // Convert to title case
                 $title_case = $this->convert_to_title_case( $text_only );
-                
+
                 // Rebuild the heading block with strong tags
                 return '<!-- wp:heading {"level":3} --><h3><strong>' . $title_case . '</strong></h3><!-- /wp:heading -->';
             },
             $content
         );
-        
+
         return $content;
     }
 
@@ -1995,20 +2000,24 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
      */
     private function convert_to_title_case( string $text ): string {
         // List of words that should remain lowercase in title case
-        $lowercase_words = ['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 
+        $lowercase_words = ['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from',
                            'in', 'into', 'nor', 'of', 'on', 'or', 'the', 'to', 'with'];
-        
+
         // Convert to lowercase first
         $text = strtolower( $text );
-        
+
         // Split into words
         $words = explode( ' ', $text );
-        
+
         // Process each word
         $result = [];
         foreach ( $words as $index => $word ) {
+            // company name should always be all caps
+            if ( "84em" == strtolower( $word ) ) {
+                $result[] = strtoupper( $word );
+            }
             // Always capitalize the first and last word
-            if ( $index === 0 || $index === count( $words ) - 1 ) {
+            elseif ( $index === 0 || $index === count( $words ) - 1 ) {
                 $result[] = ucfirst( $word );
             }
             // Keep lowercase words lowercase unless they're the first word
@@ -2020,7 +2029,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                 $result[] = ucfirst( $word );
             }
         }
-        
+
         return implode( ' ', $result );
     }
 

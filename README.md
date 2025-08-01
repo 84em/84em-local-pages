@@ -588,7 +588,7 @@ Proprietary software developed for 84EM. All rights reserved.
 
 ---
 
-**Plugin Version**: 2.0.1  
+**Plugin Version**: 2.1.0  
 **WordPress Tested**: 6.8+  
 **PHP Minimum**: 8.2  
 **Last Updated**: August 1, 2025

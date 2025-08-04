@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 84EM Local Pages Generator
  * Description: Generates SEO-optimized Local Pages for each US state using Claude AI. Includes WP-CLI testing framework.
- * Version: 2.2.2
+ * Version: 2.2.3
  * Author: 84EM
  * Requires at least: 6.8
  * Requires PHP: 8.2
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) or die;
 
-const EIGHTYFOUREM_LOCAL_PAGES_VERSION = '2.2.2';
+const EIGHTYFOUREM_LOCAL_PAGES_VERSION = '2.2.3';
 
 class EightyFourEM_Local_Pages_Generator {
 
@@ -385,7 +385,7 @@ class EightyFourEM_Local_Pages_Generator {
             $this->handle_state_command( $assoc_args );
             return;
         }
-        
+
         // Handle test command
         if ( isset( $assoc_args['test'] ) ) {
             $this->handle_test_command( $assoc_args );
@@ -1018,7 +1018,6 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                 'itemListElement' => array_map( function( $service, $index ) {
                     return [
                         '@type' => 'Offer',
-                        'position' => $index + 1,
                         'itemOffered' => [
                             '@type' => 'Service',
                             'name' => $service,
@@ -1333,7 +1332,6 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                     'itemListElement' => array_map( function( $service, $index ) {
                         return [
                             '@type' => 'Offer',
-                            'position' => $index + 1,
                             'itemOffered' => [
                                 '@type' => 'Service',
                                 'name' => $service,
@@ -2072,7 +2070,6 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                 'itemListElement' => array_map( function( $service, $index ) {
                     return [
                         '@type' => 'Offer',
-                        'position' => $index + 1,
                         'itemOffered' => [
                             '@type' => 'Service',
                             'name' => $service,
@@ -2486,7 +2483,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
         // Check for specific state or city
         if ( isset( $assoc_args['state'] ) ) {
             $state = trim( $assoc_args['state'] );
-            
+
             if ( isset( $assoc_args['city'] ) ) {
                 // Regenerate schema for specific city
                 $city = trim( $assoc_args['city'] );
@@ -2510,15 +2507,15 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
      */
     private function regenerate_all_schemas( array $assoc_args ): void {
         $include_cities = ! isset( $assoc_args['states-only'] );
-        
+
         WP_CLI::line( '🔄 Regenerating LD-JSON schemas for all local pages...' );
         WP_CLI::line( '' );
-        
+
         $start_time = microtime( true );
         $updated_count = 0;
         $state_count = 0;
         $city_count = 0;
-        
+
         // Get all published local pages
         $query_args = [
             'post_type'      => 'local',
@@ -2527,38 +2524,38 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
             'orderby'        => 'title',
             'order'          => 'ASC',
         ];
-        
+
         // If states-only, filter to just state pages (no parent)
         if ( ! $include_cities ) {
             $query_args['post_parent'] = 0;
         }
-        
+
         $query = new WP_Query( $query_args );
-        
+
         if ( ! $query->have_posts() ) {
             WP_CLI::warning( 'No local pages found to update schemas.' );
             return;
         }
-        
+
         $total_pages = $query->post_count;
         WP_CLI::line( "Found {$total_pages} pages to update." );
         WP_CLI::line( '' );
-        
+
         // Create progress bar
         $progress = \WP_CLI\Utils\make_progress_bar( 'Regenerating schemas', $total_pages );
-        
+
         while ( $query->have_posts() ) {
             $query->the_post();
             $post_id = get_the_ID();
-            
+
             // Get state and city from post meta
             $state = get_post_meta( $post_id, '_local_page_state', true );
             $cities_str = get_post_meta( $post_id, '_local_page_cities', true );
             $cities = ! empty( $cities_str ) ? explode( ',', $cities_str ) : [];
-            
+
             // Check if this is a city page (has parent)
             $parent_id = wp_get_post_parent_id( $post_id );
-            
+
             if ( $parent_id > 0 ) {
                 // This is a city page
                 $city = get_the_title( $post_id );
@@ -2570,19 +2567,19 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                 $schema = $this->generate_ld_json_schema( $state, $cities );
                 $state_count++;
             }
-            
+
             // Update the schema meta
             update_post_meta( $post_id, 'schema', $schema );
             $updated_count++;
-            
+
             $progress->tick();
         }
-        
+
         $progress->finish();
         wp_reset_postdata();
-        
+
         $duration = round( microtime( true ) - $start_time, 2 );
-        
+
         WP_CLI::line( '' );
         WP_CLI::success( "✅ Schema regeneration completed!" );
         WP_CLI::line( '' );
@@ -2606,27 +2603,27 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
      */
     private function regenerate_state_schema( string $state, bool $include_cities = true ): void {
         WP_CLI::line( "🔄 Regenerating schema for {$state}..." );
-        
+
         // Get state page
         $state_page = $this->get_state_page( $state );
-        
+
         if ( ! $state_page ) {
             WP_CLI::error( "State page not found for: {$state}" );
             return;
         }
-        
+
         $updated_count = 0;
-        
+
         // Update state page schema
         $cities_str = get_post_meta( $state_page->ID, '_local_page_cities', true );
         $cities = ! empty( $cities_str ) ? explode( ',', $cities_str ) : [];
-        
+
         $schema = $this->generate_ld_json_schema( $state, $cities );
         update_post_meta( $state_page->ID, 'schema', $schema );
         $updated_count++;
-        
+
         WP_CLI::success( "✅ Updated schema for state page: {$state}" );
-        
+
         // Update city pages if requested
         if ( $include_cities ) {
             $city_pages = get_posts( [
@@ -2637,24 +2634,24 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                 'orderby'        => 'title',
                 'order'          => 'ASC',
             ] );
-            
+
             if ( ! empty( $city_pages ) ) {
                 WP_CLI::line( '' );
                 WP_CLI::line( 'Updating city pages...' );
-                
+
                 foreach ( $city_pages as $city_page ) {
                     $city_title = $city_page->post_title;
                     $city = str_replace( ', ' . $state, '', $city_title );
-                    
+
                     $city_schema = $this->generate_city_ld_json_schema( $city, $state );
                     update_post_meta( $city_page->ID, 'schema', $city_schema );
                     $updated_count++;
-                    
+
                     WP_CLI::log( "   ✅ {$city}" );
                 }
             }
         }
-        
+
         WP_CLI::line( '' );
         WP_CLI::success( "Schema regeneration completed! Updated {$updated_count} page(s)." );
     }
@@ -2668,15 +2665,15 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
      */
     private function regenerate_city_schema( string $state, string $city ): void {
         WP_CLI::line( "🔄 Regenerating schema for {$city}, {$state}..." );
-        
+
         // Get state page first
         $state_page = $this->get_state_page( $state );
-        
+
         if ( ! $state_page ) {
             WP_CLI::error( "State page not found for: {$state}" );
             return;
         }
-        
+
         // Find city page
         $city_pages = get_posts( [
             'post_type'      => 'local',
@@ -2685,18 +2682,18 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
             'title'          => $city . ', ' . $state,
             'posts_per_page' => 1,
         ] );
-        
+
         if ( empty( $city_pages ) ) {
             WP_CLI::error( "City page not found for: {$city}, {$state}" );
             return;
         }
-        
+
         $city_page = $city_pages[0];
-        
+
         // Generate and update schema
         $schema = $this->generate_city_ld_json_schema( $city, $state );
         update_post_meta( $city_page->ID, 'schema', $schema );
-        
+
         WP_CLI::success( "✅ Schema regenerated for {$city}, {$state}" );
     }
 
@@ -2780,26 +2777,26 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
     private function handle_test_command( array $assoc_args ): void {
         $suite = $assoc_args['suite'] ?? null;
         $all = isset( $assoc_args['all'] );
-        
+
         if ( ! $suite && ! $all ) {
             WP_CLI::error( 'Please specify --suite=<name> or --all' );
             return;
         }
-        
+
         // Load test files
         $test_dir = plugin_dir_path( __FILE__ ) . 'tests/unit/';
         $mocks_file = plugin_dir_path( __FILE__ ) . 'tests/wp-mocks.php';
-        
+
         if ( ! is_dir( $test_dir ) ) {
             WP_CLI::error( 'Test directory not found: ' . $test_dir );
             return;
         }
-        
+
         // Load WordPress mocks if not already loaded
         if ( file_exists( $mocks_file ) && ! function_exists( 'sanitize_title' ) ) {
             require_once $mocks_file;
         }
-        
+
         // Map suite names to test files
         $test_suites = [
             'encryption' => 'test-encryption.php',
@@ -2811,75 +2808,75 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
             'simple' => 'test-simple.php',
             'basic' => 'test-basic-functions.php'
         ];
-        
+
         $tests_to_run = $all ? array_values( $test_suites ) : [ $test_suites[$suite] ?? null ];
-        
+
         if ( in_array( null, $tests_to_run, true ) ) {
             WP_CLI::error( 'Invalid test suite: ' . $suite );
             return;
         }
-        
+
         WP_CLI::log( '🧪 Running 84EM Local Pages Tests' );
         WP_CLI::log( '=================================' );
-        
+
         $total_tests = 0;
         $passed_tests = 0;
         $failed_tests = 0;
-        
+
         foreach ( $tests_to_run as $test_file ) {
             $test_path = $test_dir . $test_file;
-            
+
             if ( ! file_exists( $test_path ) ) {
                 WP_CLI::warning( 'Test file not found: ' . $test_file );
                 continue;
             }
-            
+
             WP_CLI::log( "\n📋 Running: " . $test_file );
             WP_CLI::log( str_repeat( '-', 40 ) );
-            
+
             // Temporarily override the API key check for testing
             if ( ! defined( 'EIGHTY_FOUR_EM_TESTING' ) ) {
                 define( 'EIGHTY_FOUR_EM_TESTING', true );
             }
-            
+
             // Include the test file and run tests
             require_once $test_path;
-            
+
             // Get the test class name from the file
             $class_name = 'Test_' . str_replace( ['-', '.php'], ['_', ''], str_replace( 'test-', '', $test_file ) );
-            
+
             if ( ! class_exists( $class_name ) ) {
                 WP_CLI::warning( 'Test class not found: ' . $class_name );
                 continue;
             }
-            
+
             // Create test instance
             $test_instance = new $class_name();
-            
+
             // Mock PHPUnit TestCase methods if needed
             if ( ! method_exists( $test_instance, 'setUp' ) ) {
                 continue;
             }
-            
+
             // Get all test methods
             $methods = get_class_methods( $class_name );
             $test_methods = array_filter( $methods, function( $method ) {
                 return strpos( $method, 'test' ) === 0;
             });
-            
+
             foreach ( $test_methods as $test_method ) {
                 $total_tests++;
-                
+
                 try {
                     // Set up test
                     $test_instance->setUp();
-                    
+
                     // Run test
                     $test_instance->$test_method();
-                    
+
                     WP_CLI::log( '✅ ' . $test_method );
                     $passed_tests++;
-                    
+
                 } catch ( Exception $e ) {
                     WP_CLI::log( '❌ ' . $test_method );
                     WP_CLI::log( '   Error: ' . $e->getMessage() );
@@ -2887,7 +2884,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                 }
             }
         }
-        
+
         // Summary
         WP_CLI::log( "\n" . str_repeat( '=', 40 ) );
         WP_CLI::log( '📊 Test Summary' );
@@ -2895,7 +2892,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
         WP_CLI::log( 'Total tests: ' . $total_tests );
         WP_CLI::log( '✅ Passed: ' . $passed_tests );
         WP_CLI::log( '❌ Failed: ' . $failed_tests );
-        
+
         if ( $failed_tests > 0 ) {
             WP_CLI::error( 'Some tests failed!' );
         } else {

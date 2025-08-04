@@ -396,6 +396,11 @@ The `--generate-sitemap` command creates XML sitemaps. This command:
 
 ## Version History
 
+### v2.2.3 (August 4, 2025)
+- **FIXED**: Removed invalid `position` property from Offer type in LD-JSON schemas
+- **FIXED**: Position is only valid for ListItem types (BreadcrumbList, ItemList), not Offer
+- **IMPROVED**: OfferCatalog schema now fully compliant with schema.org specifications
+
 ### v2.2.2 (August 4, 2025)
 - **NEW**: Added `--regenerate-schema` command to fix schema issues without regenerating content
 - **NEW**: Schema regeneration supports all pages, states-only, specific states, and specific cities
@@ -462,4 +467,4 @@ The `--generate-sitemap` command creates XML sitemaps. This command:
 **API Version**: 2023-06-01  
 **Content Strategy**: Hierarchical location pages with automatic interlinking  
 **Total Pages**: 350 (50 states + 300 cities)  
-**Plugin Version**: 2.1.2
+**Plugin Version**: 2.2.3

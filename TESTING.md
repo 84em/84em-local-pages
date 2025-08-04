@@ -171,6 +171,28 @@ Note: Some tests had to be modified to:
 - Use actual site URLs instead of example.com
 - Match the actual behavior of methods (e.g., title case and link generation)
 
+## Testing Schema Regeneration
+
+The plugin includes commands to regenerate LD-JSON schemas without regenerating content. To test:
+
+```bash
+# First, create some test pages
+wp 84em local-pages --state="California"
+wp 84em local-pages --state="California" --city="Los Angeles"
+
+# Then test schema regeneration
+wp 84em local-pages --regenerate-schema --state="California"
+wp 84em local-pages --regenerate-schema --state="California" --city="Los Angeles"
+
+# Verify the schema was updated
+wp post meta get <post_id> schema
+```
+
+This is useful for:
+- Fixing schema validation errors without API calls
+- Updating schema structure after plugin updates
+- Testing schema generation independently from content generation
+
 ## Benefits of WP-CLI Testing
 
 1. **No External Dependencies** - No need for PHPUnit, Codeception, or other frameworks

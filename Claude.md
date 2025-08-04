@@ -2,7 +2,7 @@
 
 This document contains the Claude AI prompt templates and guidelines used by the 84EM Local Pages Generator plugin for creating unique, SEO-optimized content for each US state and city.
 
-## Current Prompt Templates (Updated January 2025)
+## Current Prompt Templates (Updated August 2025)
 
 The plugin uses two distinct prompt structures for generating location-specific content:
 
@@ -287,6 +287,13 @@ wp 84em local-pages --generate-index
 
 # Generate XML sitemap (no API key required)
 wp 84em local-pages --generate-sitemap
+
+# Regenerate LD-JSON schemas without touching content (no API key required)
+wp 84em local-pages --regenerate-schema                    # All pages
+wp 84em local-pages --regenerate-schema --states-only      # States only
+wp 84em local-pages --regenerate-schema --state="California"  # Specific state and its cities
+wp 84em local-pages --regenerate-schema --state="California" --state-only  # State only, no cities
+wp 84em local-pages --regenerate-schema --state="California" --city="Los Angeles"  # Specific city
 ```
 
 ## Content Quality Assurance
@@ -389,6 +396,14 @@ The `--generate-sitemap` command creates XML sitemaps. This command:
 
 ## Version History
 
+### v2.2.2 (August 4, 2025)
+- **NEW**: Added `--regenerate-schema` command to fix schema issues without regenerating content
+- **NEW**: Schema regeneration supports all pages, states-only, specific states, and specific cities
+- **FIXED**: Removed invalid `addressRegion` property from City type in LD-JSON schemas
+- **FIXED**: City types in schemas now use `containedInPlace` instead of `addressRegion`
+- **IMPROVED**: Cleaned up schema structure to use only valid schema.org properties
+- **IMPROVED**: Schema regeneration doesn't require Claude API key since it only updates metadata
+
 ### v2.1.1 (August 1, 2025)
 - **FIXED**: PHP TypeError in LD-JSON schema generation with associative service keywords array
 - **FIXED**: array_map position calculation now uses numeric indices
@@ -441,10 +456,10 @@ The `--generate-sitemap` command creates XML sitemaps. This command:
 
 ---
 
-**Last Updated**: August 1, 2025  
+**Last Updated**: August 4, 2025  
 **Claude Model**: claude-sonnet-4-20250514  
 **Content Format**: WordPress Block Editor (Gutenberg)  
 **API Version**: 2023-06-01  
 **Content Strategy**: Hierarchical location pages with automatic interlinking  
 **Total Pages**: 350 (50 states + 300 cities)  
-**Plugin Version**: 2.1.1
+**Plugin Version**: 2.1.2

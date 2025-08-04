@@ -32,6 +32,7 @@ This plugin creates unique, locally-focused landing pages for WordPress developm
 - **Progress Indicators**: Real-time feedback on API requests and processing
 - **XML Sitemap Generation**: Generate XML sitemaps for all local pages with WP-CLI
 - **Index Page Generation**: Create or update a master index page with alphabetized state list
+- **Schema Regeneration**: Fix LD-JSON schema issues without regenerating page content
 
 ## Requirements
 
@@ -188,6 +189,24 @@ wp 84em local-pages --generate-index
 **Generate XML Sitemap:**
 ```bash
 wp 84em local-pages --generate-sitemap
+```
+
+**Regenerate LD-JSON Schemas (Fix schema issues without regenerating content):**
+```bash
+# All pages
+wp 84em local-pages --regenerate-schema
+
+# States only
+wp 84em local-pages --regenerate-schema --states-only
+
+# Specific state and its cities
+wp 84em local-pages --regenerate-schema --state="California"
+
+# Specific state only (no cities)
+wp 84em local-pages --regenerate-schema --state="California" --state-only
+
+# Specific city
+wp 84em local-pages --regenerate-schema --state="California" --city="Los Angeles"
 ```
 
 **Show Available Commands:**

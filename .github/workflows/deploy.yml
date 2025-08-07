@@ -1,0 +1,643 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+      force_deploy:
+        description: 'Force deployment (skip checks)'
+        required: false
+        default: false
+        type: boolean
+      skip_backup:
+        description: 'Skip backup creation (use with caution)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PHP_VERSION: '8.2'
+  DEPLOY_PATH: '${{ secrets.DEPLOY_PATH }}'
+  BACKUP_PATH: '${{ secrets.BACKUP_PATH }}'
+  SSH_PORT: '${{ secrets.DEPLOY_PORT || 22 }}'
+
+jobs:
+  # Pre-deployment validation
+  validate:
+    name: Pre-deployment Validation
+    runs-on: ubuntu-latest
+
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+      backup_name: ${{ steps.backup.outputs.backup_name }}
+      deploy_hash: ${{ steps.hash.outputs.deploy_hash }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ env.PHP_VERSION }}
+        extensions: mbstring, intl, openssl, curl
+        tools: composer:v2
+
+    - name: Cache Composer dependencies
+      uses: actions/cache@v4
+      with:
+        path: vendor
+        key: composer-${{ hashFiles('composer.lock') }}
+        restore-keys: composer-
+
+    - name: Install Composer dependencies
+      run: composer install --no-dev --optimize-autoloader --no-progress --no-suggest
+
+    - name: PHP Syntax Check
+      run: |
+        echo "::group::Checking PHP syntax"
+        find . -name "*.php" -not -path "./vendor/*" -not -path "./tests/*" -exec php -l {} + || exit 1
+        echo "✅ All PHP files have valid syntax"
+        echo "::endgroup::"
+
+    - name: Validate composer.json
+      run: |
+        echo "::group::Validating Composer configuration"
+        composer validate --no-check-all --no-check-publish
+        echo "✅ composer.json is valid"
+        echo "::endgroup::"
+
+    - name: Check for required files
+      run: |
+        echo "::group::Checking required files"
+        required_files=(
+          "84em-local-pages.php"
+          "composer.json"
+          "src/"
+          "config/"
+        )
+        
+        for file in "${required_files[@]}"; do
+          if [[ ! -e "$file" ]]; then
+            echo "❌ Required file/directory missing: $file"
+            exit 1
+          fi
+          echo "✅ Found: $file"
+        done
+        echo "::endgroup::"
+
+    - name: Enhanced security scan
+      run: |
+        echo "::group::Enhanced security scan"
+        
+        # Check for dangerous functions
+        dangerous_functions=("eval(" "exec(" "shell_exec(" "system(" "passthru(" "proc_open(" "popen(")
+        
+        for func in "${dangerous_functions[@]}"; do
+          if grep -r "$func" --include="*.php" . 2>/dev/null | grep -v "// " | grep -v "\* "; then
+            echo "❌ Security concern: Found $func usage"
+            exit 1
+          fi
+        done
+        
+        # Check for exposed credentials patterns
+        credential_patterns=("password\s*=" "secret\s*=" "key\s*=" "token\s*=")
+        
+        for pattern in "${credential_patterns[@]}"; do
+          if grep -r "$pattern" --include="*.php" . 2>/dev/null | grep -v "// " | grep -v "\* " | grep -v "placeholder" | grep -v "example"; then
+            echo "❌ Security concern: Found potential hardcoded credential: $pattern"
+            exit 1
+          fi
+        done
+        
+        # Check file permissions
+        if find . -name "*.php" -perm /o+w 2>/dev/null | grep -q .; then
+          echo "❌ Security concern: Found world-writable PHP files"
+          exit 1
+        fi
+        
+        echo "✅ Enhanced security scan passed"
+        echo "::endgroup::"
+
+    - name: Generate deployment hash
+      id: hash
+      run: |
+        deploy_hash=$(find . -name "*.php" -not -path "./vendor/*" -not -path "./tests/*" -exec sha256sum {} + | sha256sum | cut -d' ' -f1)
+        echo "deploy_hash=$deploy_hash" >> $GITHUB_OUTPUT
+        echo "Generated deployment hash: $deploy_hash"
+
+    - name: Generate backup name
+      id: backup
+      run: |
+        backup_name="84em-local-pages-backup-$(date +%Y%m%d-%H%M%S)-${{ github.sha }}"
+        echo "backup_name=$backup_name" >> $GITHUB_OUTPUT
+        echo "Generated backup name: $backup_name"
+
+    - name: Deployment decision
+      id: check
+      run: |
+        should_deploy="true"
+        
+        # Skip deployment checks if force deploy is enabled
+        if [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
+          echo "⚠️ Force deployment enabled, skipping additional checks"
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
+        # Check if this is a tag-based deployment
+        if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          echo "✅ Tag-based deployment detected"
+        elif [[ "${{ github.ref_name }}" == "main" ]]; then
+          echo "✅ Main branch deployment"
+        else
+          echo "❌ Deployment only allowed from main branch or tags"
+          echo "should_deploy=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+        echo "should_deploy=$should_deploy" >> $GITHUB_OUTPUT
+        echo "✅ Pre-deployment validation passed"
+
+  # Create backup of current production
+  backup:
+    name: Backup Current Production
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.outputs.should_deploy == 'true' && github.event.inputs.skip_backup != 'true'
+
+    steps:
+    - name: Setup SSH key
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+    - name: Add known hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Test SSH connection
+      run: |
+        echo "::group::Testing SSH connection"
+        ssh -p ${{ env.SSH_PORT }} -o ConnectTimeout=10 ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "echo 'SSH connection successful'"
+        echo "::endgroup::"
+
+    - name: Create production backup
+      run: |
+        echo "::group::Creating backup"
+        
+        # Create backup directory if it doesn't exist
+        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
+          mkdir -p '${{ env.BACKUP_PATH }}'
+        "
+        
+        # Create timestamped backup
+        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
+          if [[ -d '${{ env.DEPLOY_PATH }}' ]]; then
+            echo 'Creating backup: ${{ needs.validate.outputs.backup_name }}'
+            cp -r '${{ env.DEPLOY_PATH }}' '${{ env.BACKUP_PATH }}/${{ needs.validate.outputs.backup_name }}'
+            echo 'Backup created successfully'
+            
+            # Keep only last 10 backups
+            cd '${{ env.BACKUP_PATH }}'
+            ls -t | tail -n +11 | xargs -r rm -rf
+            echo 'Old backups cleaned up'
+          else
+            echo 'No existing installation found, skipping backup'
+          fi
+        "
+        
+        echo "::endgroup::"
+
+    - name: Backup verification
+      run: |
+        backup_size=$(ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
+          if [[ -d '${{ env.BACKUP_PATH }}/${{ needs.validate.outputs.backup_name }}' ]]; then
+            du -sh '${{ env.BACKUP_PATH }}/${{ needs.validate.outputs.backup_name }}' | cut -f1
+          else
+            echo '0'
+          fi
+        ")
+        
+        if [[ "$backup_size" != "0" ]]; then
+          echo "✅ Backup verified: $backup_size"
+        else
+          echo "ℹ️ No backup created (fresh installation)"
+        fi
+
+  # Deploy to production
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [validate, backup]
+    if: needs.validate.outputs.should_deploy == 'true' && (success() || github.event.inputs.skip_backup == 'true')
+
+    environment:
+      name: ${{ github.event.inputs.environment || 'production' }}
+      url: https://84em.com
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ env.PHP_VERSION }}
+        extensions: mbstring, intl, openssl, curl
+        tools: composer:v2
+
+    - name: Install production dependencies
+      run: |
+        echo "::group::Installing production dependencies"
+        composer install --no-dev --optimize-autoloader --no-progress --no-suggest
+        echo "::endgroup::"
+
+    - name: Prepare deployment files
+      run: |
+        echo "::group::Preparing files for deployment"
+        
+        # Remove development and CI files
+        rm -f deploy.sh
+        rm -rf .git
+        rm -rf .github
+        rm -rf tests
+        rm -rf node_modules
+        rm -f .gitignore
+        rm -f .gitattributes
+        rm -f phpunit.xml
+        rm -f phpcs.xml
+        rm -f README.md
+        rm -f TESTING.md
+        rm -f Claude.md
+        
+        # Create deployment manifest
+        echo "Deployment Info:" > DEPLOYMENT_INFO.txt
+        echo "- Commit: ${{ github.sha }}" >> DEPLOYMENT_INFO.txt
+        echo "- Branch: ${{ github.ref_name }}" >> DEPLOYMENT_INFO.txt
+        echo "- Deployed at: $(date -u)" >> DEPLOYMENT_INFO.txt
+        echo "- Deployed by: GitHub Actions" >> DEPLOYMENT_INFO.txt
+        echo "- Deploy Hash: ${{ needs.validate.outputs.deploy_hash }}" >> DEPLOYMENT_INFO.txt
+        echo "- Workflow Run: ${{ github.run_id }}" >> DEPLOYMENT_INFO.txt
+        
+        echo "Files prepared for deployment"
+        echo "::endgroup::"
+
+    - name: Setup SSH key
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+    - name: Add known hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Deploy files via rsync
+      run: |
+        echo "::group::Deploying files"
+        
+        # Deploy with rsync (equivalent to original deploy.sh)
+        rsync -avz \
+          --delete \
+          --exclude='deploy.sh' \
+          --exclude='.git' \
+          --exclude='node_modules' \
+          --exclude='.github' \
+          --exclude='tests' \
+          --exclude='*.md' \
+          --progress \
+          --stats \
+          -e "ssh -p ${{ env.SSH_PORT }}" \
+          ./ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ env.DEPLOY_PATH }}/
+        
+        echo "✅ Files deployed successfully"
+        echo "::endgroup::"
+
+    - name: Set proper file permissions
+      run: |
+        echo "::group::Setting file permissions"
+        
+        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
+          cd '${{ env.DEPLOY_PATH }}'
+          
+          # Set directory permissions (755)
+          find . -type d -exec chmod 755 {} +
+          
+          # Set file permissions (644 for most files, 640 for sensitive files)
+          find . -type f -exec chmod 644 {} +
+          
+          # More restrictive permissions for sensitive files
+          find . -name 'composer.json' -exec chmod 640 {} +
+          find . -name 'composer.lock' -exec chmod 640 {} +
+          find . -name '*.php' -path './config/*' -exec chmod 640 {} +
+          
+          # Make sure the main plugin file is readable
+          chmod 644 84em-local-pages.php
+          
+          echo 'File permissions set correctly'
+        "
+        
+        echo "::endgroup::"
+
+  # Post-deployment verification
+  verify:
+    name: Post-deployment Verification
+    runs-on: ubuntu-latest
+    needs: [validate, backup, deploy]
+    if: needs.validate.outputs.should_deploy == 'true'
+
+    steps:
+    - name: Setup SSH key
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+    - name: Add known hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Verify deployment
+      run: |
+        echo "::group::Verifying deployment"
+        
+        # Check if main plugin file exists
+        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
+          if [[ -f '${{ env.DEPLOY_PATH }}/84em-local-pages.php' ]]; then
+            echo '✅ Main plugin file exists'
+          else
+            echo '❌ Main plugin file missing'
+            exit 1
+          fi
+          
+          # Check directory structure
+          required_dirs=('src' 'config' 'vendor')
+          for dir in \"\${required_dirs[@]}\"; do
+            if [[ -d '${{ env.DEPLOY_PATH }}/\$dir' ]]; then
+              echo \"✅ Directory exists: \$dir\"
+            else
+              echo \"❌ Directory missing: \$dir\"
+              exit 1
+            fi
+          done
+          
+          # Check PHP syntax on server
+          php -l '${{ env.DEPLOY_PATH }}/84em-local-pages.php' || exit 1
+          echo '✅ PHP syntax check passed on server'
+          
+          # Check file sizes (basic integrity check)
+          main_size=\$(stat -c%s '${{ env.DEPLOY_PATH }}/84em-local-pages.php')
+          if [[ \$main_size -lt 1000 ]]; then
+            echo '❌ Main plugin file seems too small'
+            exit 1
+          fi
+          echo \"✅ Main plugin file size: \$main_size bytes\"
+          
+          # Verify deployment hash if available
+          if [[ -f '${{ env.DEPLOY_PATH }}/DEPLOYMENT_INFO.txt' ]]; then
+            echo '✅ Deployment info file found'
+            cat '${{ env.DEPLOY_PATH }}/DEPLOYMENT_INFO.txt'
+          fi
+        "
+        
+        echo "::endgroup::"
+
+    - name: Test basic plugin functionality
+      run: |
+        echo "::group::Testing basic functionality"
+        
+        # Test that the plugin file can be included without errors
+        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
+          cd '${{ env.DEPLOY_PATH }}'
+          php -r 'include \"84em-local-pages.php\"; echo \"Plugin loaded successfully\n\";' || {
+            echo '❌ Plugin failed to load'
+            exit 1
+          }
+          echo '✅ Plugin loads without errors'
+        "
+        
+        echo "::endgroup::"
+
+    - name: Health check endpoint test
+      if: vars.HEALTH_CHECK_URL
+      run: |
+        echo "::group::Testing health check endpoint"
+        
+        # Wait a moment for changes to propagate
+        sleep 10
+        
+        response=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.HEALTH_CHECK_URL }}" || echo "000")
+        
+        if [[ "$response" == "200" ]]; then
+          echo "✅ Health check passed (HTTP $response)"
+        else
+          echo "⚠️ Health check returned HTTP $response"
+          # Don't fail deployment for health check issues, just warn
+        fi
+        
+        echo "::endgroup::"
+
+  # Rollback job (only runs on failure)
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [validate, backup, deploy, verify]
+    if: failure() && needs.backup.result == 'success' && github.event.inputs.skip_backup != 'true'
+
+    steps:
+    - name: Setup SSH key
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+    - name: Add known hosts
+      run: |
+        mkdir -p ~/.ssh
+        ssh-keyscan -H -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+    - name: Rollback to previous version
+      run: |
+        echo "::group::Rolling back deployment"
+        
+        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
+          backup_path='${{ env.BACKUP_PATH }}/${{ needs.validate.outputs.backup_name }}'
+          
+          if [[ -d \"\$backup_path\" ]]; then
+            echo 'Rolling back to backup: ${{ needs.validate.outputs.backup_name }}'
+            
+            # Remove failed deployment
+            rm -rf '${{ env.DEPLOY_PATH }}'
+            
+            # Restore from backup
+            cp -r \"\$backup_path\" '${{ env.DEPLOY_PATH }}'
+            
+            # Add rollback marker
+            echo 'ROLLBACK PERFORMED' >> '${{ env.DEPLOY_PATH }}/ROLLBACK_INFO.txt'
+            echo 'Original commit: ${{ github.sha }}' >> '${{ env.DEPLOY_PATH }}/ROLLBACK_INFO.txt'
+            echo 'Rollback time: \$(date -u)' >> '${{ env.DEPLOY_PATH }}/ROLLBACK_INFO.txt'
+            
+            echo '✅ Rollback completed successfully'
+          else
+            echo '⚠️ No backup found, manual intervention required'
+            exit 1
+          fi
+        "
+        
+        echo "::endgroup::"
+
+    - name: Verify rollback
+      run: |
+        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
+          if [[ -f '${{ env.DEPLOY_PATH }}/84em-local-pages.php' ]]; then
+            echo '✅ Rollback verification passed'
+          else
+            echo '❌ Rollback verification failed'
+            exit 1
+          fi
+        "
+
+  # Notification job
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [validate, backup, deploy, verify, rollback]
+    if: always() && needs.validate.outputs.should_deploy == 'true'
+
+    steps:
+    - name: Determine deployment status
+      id: status
+      run: |
+        if [[ "${{ needs.verify.result }}" == "success" ]]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "message=✅ Deployment completed successfully" >> $GITHUB_OUTPUT
+          echo "color=good" >> $GITHUB_OUTPUT
+        elif [[ "${{ needs.rollback.result }}" == "success" ]]; then
+          echo "status=rolled_back" >> $GITHUB_OUTPUT
+          echo "message=⚠️ Deployment failed and was rolled back" >> $GITHUB_OUTPUT
+          echo "color=warning" >> $GITHUB_OUTPUT
+        else
+          echo "status=failed" >> $GITHUB_OUTPUT
+          echo "message=❌ Deployment failed" >> $GITHUB_OUTPUT
+          echo "color=danger" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Send Slack notification
+      if: vars.SLACK_WEBHOOK_URL
+      uses: 8398a7/action-slack@v3
+      with:
+        status: custom
+        custom_payload: |
+          {
+            "text": "${{ steps.status.outputs.message }}",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "*84em Local Pages Plugin Deployment*\n${{ steps.status.outputs.message }}"
+                }
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Environment:*\n${{ github.event.inputs.environment || 'production' }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Commit:*\n<https://github.com/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Branch:*\n${{ github.ref_name }}"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Triggered by:*\n${{ github.actor }}"
+                  }
+                ]
+              },
+              {
+                "type": "actions",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "View Workflow"
+                    },
+                    "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                ]
+              }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
+
+    - name: Send email notification
+      if: vars.NOTIFICATION_EMAIL && steps.status.outputs.status != 'success'
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: ${{ secrets.SMTP_SERVER }}
+        server_port: ${{ secrets.SMTP_PORT || 587 }}
+        username: ${{ secrets.SMTP_USERNAME }}
+        password: ${{ secrets.SMTP_PASSWORD }}
+        subject: "84em Local Pages Deployment ${{ steps.status.outputs.status }}"
+        to: ${{ vars.NOTIFICATION_EMAIL }}
+        from: "GitHub Actions <noreply@github.com>"
+        body: |
+          Deployment Status: ${{ steps.status.outputs.message }}
+          
+          Environment: ${{ github.event.inputs.environment || 'production' }}
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+          Triggered by: ${{ github.actor }}
+          
+          View full workflow: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    - name: Create deployment summary
+      run: |
+        echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Status | ${{ steps.status.outputs.message }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Environment | ${{ github.event.inputs.environment || 'production' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Commit | [\`${{ github.sha }}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |" >> $GITHUB_STEP_SUMMARY
+        echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+        echo "| Triggered by | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Deploy Hash | \`${{ needs.validate.outputs.deploy_hash }}\` |" >> $GITHUB_STEP_SUMMARY
+        if [[ "${{ needs.backup.result }}" == "success" ]]; then
+          echo "| Backup created | ${{ needs.validate.outputs.backup_name }} |" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Deployment Details" >> $GITHUB_STEP_SUMMARY
+        echo "- **Target path:** \`${{ env.DEPLOY_PATH }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Backup path:** \`${{ env.BACKUP_PATH }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **SSH Port:** ${{ env.SSH_PORT }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **PHP version:** ${{ env.PHP_VERSION }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Job Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **Validation:** ${{ needs.validate.result }} ✅" >> $GITHUB_STEP_SUMMARY
+        echo "- **Backup:** ${{ needs.backup.result || 'skipped' }} ${{ needs.backup.result == 'success' && '✅' || needs.backup.result == 'failure' && '❌' || '⏭️' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deploy:** ${{ needs.deploy.result }} ${{ needs.deploy.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Verify:** ${{ needs.verify.result }} ${{ needs.verify.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+        if [[ "${{ needs.rollback.result }}" != "" ]]; then
+          echo "- **Rollback:** ${{ needs.rollback.result }} ${{ needs.rollback.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+        fi

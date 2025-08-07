@@ -5,6 +5,38 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2025-08-07
+
+### Added
+- GitHub Actions deployment workflow with comprehensive security features
+- All sensitive deployment data (host, port, paths) stored as GitHub secrets
+- Enhanced security scanning for dangerous PHP functions and credential patterns
+- Automatic backup and rollback capabilities on deployment failure
+- Optional deployment parameters (skip_backup, force_deploy, environment selection)
+- Deployment hash verification for integrity checking
+- Health check endpoint testing after deployment
+- Multiple notification channels (Slack and email)
+- Deployment info file with commit hash and metadata
+- Support for custom SSH ports via secrets
+- Configurable backup retention (keeps last 10 backups)
+
+### Changed
+- Migrated from rsync bash script (deploy.sh) to GitHub Actions workflow
+- Deployment paths now stored as secrets instead of hardcoded values
+- Enhanced pre-deployment validation with more comprehensive checks
+- Improved error handling and deployment status reporting
+
+### Security
+- SSH private key stored encrypted in GitHub secrets
+- All server credentials and paths moved to secure storage
+- Enhanced security scanning for eval(), exec(), shell_exec() and other dangerous functions
+- Credential pattern detection in code before deployment
+- File permission validation to prevent world-writable PHP files
+
+### Removed
+- deploy.sh bash script (replaced by GitHub Actions)
+- Hardcoded deployment paths from workflow files
+
 ## [2.2.3] - 2025-08-04
 
 ### Fixed

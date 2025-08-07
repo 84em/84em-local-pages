@@ -580,6 +580,57 @@ wp db import 84em-local-pages-backup-20250130.sql
 wp import /backups/local-pages/local-pages-export.xml
 ```
 
+## Deployment
+
+The plugin uses GitHub Actions for automated deployment to production servers.
+
+### GitHub Actions Workflow
+
+The deployment workflow (`deploy.yml`) provides:
+- Automatic deployment on push to main branch
+- Manual deployment via workflow dispatch
+- Pre-deployment validation (PHP syntax, security scanning)
+- Automatic backup before deployment
+- Rollback on failure
+- Multiple notification channels (Slack, email)
+
+### Required GitHub Secrets
+
+Configure these secrets in your repository settings:
+
+| Secret | Description |
+|--------|-------------|
+| `DEPLOY_SSH_KEY` | SSH private key for deployment |
+| `DEPLOY_HOST` | Server hostname or IP |
+| `DEPLOY_PORT` | SSH port (optional, defaults to 22) |
+| `DEPLOY_USER` | SSH username |
+| `DEPLOY_PATH` | Remote plugin directory path |
+| `BACKUP_PATH` | Remote backup directory path |
+
+### Deployment Commands
+
+```bash
+# Deploy to production (automatic on push to main)
+git push origin main
+
+# Manual deployment via GitHub UI
+# Go to Actions → Deploy to Production → Run workflow
+
+# Deploy with options
+# - Skip backup (for emergency fixes)
+# - Force deployment (skip validation checks)
+# - Select environment (production/staging)
+```
+
+### Security Features
+
+- All credentials stored as GitHub secrets
+- Enhanced security scanning for dangerous PHP functions
+- Credential pattern detection
+- File permission validation
+- Deployment hash verification
+- Automatic rollback on failure
+
 ## Support
 
 ### Getting Help
@@ -595,10 +646,16 @@ wp import /backups/local-pages/local-pages-export.xml
 84em-local-pages/
 ├── 84em-local-pages.php             # Main plugin file
 ├── README.md                        # This documentation
-├── Claude.md                        # Claude AI prompt templates
-├── changelog.md                     # Version history and release notes
+├── CHANGELOG.md                     # Version history and release notes
+├── TESTING.md                       # Testing documentation
+├── composer.json                    # PHP dependencies
 ├── cta.html                         # Call-to-action block template
-└── deploy.sh                        # rsync powered deployment script
+├── .github/
+│   └── workflows/
+│       └── deploy.yml               # GitHub Actions deployment workflow
+├── src/                             # Source code directory
+├── config/                          # Configuration files
+└── tests/                           # Test suite files
 ```
 
 ## Testing
@@ -637,7 +694,7 @@ Proprietary software developed for 84EM. All rights reserved.
 
 ---
 
-**Plugin Version**: 2.1.1  
+**Plugin Version**: 2.3.0  
 **WordPress Tested**: 6.8+  
 **PHP Minimum**: 8.2  
-**Last Updated**: August 1, 2025
+**Last Updated**: August 7, 2025

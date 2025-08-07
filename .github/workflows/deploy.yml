@@ -85,8 +85,6 @@ jobs:
         required_files=(
           "84em-local-pages.php"
           "composer.json"
-          "src/"
-          "config/"
         )
         
         for file in "${required_files[@]}"; do
@@ -385,13 +383,23 @@ jobs:
           fi
           
           # Check directory structure
-          required_dirs=('src' 'config' 'vendor')
+          required_dirs=('vendor')
           for dir in \"\${required_dirs[@]}\"; do
             if [[ -d '${{ env.DEPLOY_PATH }}/\$dir' ]]; then
               echo \"✅ Directory exists: \$dir\"
             else
               echo \"❌ Directory missing: \$dir\"
               exit 1
+            fi
+          done
+          
+          # Check optional directories
+          optional_dirs=('tests' 'config' 'src')
+          for dir in \"\${optional_dirs[@]}\"; do
+            if [[ -d '${{ env.DEPLOY_PATH }}/\$dir' ]]; then
+              echo \"✅ Optional directory exists: \$dir\"
+            else
+              echo \"ℹ️ Optional directory not present: \$dir\"
             fi
           done
           

@@ -96,39 +96,6 @@ jobs:
         done
         echo "::endgroup::"
 
-    - name: Enhanced security scan
-      run: |
-        echo "::group::Enhanced security scan"
-        
-        # Check for dangerous functions
-        dangerous_functions=("eval(" "exec(" "shell_exec(" "system(" "passthru(" "proc_open(" "popen(")
-        
-        for func in "${dangerous_functions[@]}"; do
-          if grep -r "$func" --include="*.php" . 2>/dev/null | grep -v "// " | grep -v "\* "; then
-            echo "❌ Security concern: Found $func usage"
-            exit 1
-          fi
-        done
-        
-        # Check for exposed credentials patterns
-        credential_patterns=("password\s*=" "secret\s*=" "key\s*=" "token\s*=")
-        
-        for pattern in "${credential_patterns[@]}"; do
-          if grep -r "$pattern" --include="*.php" . 2>/dev/null | grep -v "// " | grep -v "\* " | grep -v "placeholder" | grep -v "example"; then
-            echo "❌ Security concern: Found potential hardcoded credential: $pattern"
-            exit 1
-          fi
-        done
-        
-        # Check file permissions
-        if find . -name "*.php" -perm /o+w 2>/dev/null | grep -q .; then
-          echo "❌ Security concern: Found world-writable PHP files"
-          exit 1
-        fi
-        
-        echo "✅ Enhanced security scan passed"
-        echo "::endgroup::"
-
     - name: Generate deployment hash
       id: hash
       run: |

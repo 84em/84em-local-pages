@@ -686,24 +686,6 @@ git push origin main
 3. **WordPress Issues**: [WordPress.org Support](https://wordpress.org/support/)
 4. **WP-CLI Issues**: [WP-CLI Documentation](https://wp-cli.org/)
 
-## File Structure
-
-```
-84em-local-pages/
-├── 84em-local-pages.php             # Main plugin file
-├── README.md                        # This documentation
-├── CHANGELOG.md                     # Version history and release notes
-├── TESTING.md                       # Testing documentation
-├── composer.json                    # PHP dependencies
-├── cta.html                         # Call-to-action block template
-├── .github/
-│   └── workflows/
-│       └── deploy.yml               # GitHub Actions deployment workflow
-├── src/                             # Source code directory
-├── config/                          # Configuration files
-└── tests/                           # Test suite files
-```
-
 ## Testing
 
 The plugin includes a comprehensive WP-CLI-based testing framework.

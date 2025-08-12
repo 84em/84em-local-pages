@@ -1,4 +1,4 @@
-# Claude.md - 84EM Local Pages Content Generation
+# CLAUDE.md - 84EM Local Pages Content Generation
 
 This document contains the Claude AI prompt templates and guidelines used by the 84EM Local Pages Generator plugin for creating unique, SEO-optimized content for each US state and city.
 
@@ -119,13 +119,12 @@ City pages receive automatic service keyword linking only:
    - Location-specific → respective local pages
 3. **Single Replacement**: Only first occurrence of each keyword is linked
 
-### Interlinking Logic
+### Interlinking Implementation (v3.0.0+)
+Content processing is handled by the `ContentProcessor` class:
 ```php
-// State pages: Both city names and service keywords
-$content = $this->add_automatic_links( $content, $state );
-
-// City pages: Service keywords only
-$content = $this->add_service_keyword_links( $content );
+// ContentProcessor handles all content enhancements
+$contentProcessor = new ContentProcessor( $keywordsProvider );
+$processed = $contentProcessor->processContent( $raw_content, $context );
 ```
 
 ## Dynamic Content Variables
@@ -237,12 +236,13 @@ Clean hierarchical URLs without post type slug:
 
 ## API Configuration
 
-### Current Model Settings
+### Current Model Settings (v3.0.0+)
 ```php
-'model' => 'claude-sonnet-4-20250514'
-'max_tokens' => 4000
-'timeout' => 60 seconds
-'anthropic-version' => '2023-06-01'
+// Located in src/Api/ClaudeApiClient.php
+private const MODEL = 'claude-sonnet-4-20250514';
+private const MAX_TOKENS = 4000;
+private const TIMEOUT = 60;
+private const API_VERSION = '2023-06-01';
 ```
 
 ### Rate Limiting
@@ -394,77 +394,68 @@ The `--generate-sitemap` command creates XML sitemaps. This command:
 - **Includes All Pages**: Both state and city pages in sitemap
 - **Static output**: Creates `sitemap-local.xml` in WordPress root directory
 
-## Version History
+## Plugin Architecture (v3.0.0+)
 
-### v2.2.3 (August 4, 2025)
-- **FIXED**: Removed invalid `position` property from Offer type in LD-JSON schemas
-- **FIXED**: Position is only valid for ListItem types (BreadcrumbList, ItemList), not Offer
-- **IMPROVED**: OfferCatalog schema now fully compliant with schema.org specifications
+### Modular Structure
+The plugin has been refactored from a monolithic class to a modern modular architecture:
 
-### v2.2.2 (August 4, 2025)
-- **NEW**: Added `--regenerate-schema` command to fix schema issues without regenerating content
-- **NEW**: Schema regeneration supports all pages, states-only, specific states, and specific cities
-- **FIXED**: Removed invalid `addressRegion` property from City type in LD-JSON schemas
-- **FIXED**: City types in schemas now use `containedInPlace` instead of `addressRegion`
-- **IMPROVED**: Cleaned up schema structure to use only valid schema.org properties
-- **IMPROVED**: Schema regeneration doesn't require Claude API key since it only updates metadata
+#### Core Components
+- **`Plugin`**: Main plugin class handling initialization and service registration
+- **`Container`**: Dependency injection container for managing class instances
+- **`PostTypes/LocalPostType`**: Manages the custom post type registration and rewrite rules
 
-### v2.1.1 (August 1, 2025)
-- **FIXED**: PHP TypeError in LD-JSON schema generation with associative service keywords array
-- **FIXED**: array_map position calculation now uses numeric indices
-- **FIXED**: Service keywords list extraction for content generation
+#### API Layer (`src/Api/`)
+- **`ApiKeyManager`**: Handles API key storage and retrieval
+- **`ClaudeApiClient`**: Manages communication with Claude API
+- **`Encryption`**: Provides AES-256-CBC encryption for API keys
 
-### v2.1.0 (August 1, 2025)
-- **NEW**: Smart service keyword linking - keywords now link to contextually relevant pages
-- **NEW**: Dynamic URL mapping for service keywords (work, services, projects, local pages)
-- **ENHANCED**: State page prompt updated with "30 years experience" and "diverse client industries"
-- **IMPROVED**: Title case function now properly handles "84EM" as uppercase
-- **CHANGED**: Service keywords structure from array to associative array with URL mappings
+#### CLI Layer (`src/Cli/`)
+- **`CommandHandler`**: Main WP-CLI command registration and routing
+- **`Commands/GenerateCommand`**: Handles all content generation commands
+- **`Commands/TestCommand`**: Manages the testing framework
 
-### v2.0.1 (August 1, 2025)
-- **FIXED**: H2 and H3 headings now properly formatted with title case
-- **FIXED**: Removed hyperlinks from within H2 and H3 headings  
-- **NEW**: `process_headings()` function to clean up heading formatting
-- **NEW**: `convert_to_title_case()` function with smart title case rules
-- **IMPROVED**: Content processing pipeline now includes heading cleanup before interlinking
+#### Content Layer (`src/Content/`)
+- **`StateContentGenerator`**: Generates state page content
+- **`CityContentGenerator`**: Generates city page content
 
-### v2.0.0 (July 31, 2025)
-- **NEW**: Hierarchical post type support (parent-child relationships)  
-- **NEW**: City page generation (300 city pages, 6 per state)
-- **NEW**: Automatic interlinking system
-- **NEW**: Bulk operations: `--generate-all` and `--update-all` commands
-- **NEW**: City-specific WP-CLI commands with `--city` parameter
-- **NEW**: Comprehensive progress tracking and statistics
-- **CHANGED**: Total page capacity increased from 50 to 350 pages
-- **CHANGED**: Enhanced SEO with hierarchical LD-JSON schemas
-- **CHANGED**: Dual prompt templates for states (300-400 words) and cities (250-350 words)
+#### Data Layer (`src/Data/`)
+- **`StatesProvider`**: Provides US states and cities data
+- **`KeywordsProvider`**: Manages service keywords and URLs
 
-### v1.0.0 (July 30, 2025)
-- **Initial Release**: WordPress plugin for generating SEO-optimized local pages
-- **NEW**: Claude AI integration using Sonnet 4 model for content generation
-- **NEW**: Custom "local" post type for WordPress development service pages
-- **NEW**: WP-CLI integration with comprehensive command structure
-- **NEW**: Support for all 50 US states with 6 largest cities per state
-- **NEW**: State-specific landing pages (300-400 words each)
-- **NEW**: WordPress Block Editor (Gutenberg) format support
-- **NEW**: Automated CTA placement before H2 headings
-- **NEW**: Clean URL structure without post type slug
-- **NEW**: SEO optimization with titles, meta descriptions, and LD-JSON schema
-- **NEW**: XML sitemap generation for all local pages
-- **NEW**: Master index page with alphabetized state directory
-- **NEW**: AES-256-CBC encryption for API key storage with WordPress salts
-- **NEW**: Rate limiting with 1-second delays between API requests
-- **NEW**: Progress tracking with real-time duration monitoring
-- **NEW**: Comprehensive error handling and logging
-- **NEW**: Professional, factual tone without industry specialization
-- **NEW**: Geographic relevance through city mentions and remote-first messaging
+#### Schema Layer (`src/Schema/`)
+- **`SchemaGenerator`**: Creates LD-JSON structured data
+
+#### Utils Layer (`src/Utils/`)
+- **`ContentProcessor`**: Handles content processing, linking, and formatting
+
+### Key Classes and Responsibilities
+
+| Class | Responsibility | Location |
+|-------|---------------|----------|
+| `Plugin` | Main initialization | `src/Plugin.php` |
+| `ApiKeyManager` | API key management | `src/Api/ApiKeyManager.php` |
+| `ClaudeApiClient` | Claude API communication | `src/Api/ClaudeApiClient.php` |
+| `StateContentGenerator` | State page generation | `src/Content/StateContentGenerator.php` |
+| `CityContentGenerator` | City page generation | `src/Content/CityContentGenerator.php` |
+| `ContentProcessor` | Content enhancement | `src/Utils/ContentProcessor.php` |
+| `CommandHandler` | CLI command routing | `src/Cli/CommandHandler.php` |
+
+### Namespace Structure
+All classes use the `EightyFourEM\LocalPages` namespace:
+```php
+namespace EightyFourEM\LocalPages\Api;
+namespace EightyFourEM\LocalPages\Cli;
+namespace EightyFourEM\LocalPages\Content;
+// etc.
+```
 
 ---
 
-**Last Updated**: August 4, 2025  
+**Last Updated**: August 12, 2025  
 **Claude Model**: claude-sonnet-4-20250514  
 **Content Format**: WordPress Block Editor (Gutenberg)  
 **API Version**: 2023-06-01  
 **Content Strategy**: Hierarchical location pages with automatic interlinking  
 **Total Pages**: 350 (50 states + 300 cities)  
-**Plugin Version**: 2.2.3
+**Plugin Version**: 3.0.0  
+**Architecture**: Modular PSR-4 autoloaded classes with dependency injection

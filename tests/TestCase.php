@@ -9,21 +9,21 @@
  * Simple test case base class that mimics PHPUnit for WP-CLI testing
  */
 class TestCase {
-    
+
     /**
      * Set up before each test
      */
     public function setUp(): void {
         // Override in child classes
     }
-    
+
     /**
      * Tear down after each test
      */
     public function tearDown(): void {
         // Override in child classes
     }
-    
+
     /**
      * Assert that two values are equal
      */
@@ -32,7 +32,7 @@ class TestCase {
             throw new Exception( $message ?: "Expected $expected but got $actual" );
         }
     }
-    
+
     /**
      * Assert that a value is true
      */
@@ -41,7 +41,7 @@ class TestCase {
             throw new Exception( $message ?: "Expected true but got " . var_export( $value, true ) );
         }
     }
-    
+
     /**
      * Assert that a value is false
      */
@@ -50,7 +50,7 @@ class TestCase {
             throw new Exception( $message ?: "Expected false but got " . var_export( $value, true ) );
         }
     }
-    
+
     /**
      * Assert that a value is null
      */
@@ -59,7 +59,7 @@ class TestCase {
             throw new Exception( $message ?: "Expected null but got " . var_export( $value, true ) );
         }
     }
-    
+
     /**
      * Assert that a value is not null
      */
@@ -68,7 +68,7 @@ class TestCase {
             throw new Exception( $message ?: "Expected non-null value but got null" );
         }
     }
-    
+
     /**
      * Assert that an array has a key
      */
@@ -77,7 +77,7 @@ class TestCase {
             throw new Exception( $message ?: "Array does not have key: $key" );
         }
     }
-    
+
     /**
      * Assert that values are not equal
      */
@@ -86,7 +86,7 @@ class TestCase {
             throw new Exception( $message ?: "Expected values to be different but both are: " . var_export( $expected, true ) );
         }
     }
-    
+
     /**
      * Assert that a string contains another string
      */
@@ -95,7 +95,7 @@ class TestCase {
             throw new Exception( $message ?: "String does not contain '$needle'" );
         }
     }
-    
+
     /**
      * Assert that a string does not contain another string
      */
@@ -104,7 +104,7 @@ class TestCase {
             throw new Exception( $message ?: "String contains '$needle' but should not" );
         }
     }
-    
+
     /**
      * Assert that a value is an array
      */
@@ -113,7 +113,7 @@ class TestCase {
             throw new Exception( $message ?: "Expected array but got " . gettype( $value ) );
         }
     }
-    
+
     /**
      * Assert that a value is a string
      */
@@ -122,7 +122,7 @@ class TestCase {
             throw new Exception( $message ?: "Expected string but got " . gettype( $value ) );
         }
     }
-    
+
     /**
      * Assert that an array has a specific count
      */
@@ -135,7 +135,7 @@ class TestCase {
             throw new Exception( $message ?: "Expected count $expected but got $actual" );
         }
     }
-    
+
     /**
      * Assert that a string matches a regular expression
      */
@@ -144,7 +144,7 @@ class TestCase {
             throw new Exception( $message ?: "String does not match pattern: $pattern" );
         }
     }
-    
+
     /**
      * Assert that an array contains a value
      */
@@ -153,7 +153,7 @@ class TestCase {
             throw new Exception( $message ?: "Array does not contain value: " . var_export( $needle, true ) );
         }
     }
-    
+
     /**
      * Assert that an array does not contain a value
      */
@@ -162,7 +162,7 @@ class TestCase {
             throw new Exception( $message ?: "Array contains value but should not: " . var_export( $needle, true ) );
         }
     }
-    
+
     /**
      * Assert that two values are identical (===)
      */
@@ -171,7 +171,7 @@ class TestCase {
             throw new Exception( $message ?: "Values are not identical" );
         }
     }
-    
+
     /**
      * Assert that a string starts with another string
      */
@@ -180,7 +180,7 @@ class TestCase {
             throw new Exception( $message ?: "String does not start with: $prefix" );
         }
     }
-    
+
     /**
      * Assert that a string ends with another string
      */
@@ -189,7 +189,7 @@ class TestCase {
             throw new Exception( $message ?: "String does not end with: $suffix" );
         }
     }
-    
+
     /**
      * Assert that a value is empty
      */
@@ -198,7 +198,7 @@ class TestCase {
             throw new Exception( $message ?: "Value is not empty" );
         }
     }
-    
+
     /**
      * Assert that a value is not empty
      */
@@ -207,7 +207,7 @@ class TestCase {
             throw new Exception( $message ?: "Value is empty" );
         }
     }
-    
+
     /**
      * Assert that a value is greater than another
      */
@@ -216,7 +216,7 @@ class TestCase {
             throw new Exception( $message ?: "Expected value greater than $expected but got $actual" );
         }
     }
-    
+
     /**
      * Assert that a value is less than another
      */
@@ -225,7 +225,17 @@ class TestCase {
             throw new Exception( $message ?: "Expected value less than $expected but got $actual" );
         }
     }
-    
+
+    /**
+     * Assert that a value is an instance of a class
+     */
+    protected function assertInstanceOf( $expected, $actual, $message = '' ) {
+        if ( ! ( $actual instanceof $expected ) ) {
+            $actualType = is_object( $actual ) ? get_class( $actual ) : gettype( $actual );
+            throw new Exception( $message ?: "Expected instance of $expected but got $actualType" );
+        }
+    }
+
     /**
      * Assert that a file exists
      */

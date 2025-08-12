@@ -41,6 +41,54 @@ This plugin creates unique, locally-focused landing pages for WordPress developm
 - WP-CLI 2.0 or higher
 - Claude API key from Anthropic
 
+## Security
+
+### Automated Security Reviews
+
+This repository uses Claude AI to automatically review all pull requests for security vulnerabilities. The security review runs on every PR and checks for:
+
+- **Input Validation Issues**: SQL injection, XSS, command injection, path traversal
+- **Authentication & Authorization**: Bypass vulnerabilities, privilege escalation
+- **Cryptography**: Weak algorithms, hardcoded secrets, insecure randomness
+- **Code Execution**: Remote code execution, deserialization flaws
+- **Data Exposure**: Sensitive data in logs, PII handling violations
+
+#### Setup
+
+1. **Add Claude API Key**: Add your Anthropic API key as a GitHub secret named `ANTHROPIC_API_KEY`
+   
+2. **Security Review Workflow**: The workflow automatically triggers on pull requests that modify code files
+
+3. **Review Configuration**: Customize security checks in `.github/security-review-config.yml`
+
+#### How It Works
+
+1. When a PR is opened or updated, the security review workflow starts
+2. Claude analyzes the code changes for security vulnerabilities
+3. Findings are posted as a comment on the PR
+4. High-severity issues will block the PR from merging
+5. The review focuses on HIGH-CONFIDENCE vulnerabilities (>80% exploitability)
+
+#### Security Review Guidelines
+
+The automated review filters out false positives and focuses on:
+- Concrete vulnerabilities with clear exploitation paths
+- Issues introduced by the PR (not existing code)
+- Real security risks vs theoretical best practices
+
+#### Manual Security Review
+
+In addition to automated reviews, you can run security checks locally:
+
+```bash
+# Run security review before committing
+wp 84em local-pages --security-review
+
+# Check for dependency vulnerabilities
+composer audit
+npm audit
+```
+
 ## Installation
 
 1. **Upload Plugin Files**

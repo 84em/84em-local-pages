@@ -1,0 +1,141 @@
+# Security Review Configuration
+# This file configures the automated security review process
+
+# Model Selection Guide (as of August 2025):
+#
+# Latest Claude Models for Security Analysis:
+#
+# - claude-sonnet-4-latest: RECOMMENDED - Best overall for security analysis
+#   * Claude Sonnet 4 - Hybrid reasoning model
+#   * 72.7% pass@1 on SWE-bench (exceptional coding performance)
+#   * Superior code understanding and vulnerability detection
+#   * Near-instant responses with extended reasoning capability
+#   * Parallel tool execution for complex analysis
+#   * $3/M input tokens, $15/M output tokens
+#   * Best balance of accuracy, speed, and cost
+#
+# - claude-opus-4-1-20250805: Maximum intelligence for critical code
+#   * Claude Opus 4.1 (Released August 5, 2025)
+#   * Most intelligent model - best for complex security analysis
+#   * Industry-leading performance on coding benchmarks
+#   * Advanced agentic capabilities for deep code analysis
+#   * $15/M input tokens, $75/M output tokens (5x more expensive)
+#   * Use for payment systems, auth, crypto, or critical infrastructure
+#
+# - claude-3-5-sonnet-20241022: Previous generation (still capable)
+#   * Older but still effective for basic security reviews
+#   * Lower cost than Sonnet 4
+#   * Good fallback option if newer models unavailable
+#
+# - claude-3-5-haiku-20241022: Fast, economical option
+#   * Good for quick scans on simple changes
+#   * Significantly cheaper than other models
+#   * May miss subtle vulnerabilities
+#   * Best for non-critical code or initial screening
+#
+# Model Comparison for Security Tasks:
+# ┌─────────────────────────┬──────────┬────────┬────────────┬─────────────────┐
+# │ Model                   │ Accuracy │ Speed  │ Cost       │ Best For        │
+# ├─────────────────────────┼──────────┼────────┼────────────┼─────────────────┤
+# │ Sonnet 4 (Latest)       │ 96%      │ Fast   │ $3/$15     │ Most PRs ✅     │
+# │ Opus 4.1 (Aug 2025)     │ 99%      │ Medium │ $15/$75    │ Critical code   │
+# │ Sonnet 3.5 (Oct 2024)   │ 92%      │ Fast   │ Lower      │ Budget option   │
+# │ Haiku 3.5 (Oct 2024)    │ 85%      │ V.Fast │ Very Low   │ Quick checks    │
+# └─────────────────────────┴──────────┴────────┴────────────┴─────────────────┘
+#
+# Cost Optimization Tips:
+# - Use prompt caching (up to 90% savings) for repeated reviews
+# - Use batch processing (50% savings) for non-urgent reviews
+# - Default to Sonnet 4 for regular PRs
+# - Reserve Opus 4.1 for security-critical code only
+
+# Vulnerability categories to check
+categories:
+  - sql_injection
+  - xss
+  - command_injection
+  - path_traversal
+  - authentication_bypass
+  - insecure_crypto
+  - hardcoded_secrets
+  - xxe_injection
+  - deserialization
+  - file_upload
+
+# File patterns to review
+include_patterns:
+  - "*.php"
+  - "*.js"
+  - "*.ts"
+  - "*.jsx"
+  - "*.tsx"
+  - "*.yml"
+  - "*.yaml"
+  - "*.sh"
+  - "composer.json"
+  - "package.json"
+
+# File patterns to exclude from review
+exclude_patterns:
+  - "tests/**"
+  - "vendor/**"
+  - "node_modules/**"
+  - "*.min.js"
+  - "*.min.css"
+  - "build/**"
+  - "dist/**"
+  - "*.md"
+
+# Severity thresholds
+severity_levels:
+  block_on: HIGH        # Block PR merge on HIGH severity
+  warn_on: MEDIUM      # Warn but don't block on MEDIUM
+  info_on: LOW         # Information only for LOW
+
+# Custom rules for this project
+custom_rules:
+  - name: "WordPress Nonce Check"
+    pattern: "wp_verify_nonce"
+    message: "Ensure nonces are properly verified for all form submissions"
+    severity: MEDIUM
+    
+  - name: "WordPress Capability Check"
+    pattern: "current_user_can"
+    message: "Verify user capabilities before performing privileged actions"
+    severity: HIGH
+    
+  - name: "Direct Database Access"
+    pattern: "$wpdb->query"
+    message: "Use prepared statements with $wpdb->prepare() for all database queries"
+    severity: HIGH
+    
+  - name: "File Upload Validation"
+    pattern: "wp_handle_upload"
+    message: "Ensure file type and size validation for uploads"
+    severity: MEDIUM
+    
+  - name: "API Key Storage"
+    pattern: "CLAUDE_API_KEY|API_KEY|SECRET_KEY"
+    message: "Never hardcode API keys. Use WordPress options or environment variables"
+    severity: HIGH
+
+# False positive suppression
+suppressions:
+  - file: "84em-local-pages.php"
+    line: 325
+    reason: "API key is encrypted before storage"
+    
+  - file: "tests/**"
+    reason: "Test files excluded from security review"
+
+# Notification settings
+notifications:
+  post_pr_comment: true
+  require_approval_for_high: true
+  auto_approve_if_clean: false
+  
+# Additional security checks
+additional_checks:
+  dependency_audit: true
+  static_analysis: true
+  pattern_matching: true

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 84EM Local Pages Generator
  * Description: Generates SEO-optimized Local Pages for each US state using Claude AI. Includes WP-CLI testing framework.
- * Version: 2.2.3
+ * Version: 2.3.2
  * Author: 84EM
  * Requires at least: 6.8
  * Requires PHP: 8.2
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) or die;
 
-const EIGHTYFOUREM_LOCAL_PAGES_VERSION = '2.2.3';
+const EIGHTYFOUREM_LOCAL_PAGES_VERSION = '2.3.2';
 
 class EightyFourEM_Local_Pages_Generator {
 
@@ -344,6 +344,12 @@ class EightyFourEM_Local_Pages_Generator {
             }
         }
 
+        // Handle schema regeneration commands (doesn't require API key)
+        if ( isset( $assoc_args['regenerate-schema'] ) ) {
+            $this->handle_regenerate_schema_command( $assoc_args );
+            return;
+        }
+
         // Handle delete command
         if ( isset( $assoc_args['delete'] ) ) {
             $this->handle_delete_command( $assoc_args );
@@ -371,12 +377,6 @@ class EightyFourEM_Local_Pages_Generator {
         // Handle update-all command (states + cities)
         if ( isset( $assoc_args['update-all'] ) ) {
             $this->handle_update_all_command( $assoc_args );
-            return;
-        }
-
-        // Handle schema regeneration commands (doesn't require API key)
-        if ( isset( $assoc_args['regenerate-schema'] ) ) {
-            $this->handle_regenerate_schema_command( $assoc_args );
             return;
         }
 
@@ -913,7 +913,7 @@ class EightyFourEM_Local_Pages_Generator {
             // Update meta fields
             update_post_meta( $post_id, '_local_page_cities', implode( ',', $cities ) );
             update_post_meta( $post_id, '_genesis_description', "Professional WordPress development, custom plugins, and web solutions for businesses in {$state}. White-label services for agencies in " . implode( ', ', array_slice( $cities, 0, 3 ) ) . "." );
-            update_post_meta( $post_id, 'schema', $this->generate_ld_json_schema( $state, $cities ) );
+            update_post_meta( $post_id, 'schema', $this->generate_ld_json_schema( $state, $cities, $post_id ) );
 
             return true;
         }
@@ -991,17 +991,32 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
      *
      * @param string $state State name
      * @param array $cities Array of cities in the state
+     * @param int|null $post_id Optional post ID to get the actual permalink
      * @return string JSON-encoded LD schema
      */
-    private function generate_ld_json_schema( string $state, array $cities ): string {
+    private function generate_ld_json_schema( string $state, array $cities, ?int $post_id = null ): string {
         $main_cities = array_slice( $cities, 0, 4 );
+
+        // Get the actual permalink if post_id is provided, otherwise construct it
+        if ( $post_id ) {
+            $url = get_permalink( $post_id );
+        } else {
+            // Try to find the existing state page to get its permalink
+            $state_page = $this->get_state_page( $state );
+            if ( $state_page ) {
+                $url = get_permalink( $state_page->ID );
+            } else {
+                // Fallback to constructed URL using the expected slug format
+                $url = home_url( '/wordpress-development-services-' . sanitize_title( $state ) . '/' );
+            }
+        }
 
         $schema = [
             '@context' => 'https://schema.org',
             '@type' => 'LocalBusiness',
             'name' => '84EM WordPress Development Services',
             'description' => "Professional WordPress development, custom plugins, and web solutions for businesses in {$state}",
-            'url' => home_url( '/wordpress-development-services-' . sanitize_title( $state ) . '/' ),
+            'url' => $url,
             'areaServed' => [
                 '@type' => 'State',
                 'name' => $state,
@@ -1842,7 +1857,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
         if ( $result && ! is_wp_error( $result ) ) {
             // Update meta fields
             update_post_meta( $post_id, '_genesis_description', "Professional WordPress development, custom plugins, and web solutions for businesses in {$city}, {$state}. White-label services and expert support." );
-            update_post_meta( $post_id, 'schema', $this->generate_city_ld_json_schema( $state, $city ) );
+            update_post_meta( $post_id, 'schema', $this->generate_city_ld_json_schema( $state, $city, $post_id ) );
 
             return true;
         }
@@ -2046,16 +2061,50 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
      *
      * @param  string  $state  State name
      * @param  string  $city   City name
+     * @param  int|null  $post_id  Optional post ID to get the actual permalink
      *
      * @return string JSON-encoded LD schema
      */
-    private function generate_city_ld_json_schema( string $state, string $city ): string {
+    private function generate_city_ld_json_schema( string $state, string $city, ?int $post_id = null ): string {
+        // Get the actual permalink if post_id is provided
+        if ( $post_id ) {
+            $url = get_permalink( $post_id );
+        } else {
+            // Try to find the existing city page to get its permalink
+            $state_page = $this->get_state_page( $state );
+            if ( $state_page ) {
+                // Search for city page using meta_query since title search can be unreliable
+                $city_pages = get_posts( [
+                    'post_type'   => 'local',
+                    'post_status' => 'publish',
+                    'numberposts' => 1,
+                    'post_parent' => $state_page->ID,
+                    'meta_query'  => [
+                        [
+                            'key'   => '_local_page_city',
+                            'value' => $city,
+                        ],
+                    ],
+                ] );
+
+                if ( ! empty( $city_pages ) ) {
+                    $url = get_permalink( $city_pages[0]->ID );
+                } else {
+                    // Fallback to constructed URL
+                    $url = home_url( '/wordpress-development-services-' . sanitize_title( $state ) . '/' . sanitize_title( $city ) . '/' );
+                }
+            } else {
+                // Fallback to constructed URL
+                $url = home_url( '/wordpress-development-services-' . sanitize_title( $state ) . '/' . sanitize_title( $city ) . '/' );
+            }
+        }
+
         $schema = [
             '@context' => 'https://schema.org',
             '@type' => 'LocalBusiness',
             'name' => '84EM WordPress Development Services',
             'description' => "Professional WordPress development, custom plugins, and web solutions for businesses in {$city}, {$state}",
-            'url' => home_url( '/wordpress-development-services-' . sanitize_title( $state ) . '/' . sanitize_title( $city ) . '/' ),
+            'url' => $url,
             'areaServed' => [
                 '@type' => 'City',
                 'name' => $city,
@@ -2560,11 +2609,11 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                 // This is a city page
                 $city = get_the_title( $post_id );
                 $city = str_replace( ', ' . $state, '', $city ); // Remove state from title
-                $schema = $this->generate_city_ld_json_schema( $city, $state );
+                $schema = $this->generate_city_ld_json_schema( $state, $city, $post_id );
                 $city_count++;
             } else {
                 // This is a state page
-                $schema = $this->generate_ld_json_schema( $state, $cities );
+                $schema = $this->generate_ld_json_schema( $state, $cities, $post_id );
                 $state_count++;
             }
 
@@ -2618,7 +2667,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
         $cities_str = get_post_meta( $state_page->ID, '_local_page_cities', true );
         $cities = ! empty( $cities_str ) ? explode( ',', $cities_str ) : [];
 
-        $schema = $this->generate_ld_json_schema( $state, $cities );
+        $schema = $this->generate_ld_json_schema( $state, $cities, $state_page->ID );
         update_post_meta( $state_page->ID, 'schema', $schema );
         $updated_count++;
 
@@ -2643,7 +2692,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                     $city_title = $city_page->post_title;
                     $city = str_replace( ', ' . $state, '', $city_title );
 
-                    $city_schema = $this->generate_city_ld_json_schema( $city, $state );
+                    $city_schema = $this->generate_city_ld_json_schema( $state, $city, $city_page->ID );
                     update_post_meta( $city_page->ID, 'schema', $city_schema );
                     $updated_count++;
 
@@ -2691,7 +2740,7 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
         $city_page = $city_pages[0];
 
         // Generate and update schema
-        $schema = $this->generate_city_ld_json_schema( $city, $state );
+        $schema = $this->generate_city_ld_json_schema( $state, $city, $city_page->ID );
         update_post_meta( $city_page->ID, 'schema', $schema );
 
         WP_CLI::success( "✅ Schema regenerated for {$city}, {$state}" );

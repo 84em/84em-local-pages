@@ -5,6 +5,39 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2025-08-12
+
+### Changed
+- **BREAKING CHANGE**: Complete architectural overhaul from monolithic class to modular architecture
+- Migrated from single 2,954-line class to 20+ focused classes following SOLID principles
+- Implemented PSR-4 autoloading with proper PHP namespaces (`EightyFourEM\LocalPages\*`)
+- Restructured codebase into logical modules: Api, Cli, Content, Data, Schema, Utils
+- Introduced dependency injection container pattern
+- All 30 tests rewritten to work with new architecture
+- Removed legacy monolithic class entirely
+
+### Added
+- Modern PHP 8.2 features including typed properties and union types
+- Contracts/interfaces for better abstraction and testability
+- Container class for dependency injection
+- Dedicated command classes for CLI operations
+- Proper separation of concerns with single responsibility per class
+- Comprehensive error handling and logging
+
+### Fixed
+- Claude API model updated to correct version (`claude-sonnet-4-20250514`)
+- Max tokens setting corrected to 4000
+- Constructor parameter dependencies properly resolved
+- CLI command routing for state/city parameters
+- API key management method compatibility
+
+### Improved
+- Code maintainability and readability
+- Test isolation and reliability
+- Memory efficiency with lazy loading
+- Plugin initialization flow
+- Overall code organization
+
 ## [2.4.2] - 2025-08-12
 
 ### Fixed

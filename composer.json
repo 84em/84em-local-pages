@@ -17,9 +17,9 @@
     "wp-cli/wp-cli-tests": "^4.3"
   },
   "autoload": {
-    "files": [
-      "84em-local-pages.php"
-    ]
+    "psr-4": {
+      "EightyFourEM\\LocalPages\\": "src/"
+    }
   },
   "autoload-dev": {
     "psr-4": {

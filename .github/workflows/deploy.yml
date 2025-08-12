@@ -605,8 +605,9 @@ jobs:
       if: always()
       continue-on-error: true
       uses: 8398a7/action-slack@v3
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       with:
-        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
         status: custom
         custom_payload: |
           {

@@ -192,15 +192,15 @@ jobs:
         echo "::group::Creating backup"
         
         # Create backup directory if it doesn't exist and perform backup
-        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
-        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
-        export SSH_PORT="${{ env.SSH_PORT }}"
-        export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
-        export BACKUP_PATH="${{ env.BACKUP_PATH }}"
-        export BACKUP_NAME="${{ needs.validate.outputs.backup_name }}"
-        
-        ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
+          "${{ env.DEPLOY_PATH }}" \
+          "${{ env.BACKUP_PATH }}" \
+          "${{ needs.validate.outputs.backup_name }}" <<'BACKUP_EOF'
           set -e
+          DEPLOY_PATH="$1"
+          BACKUP_PATH="$2"
+          BACKUP_NAME="$3"
+          
           mkdir -p "${BACKUP_PATH}"
 
           if [[ -d "${DEPLOY_PATH}" ]]; then
@@ -218,22 +218,23 @@ jobs:
           else
             echo "No existing installation found, skipping backup"
           fi
-EOF
+        BACKUP_EOF
         
         echo "::endgroup::"
 
     - name: Backup verification
       run: |
-        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
-        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
-        export SSH_PORT="${{ env.SSH_PORT }}"
-        backup_size=$(ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+        backup_size=$(ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
+          "${{ env.BACKUP_PATH }}" \
+          "${{ needs.validate.outputs.backup_name }}" <<'VERIFY_EOF'
+          BACKUP_PATH="$1"
+          BACKUP_NAME="$2"
           if [[ -d "${BACKUP_PATH}/${BACKUP_NAME}" ]]; then
             du -sh "${BACKUP_PATH}/${BACKUP_NAME}" | cut -f1
           else
             echo '0'
           fi
-EOF
+        VERIFY_EOF
         )
         
         if [[ "$backup_size" != "0" ]]; then
@@ -341,8 +342,12 @@ EOF
         export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
         export PLUGIN_NAME="${{ env.PLUGIN_NAME }}"
         
-        ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
+          "${{ env.DEPLOY_PATH }}" \
+          "${{ env.PLUGIN_NAME }}" <<'PERMS_EOF'
           set -e
+          DEPLOY_PATH="$1"
+          PLUGIN_NAME="$2"
           cd "${DEPLOY_PATH}"
           
           # Set directory permissions (755)
@@ -360,7 +365,7 @@ EOF
           chmod 644 "${PLUGIN_NAME}.php"
           
           echo 'File permissions set correctly'
-EOF
+        PERMS_EOF
         
         echo "::endgroup::"
 
@@ -393,8 +398,13 @@ EOF
         export PLUGIN_NAME="${{ env.PLUGIN_NAME }}"
         
         # Check if main plugin file exists
-        ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
+          "${{ env.DEPLOY_PATH }}" \
+          "${{ env.PLUGIN_NAME }}" <<'VERIFY_DEPLOY_EOF'
           set -e
+          DEPLOY_PATH="$1"
+          PLUGIN_NAME="$2"
+          
           if [[ -f "${DEPLOY_PATH}/${PLUGIN_NAME}.php" ]]; then
             echo '✅ Main plugin file exists'
           else
@@ -440,7 +450,7 @@ EOF
             echo '✅ Deployment info file found'
             cat "${DEPLOY_PATH}/DEPLOYMENT_INFO.txt"
           fi
-EOF
+        VERIFY_DEPLOY_EOF
         
         echo "::endgroup::"
 
@@ -448,22 +458,20 @@ EOF
       run: |
         echo "::group::Testing basic functionality"
         
-        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
-        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
-        export SSH_PORT="${{ env.SSH_PORT }}"
-        export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
-        export PLUGIN_NAME="${{ env.PLUGIN_NAME }}"
-        
         # Test that the plugin file can be included without errors
-        ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
+          "${{ env.DEPLOY_PATH }}" \
+          "${{ env.PLUGIN_NAME }}" <<'LOAD_TEST_EOF'
           set -e
+          DEPLOY_PATH="$1"
+          PLUGIN_NAME="$2"
           cd "${DEPLOY_PATH}"
           php -r "include '${PLUGIN_NAME}.php'; echo 'Plugin loaded successfully\n';" || {
             echo '❌ Plugin failed to load'
             exit 1
           }
           echo '✅ Plugin loads without errors'
-EOF
+        LOAD_TEST_EOF
         
         echo "::endgroup::"
 
@@ -516,8 +524,16 @@ EOF
         export BACKUP_PATH="${{ env.BACKUP_PATH }}"
         export BACKUP_NAME="${{ needs.validate.outputs.backup_name }}"
         
-        ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
+          "${{ env.DEPLOY_PATH }}" \
+          "${{ env.BACKUP_PATH }}" \
+          "${{ needs.validate.outputs.backup_name }}" \
+          "${{ github.sha }}" <<'ROLLBACK_EOF'
           set -e
+          DEPLOY_PATH="$1"
+          BACKUP_PATH="$2"
+          BACKUP_NAME="$3"
+          GITHUB_SHA="$4"
           backup_path="${BACKUP_PATH}/${BACKUP_NAME}"
           
           if [[ -d "${backup_path}" ]]; then
@@ -532,7 +548,7 @@ EOF
             # Add rollback marker
             {
               echo 'ROLLBACK PERFORMED'
-              echo "Original commit: ${{ github.sha }}"
+              echo "Original commit: ${GITHUB_SHA}"
               echo "Rollback time: $(date -u)"
             } >> "${DEPLOY_PATH}/ROLLBACK_INFO.txt"
             
@@ -541,7 +557,7 @@ EOF
             echo '⚠️ No backup found, manual intervention required'
             exit 1
           fi
-EOF
+        ROLLBACK_EOF
         
         echo "::endgroup::"
 
@@ -553,8 +569,12 @@ EOF
         export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
         export PLUGIN_NAME="${{ env.PLUGIN_NAME }}"
         
-        ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
+          "${{ env.DEPLOY_PATH }}" \
+          "${{ env.PLUGIN_NAME }}" <<'VERIFY_ROLLBACK_EOF'
           set -e
+          DEPLOY_PATH="$1"
+          PLUGIN_NAME="$2"
           if [[ -f "${DEPLOY_PATH}/${PLUGIN_NAME}.php" ]]; then
             echo "✅ Main plugin file exists after rollback"
             # Additional verification
@@ -571,7 +591,7 @@ EOF
             echo "❌ Rollback verification failed - main plugin file missing"
             exit 1
           fi
-EOF
+        VERIFY_ROLLBACK_EOF
 
   # Notification job
   notify:

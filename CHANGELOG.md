@@ -5,6 +5,22 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.2] - 2025-08-12
+
+### Security
+- Added explicit blocking of deployments from pull requests in GitHub Actions workflow
+- Enhanced deployment safety checks to prevent premature production deployments
+- Added PR context verification even for main branch pushes
+- Added debug output for blocked deployment attempts
+
+### Fixed
+- Deployment workflow now properly blocks all PR-related events
+- Added multiple layers of safety checks to prevent accidental deployments before merge
+
+### Changed
+- Deployment decision logic now explicitly checks for pull_request events
+- Added clearer error messages when deployment is blocked
+
 ## [2.3.1] - 2025-08-12
 
 ### Fixed

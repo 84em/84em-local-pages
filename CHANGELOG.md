@@ -5,7 +5,27 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.4.0] - 2025-12-12
+## [2.4.1] - 2025-08-12
+
+### Changed
+- Replaced custom security review implementation with official Anthropic Claude Code Security Review action
+- Simplified security workflow from 600+ lines to ~75 lines
+- Removed unnecessary configuration files and setup scripts
+- Updated documentation to reflect simpler setup process
+
+### Fixed
+- Fixed PHP syntax error in test-url-generation.php (invalid array syntax)
+- Fixed deployment workflow to properly check validation job success before proceeding
+- Updated PHP syntax check to include test files (previously excluded)
+- Added explicit validation result checks to all dependent jobs in deploy workflow
+- Ensured deployment stops immediately if any PHP file has syntax errors
+
+### Improved
+- Better error handling in deployment workflow
+- Job dependencies now properly enforce validation success
+- Cleaner, more maintainable security review implementation
+
+## [2.4.0] - 2025-08-12
 
 ### Added
 - Automated security reviews using Claude AI for all pull requests

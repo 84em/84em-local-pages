@@ -5,6 +5,19 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.1] - 2025-08-12
+
+### Fixed
+- LD-JSON schema URLs now correctly use actual page permalinks instead of hardcoded URL structure
+- Schema generation functions now accept optional post_id parameter to retrieve real permalinks
+- City page lookup improved to use meta_query for more reliable results
+- Schema URLs now properly match the page URLs for both state and city pages
+
+### Changed
+- Updated `generate_ld_json_schema()` and `generate_city_ld_json_schema()` functions to use `get_permalink()` when post_id is available
+- All schema generation calls now pass post_id parameter where available
+- Improved city page search logic using meta_query instead of title search
+
 ## [2.3.0] - 2025-08-07
 
 ### Added

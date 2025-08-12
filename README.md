@@ -45,48 +45,46 @@ This plugin creates unique, locally-focused landing pages for WordPress developm
 
 ### Automated Security Reviews
 
-This repository uses Claude AI to automatically review all pull requests for security vulnerabilities. The security review runs on every PR and checks for:
+This repository uses the official [Anthropic Claude Code Security Review](https://github.com/anthropics/claude-code-security-review) GitHub Action to automatically review all pull requests for security vulnerabilities.
 
-- **Input Validation Issues**: SQL injection, XSS, command injection, path traversal
-- **Authentication & Authorization**: Bypass vulnerabilities, privilege escalation
-- **Cryptography**: Weak algorithms, hardcoded secrets, insecure randomness
-- **Code Execution**: Remote code execution, deserialization flaws
-- **Data Exposure**: Sensitive data in logs, PII handling violations
+#### Features
+
+- **AI-Powered Analysis**: Claude analyzes code changes for security vulnerabilities
+- **Automated PR Comments**: Security findings are posted directly on pull requests
+- **Language Agnostic**: Works with PHP, JavaScript, TypeScript, and more
+- **False Positive Filtering**: Focuses on high-confidence vulnerabilities
+- **Dependency Scanning**: Additional checks for vulnerable dependencies
 
 #### Setup
 
 1. **Add Claude API Key**: Add your Anthropic API key as a GitHub secret named `ANTHROPIC_API_KEY`
+   ```bash
+   # Using GitHub CLI
+   gh secret set ANTHROPIC_API_KEY
    
-2. **Security Review Workflow**: The workflow automatically triggers on pull requests that modify code files
+   # Or add manually in repository Settings → Secrets → Actions
+   ```
 
-3. **Review Configuration**: Customize security checks in `.github/security-review-config.yml`
+2. **That's it!** The workflow automatically triggers on all pull requests
 
-#### How It Works
+#### What It Checks
 
-1. When a PR is opened or updated, the security review workflow starts
-2. Claude analyzes the code changes for security vulnerabilities
-3. Findings are posted as a comment on the PR
-4. High-severity issues will block the PR from merging
-5. The review focuses on HIGH-CONFIDENCE vulnerabilities (>80% exploitability)
+- SQL injection, XSS, command injection vulnerabilities
+- Authentication and authorization flaws
+- Hardcoded secrets and API keys
+- Insecure cryptographic implementations
+- Path traversal and file operation security
+- Dependency vulnerabilities (composer and npm)
 
-#### Security Review Guidelines
-
-The automated review filters out false positives and focuses on:
-- Concrete vulnerabilities with clear exploitation paths
-- Issues introduced by the PR (not existing code)
-- Real security risks vs theoretical best practices
-
-#### Manual Security Review
-
-In addition to automated reviews, you can run security checks locally:
+#### Manual Security Checks
 
 ```bash
-# Run security review before committing
-wp 84em local-pages --security-review
-
-# Check for dependency vulnerabilities
+# Check for dependency vulnerabilities locally
 composer audit
 npm audit
+
+# Run PHP syntax checks
+find . -name "*.php" -not -path "./vendor/*" -exec php -l {} +
 ```
 
 ## Installation

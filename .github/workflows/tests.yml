@@ -21,11 +21,39 @@ jobs:
       with:
         php-version: '8.2'
         extensions: mbstring, intl, openssl
+        tools: composer:v2
     
     - name: Check PHP syntax
       run: |
-        find . -name "*.php" -not -path "./vendor/*" -exec php -l {} \; | grep -v "No syntax errors"
-        echo "✅ All PHP files have valid syntax"
+        echo "Checking PHP syntax..."
+        error_count=0
+        while IFS= read -r -d '' file; do
+          output=$(php -l "$file" 2>&1)
+          if [[ $? -ne 0 ]] || [[ "$output" != *"No syntax errors"* ]]; then
+            echo "❌ Syntax error in $file:"
+            echo "$output"
+            error_count=$((error_count + 1))
+          fi
+        done < <(find . -name "*.php" -not -path "./vendor/*" -print0)
+        
+        if [[ $error_count -gt 0 ]]; then
+          echo "❌ Found $error_count file(s) with syntax errors"
+          exit 1
+        else
+          echo "✅ All PHP files have valid syntax"
+        fi
+    
+    - name: Cache Composer dependencies
+      uses: actions/cache@v4
+      with:
+        path: vendor
+        key: composer-${{ hashFiles('composer.lock') }}
+        restore-keys: composer-
+    
+    - name: Install Composer dependencies
+      run: |
+        echo "Installing Composer dependencies..."
+        composer install --no-dev --optimize-autoloader --no-progress
     
     - name: Check composer.json validity
       run: |

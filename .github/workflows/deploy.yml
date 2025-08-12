@@ -29,9 +29,11 @@ on:
 
 env:
   PHP_VERSION: '8.2'
+  PLUGIN_NAME: '84em-local-pages'
+  SITE_URL: 'https://84em.com'
   DEPLOY_PATH: '${{ secrets.DEPLOY_PATH }}'
   BACKUP_PATH: '${{ secrets.BACKUP_PATH }}'
-  SSH_PORT: '${{ secrets.DEPLOY_PORT || 22 }}'
+  SSH_PORT: '${{ secrets.DEPLOY_PORT }}'
 
 jobs:
   # Pre-deployment validation
@@ -70,7 +72,21 @@ jobs:
     - name: PHP Syntax Check
       run: |
         echo "::group::Checking PHP syntax"
-        find . -name "*.php" -not -path "./vendor/*" -not -path "./tests/*" -exec php -l {} + || exit 1
+        # Check all PHP files including tests (exclude only vendor)
+        error_count=0
+        while IFS= read -r -d '' file; do
+          output=$(php -l "$file" 2>&1)
+          if [[ $? -ne 0 ]]; then
+            echo "❌ Syntax error in $file:"
+            echo "$output"
+            error_count=$((error_count + 1))
+          fi
+        done < <(find . -name "*.php" -not -path "./vendor/*" -print0)
+        
+        if [[ $error_count -gt 0 ]]; then
+          echo "❌ Found $error_count file(s) with syntax errors"
+          exit 1
+        fi
         echo "✅ All PHP files have valid syntax"
         echo "::endgroup::"
 
@@ -136,12 +152,6 @@ jobs:
           echo "✅ Tag-based deployment detected"
         elif [[ "${{ github.ref_name }}" == "main" ]]; then
           echo "✅ Main branch deployment"
-          # Additional safety: Ensure we're not in a PR context
-          if [[ -n "${{ github.event.pull_request }}" ]]; then
-            echo "❌ BLOCKED: This appears to be a PR to main, not a direct push"
-            echo "should_deploy=false" >> $GITHUB_OUTPUT
-            exit 1
-          fi
         else
           echo "❌ Deployment only allowed from main branch or tags"
           echo "Current ref: ${{ github.ref_name }}"
@@ -158,7 +168,7 @@ jobs:
     name: Backup Current Production
     runs-on: ubuntu-latest
     needs: validate
-    if: needs.validate.outputs.should_deploy == 'true' && github.event.inputs.skip_backup != 'true'
+    if: needs.validate.result == 'success' && needs.validate.outputs.should_deploy == 'true' && github.event.inputs.skip_backup != 'true'
 
     steps:
     - name: Setup SSH key
@@ -181,38 +191,50 @@ jobs:
       run: |
         echo "::group::Creating backup"
         
-        # Create backup directory if it doesn't exist
-        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
-          mkdir -p '${{ env.BACKUP_PATH }}'
-        "
+        # Create backup directory if it doesn't exist and perform backup
+        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
+        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
+        export SSH_PORT="${{ env.SSH_PORT }}"
+        export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
+        export BACKUP_PATH="${{ env.BACKUP_PATH }}"
+        export BACKUP_NAME="${{ needs.validate.outputs.backup_name }}"
         
-        # Create timestamped backup
-        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
-          if [[ -d '${{ env.DEPLOY_PATH }}' ]]; then
-            echo 'Creating backup: ${{ needs.validate.outputs.backup_name }}'
-            cp -r '${{ env.DEPLOY_PATH }}' '${{ env.BACKUP_PATH }}/${{ needs.validate.outputs.backup_name }}'
-            echo 'Backup created successfully'
+        ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+          set -e
+          mkdir -p "${BACKUP_PATH}"
+
+          if [[ -d "${DEPLOY_PATH}" ]]; then
+            echo "Creating backup: ${BACKUP_NAME}"
+            cp -r "${DEPLOY_PATH}" "${BACKUP_PATH}/${BACKUP_NAME}"
+            echo "Backup created successfully"
             
-            # Keep only last 10 backups
-            cd '${{ env.BACKUP_PATH }}'
-            ls -t | tail -n +11 | xargs -r rm -rf
-            echo 'Old backups cleaned up'
+            # Keep only last 10 backups (with locking to prevent race conditions)
+            (
+              flock -x 200
+              cd "${BACKUP_PATH}"
+              ls -t | grep -E '^84em-local-pages-backup-' | tail -n +11 | xargs -r rm -rf
+              echo "Old backups cleaned up"
+            ) 200>/tmp/backup_cleanup.lock
           else
-            echo 'No existing installation found, skipping backup'
+            echo "No existing installation found, skipping backup"
           fi
-        "
+EOF
         
         echo "::endgroup::"
 
     - name: Backup verification
       run: |
-        backup_size=$(ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
-          if [[ -d '${{ env.BACKUP_PATH }}/${{ needs.validate.outputs.backup_name }}' ]]; then
-            du -sh '${{ env.BACKUP_PATH }}/${{ needs.validate.outputs.backup_name }}' | cut -f1
+        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
+        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
+        export SSH_PORT="${{ env.SSH_PORT }}"
+        backup_size=$(ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+          if [[ -d "${BACKUP_PATH}/${BACKUP_NAME}" ]]; then
+            du -sh "${BACKUP_PATH}/${BACKUP_NAME}" | cut -f1
           else
             echo '0'
           fi
-        ")
+EOF
+        )
         
         if [[ "$backup_size" != "0" ]]; then
           echo "✅ Backup verified: $backup_size"
@@ -225,11 +247,11 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: [validate, backup]
-    if: needs.validate.outputs.should_deploy == 'true' && (success() || github.event.inputs.skip_backup == 'true')
+    if: needs.validate.result == 'success' && needs.validate.outputs.should_deploy == 'true' && (needs.backup.result == 'success' || needs.backup.result == 'skipped')
 
     environment:
       name: ${{ github.event.inputs.environment || 'production' }}
-      url: https://84em.com
+      url: ${{ env.SITE_URL }}
 
     steps:
     - name: Checkout code
@@ -313,8 +335,15 @@ jobs:
       run: |
         echo "::group::Setting file permissions"
         
-        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
-          cd '${{ env.DEPLOY_PATH }}'
+        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
+        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
+        export SSH_PORT="${{ env.SSH_PORT }}"
+        export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
+        export PLUGIN_NAME="${{ env.PLUGIN_NAME }}"
+        
+        ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+          set -e
+          cd "${DEPLOY_PATH}"
           
           # Set directory permissions (755)
           find . -type d -exec chmod 755 {} +
@@ -328,10 +357,10 @@ jobs:
           find . -name '*.php' -path './config/*' -exec chmod 640 {} +
           
           # Make sure the main plugin file is readable
-          chmod 644 84em-local-pages.php
+          chmod 644 "${PLUGIN_NAME}.php"
           
           echo 'File permissions set correctly'
-        "
+EOF
         
         echo "::endgroup::"
 
@@ -340,7 +369,7 @@ jobs:
     name: Post-deployment Verification
     runs-on: ubuntu-latest
     needs: [validate, backup, deploy]
-    if: needs.validate.outputs.should_deploy == 'true'
+    if: needs.validate.result == 'success' && needs.deploy.result == 'success' && needs.validate.outputs.should_deploy == 'true'
 
     steps:
     - name: Setup SSH key
@@ -357,9 +386,16 @@ jobs:
       run: |
         echo "::group::Verifying deployment"
         
+        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
+        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
+        export SSH_PORT="${{ env.SSH_PORT }}"
+        export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
+        export PLUGIN_NAME="${{ env.PLUGIN_NAME }}"
+        
         # Check if main plugin file exists
-        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
-          if [[ -f '${{ env.DEPLOY_PATH }}/84em-local-pages.php' ]]; then
+        ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+          set -e
+          if [[ -f "${DEPLOY_PATH}/${PLUGIN_NAME}.php" ]]; then
             echo '✅ Main plugin file exists'
           else
             echo '❌ Main plugin file missing'
@@ -368,43 +404,43 @@ jobs:
           
           # Check directory structure
           required_dirs=('vendor')
-          for dir in \"\${required_dirs[@]}\"; do
-            if [[ -d '${{ env.DEPLOY_PATH }}/\$dir' ]]; then
-              echo \"✅ Directory exists: \$dir\"
+          for dir in "${required_dirs[@]}"; do
+            if [[ -d "${DEPLOY_PATH}/${dir}" ]]; then
+              echo "✅ Directory exists: ${dir}"
             else
-              echo \"❌ Directory missing: \$dir\"
+              echo "❌ Directory missing: ${dir}"
               exit 1
             fi
           done
           
           # Check optional directories
           optional_dirs=('tests' 'config' 'src')
-          for dir in \"\${optional_dirs[@]}\"; do
-            if [[ -d '${{ env.DEPLOY_PATH }}/\$dir' ]]; then
-              echo \"✅ Optional directory exists: \$dir\"
+          for dir in "${optional_dirs[@]}"; do
+            if [[ -d "${DEPLOY_PATH}/${dir}" ]]; then
+              echo "✅ Optional directory exists: ${dir}"
             else
-              echo \"ℹ️ Optional directory not present: \$dir\"
+              echo "ℹ️ Optional directory not present: ${dir}"
             fi
           done
           
           # Check PHP syntax on server
-          php -l '${{ env.DEPLOY_PATH }}/84em-local-pages.php' || exit 1
+          php -l "${DEPLOY_PATH}/${PLUGIN_NAME}.php" || exit 1
           echo '✅ PHP syntax check passed on server'
           
           # Check file sizes (basic integrity check)
-          main_size=\$(stat -c%s '${{ env.DEPLOY_PATH }}/84em-local-pages.php')
-          if [[ \$main_size -lt 1000 ]]; then
+          main_size=$(stat -c%s "${DEPLOY_PATH}/${PLUGIN_NAME}.php")
+          if [[ ${main_size} -lt 1000 ]]; then
             echo '❌ Main plugin file seems too small'
             exit 1
           fi
-          echo \"✅ Main plugin file size: \$main_size bytes\"
+          echo "✅ Main plugin file size: ${main_size} bytes"
           
           # Verify deployment hash if available
-          if [[ -f '${{ env.DEPLOY_PATH }}/DEPLOYMENT_INFO.txt' ]]; then
+          if [[ -f "${DEPLOY_PATH}/DEPLOYMENT_INFO.txt" ]]; then
             echo '✅ Deployment info file found'
-            cat '${{ env.DEPLOY_PATH }}/DEPLOYMENT_INFO.txt'
+            cat "${DEPLOY_PATH}/DEPLOYMENT_INFO.txt"
           fi
-        "
+EOF
         
         echo "::endgroup::"
 
@@ -412,15 +448,22 @@ jobs:
       run: |
         echo "::group::Testing basic functionality"
         
+        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
+        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
+        export SSH_PORT="${{ env.SSH_PORT }}"
+        export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
+        export PLUGIN_NAME="${{ env.PLUGIN_NAME }}"
+        
         # Test that the plugin file can be included without errors
-        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
-          cd '${{ env.DEPLOY_PATH }}'
-          php -r 'include \"84em-local-pages.php\"; echo \"Plugin loaded successfully\n\";' || {
+        ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+          set -e
+          cd "${DEPLOY_PATH}"
+          php -r "include '${PLUGIN_NAME}.php'; echo 'Plugin loaded successfully\n';" || {
             echo '❌ Plugin failed to load'
             exit 1
           }
           echo '✅ Plugin loads without errors'
-        "
+EOF
         
         echo "::endgroup::"
 
@@ -437,8 +480,9 @@ jobs:
         if [[ "$response" == "200" ]]; then
           echo "✅ Health check passed (HTTP $response)"
         else
-          echo "⚠️ Health check returned HTTP $response"
-          # Don't fail deployment for health check issues, just warn
+          echo "❌ Health check failed (HTTP $response)"
+          echo "::error::Health check failed with HTTP $response. Deployment will be rolled back."
+          exit 1
         fi
         
         echo "::endgroup::"
@@ -465,42 +509,69 @@ jobs:
       run: |
         echo "::group::Rolling back deployment"
         
-        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
-          backup_path='${{ env.BACKUP_PATH }}/${{ needs.validate.outputs.backup_name }}'
+        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
+        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
+        export SSH_PORT="${{ env.SSH_PORT }}"
+        export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
+        export BACKUP_PATH="${{ env.BACKUP_PATH }}"
+        export BACKUP_NAME="${{ needs.validate.outputs.backup_name }}"
+        
+        ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+          set -e
+          backup_path="${BACKUP_PATH}/${BACKUP_NAME}"
           
-          if [[ -d \"\$backup_path\" ]]; then
-            echo 'Rolling back to backup: ${{ needs.validate.outputs.backup_name }}'
+          if [[ -d "${backup_path}" ]]; then
+            echo "Rolling back to backup: ${BACKUP_NAME}"
             
             # Remove failed deployment
-            rm -rf '${{ env.DEPLOY_PATH }}'
+            rm -rf "${DEPLOY_PATH}"
             
             # Restore from backup
-            cp -r \"\$backup_path\" '${{ env.DEPLOY_PATH }}'
+            cp -r "${backup_path}" "${DEPLOY_PATH}"
             
             # Add rollback marker
-            echo 'ROLLBACK PERFORMED' >> '${{ env.DEPLOY_PATH }}/ROLLBACK_INFO.txt'
-            echo 'Original commit: ${{ github.sha }}' >> '${{ env.DEPLOY_PATH }}/ROLLBACK_INFO.txt'
-            echo 'Rollback time: \$(date -u)' >> '${{ env.DEPLOY_PATH }}/ROLLBACK_INFO.txt'
+            {
+              echo 'ROLLBACK PERFORMED'
+              echo "Original commit: ${{ github.sha }}"
+              echo "Rollback time: $(date -u)"
+            } >> "${DEPLOY_PATH}/ROLLBACK_INFO.txt"
             
             echo '✅ Rollback completed successfully'
           else
             echo '⚠️ No backup found, manual intervention required'
             exit 1
           fi
-        "
+EOF
         
         echo "::endgroup::"
 
     - name: Verify rollback
       run: |
-        ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "
-          if [[ -f '${{ env.DEPLOY_PATH }}/84em-local-pages.php' ]]; then
-            echo '✅ Rollback verification passed'
+        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
+        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
+        export SSH_PORT="${{ env.SSH_PORT }}"
+        export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
+        export PLUGIN_NAME="${{ env.PLUGIN_NAME }}"
+        
+        ssh -p "${SSH_PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" 'bash -s' << 'EOF'
+          set -e
+          if [[ -f "${DEPLOY_PATH}/${PLUGIN_NAME}.php" ]]; then
+            echo "✅ Main plugin file exists after rollback"
+            # Additional verification
+            php -l "${DEPLOY_PATH}/${PLUGIN_NAME}.php" || exit 1
+            echo "✅ PHP syntax check passed after rollback"
+            
+            # Check critical directories
+            if [[ -d "${DEPLOY_PATH}/vendor" ]]; then
+              echo "✅ Vendor directory restored"
+            fi
+            
+            echo "✅ Rollback verification completed successfully"
           else
-            echo '❌ Rollback verification failed'
+            echo "❌ Rollback verification failed - main plugin file missing"
             exit 1
           fi
-        "
+EOF
 
   # Notification job
   notify:

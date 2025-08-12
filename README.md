@@ -41,6 +41,52 @@ This plugin creates unique, locally-focused landing pages for WordPress developm
 - WP-CLI 2.0 or higher
 - Claude API key from Anthropic
 
+## Security
+
+### Automated Security Reviews
+
+This repository uses the official [Anthropic Claude Code Security Review](https://github.com/anthropics/claude-code-security-review) GitHub Action to automatically review all pull requests for security vulnerabilities.
+
+#### Features
+
+- **AI-Powered Analysis**: Claude analyzes code changes for security vulnerabilities
+- **Automated PR Comments**: Security findings are posted directly on pull requests
+- **Language Agnostic**: Works with PHP, JavaScript, TypeScript, and more
+- **False Positive Filtering**: Focuses on high-confidence vulnerabilities
+- **Dependency Scanning**: Additional checks for vulnerable dependencies
+
+#### Setup
+
+1. **Add Claude API Key**: Add your Anthropic API key as a GitHub secret named `ANTHROPIC_API_KEY`
+   ```bash
+   # Using GitHub CLI
+   gh secret set ANTHROPIC_API_KEY
+   
+   # Or add manually in repository Settings → Secrets → Actions
+   ```
+
+2. **That's it!** The workflow automatically triggers on all pull requests
+
+#### What It Checks
+
+- SQL injection, XSS, command injection vulnerabilities
+- Authentication and authorization flaws
+- Hardcoded secrets and API keys
+- Insecure cryptographic implementations
+- Path traversal and file operation security
+- Dependency vulnerabilities (composer and npm)
+
+#### Manual Security Checks
+
+```bash
+# Check for dependency vulnerabilities locally
+composer audit
+npm audit
+
+# Run PHP syntax checks
+find . -name "*.php" -not -path "./vendor/*" -exec php -l {} +
+```
+
 ## Installation
 
 1. **Upload Plugin Files**

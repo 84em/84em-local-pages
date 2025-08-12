@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 84EM Local Pages Generator
  * Description: Generates SEO-optimized Local Pages for each US state using Claude AI. Includes WP-CLI testing framework.
- * Version: 2.3.2
+ * Version: 2.4.1
  * Author: 84EM
  * Requires at least: 6.8
  * Requires PHP: 8.2

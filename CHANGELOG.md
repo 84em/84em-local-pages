@@ -5,6 +5,61 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2025-08-12
+
+### Changed
+- Replaced custom security review implementation with official Anthropic Claude Code Security Review action
+- Simplified security workflow from 600+ lines to ~75 lines
+- Removed unnecessary configuration files and setup scripts
+- Updated documentation to reflect simpler setup process
+
+### Fixed
+- Fixed PHP syntax error in test-url-generation.php (invalid array syntax)
+- Fixed deployment workflow to properly check validation job success before proceeding
+- Updated PHP syntax check to include test files (previously excluded)
+- Added explicit validation result checks to all dependent jobs in deploy workflow
+- Ensured deployment stops immediately if any PHP file has syntax errors
+
+### Improved
+- Better error handling in deployment workflow
+- Job dependencies now properly enforce validation success
+- Cleaner, more maintainable security review implementation
+
+## [2.4.0] - 2025-08-12
+
+### Added
+- Automated security reviews using Claude AI for all pull requests
+- Security review GitHub Actions workflow (`security-review.yml`)
+- Configurable security review settings (`security-review-config.yml`)
+- Support for multiple Claude models (Sonnet 4, Opus 4.1, etc.)
+- Automated vulnerability detection for SQL injection, XSS, command injection, and more
+- PR comment integration with detailed security findings
+- Dependency security checks with composer and npm audit
+- Static code analysis integration
+- Setup script for easy API key configuration
+- Security report artifacts saved for 30 days
+
+### Changed
+- Updated GitHub Actions workflows to use secure heredoc patterns for SSH commands
+- Improved file handling with null-terminated input in PHP syntax checks
+- Added file locking to prevent race conditions in backup cleanup
+- Health check failures now trigger automatic rollback
+- Replaced hardcoded values with environment variables throughout workflows
+- Job dependencies now use explicit result checks instead of success()
+
+### Fixed
+- Fixed redundant PR check logic in deployment workflow
+- Corrected PHP syntax check to properly detect and report errors
+- Added proper escaping for SSH commands with secrets
+- Fixed confusing job dependency conditions
+- Secured legacy deploy.sh script by ensuring it's gitignored
+
+### Security
+- All SSH commands now use single-quoted heredocs to prevent variable expansion
+- Environment variables properly exported before SSH execution
+- Added flock mechanism for concurrent backup operations
+- Removed SSH port fallback to prevent information disclosure
+
 ## [2.3.2] - 2025-08-12
 
 ### Security

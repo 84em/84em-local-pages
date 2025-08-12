@@ -90,5 +90,5 @@ sitemap-local.xml
 # Keep test fixtures
 !tests/fixtures/mock-api-responses.php
 
-# deployment script
-/deploy.sh
+# legacy deployment
+deploy.sh

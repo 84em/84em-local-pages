@@ -78,16 +78,18 @@ class Test_URL_Generation extends TestCase {
     public function test_city_page_url_generation() {
         // Test various city/state combinations
         $test_cases = [
-            ['California', 'Los Angeles'] => 'wordpress-development-services-california/los-angeles',
-            ['California', 'San Francisco'] => 'wordpress-development-services-california/san-francisco',
-            ['New York', 'New York'] => 'wordpress-development-services-new-york/new-york',
-            ['Louisiana', 'New Orleans'] => 'wordpress-development-services-louisiana/new-orleans',
-            ['Michigan', 'Grand Rapids'] => 'wordpress-development-services-michigan/grand-rapids',
-            ['Iowa', 'Cedar Rapids'] => 'wordpress-development-services-iowa/cedar-rapids',
+            'California_Los Angeles' => ['state' => 'California', 'city' => 'Los Angeles', 'expected' => 'wordpress-development-services-california/los-angeles'],
+            'California_San Francisco' => ['state' => 'California', 'city' => 'San Francisco', 'expected' => 'wordpress-development-services-california/san-francisco'],
+            'New York_New York' => ['state' => 'New York', 'city' => 'New York', 'expected' => 'wordpress-development-services-new-york/new-york'],
+            'Louisiana_New Orleans' => ['state' => 'Louisiana', 'city' => 'New Orleans', 'expected' => 'wordpress-development-services-louisiana/new-orleans'],
+            'Michigan_Grand Rapids' => ['state' => 'Michigan', 'city' => 'Grand Rapids', 'expected' => 'wordpress-development-services-michigan/grand-rapids'],
+            'Iowa_Cedar Rapids' => ['state' => 'Iowa', 'city' => 'Cedar Rapids', 'expected' => 'wordpress-development-services-iowa/cedar-rapids'],
         ];
         
-        foreach ( $test_cases as $location => $expected_path ) {
-            list( $state, $city ) = $location;
+        foreach ( $test_cases as $test_name => $test_data ) {
+            $state = $test_data['state'];
+            $city = $test_data['city'];
+            $expected_path = $test_data['expected'];
             $path = 'wordpress-development-services-' . sanitize_title( $state ) . '/' . sanitize_title( $city );
             $this->assertEquals( $expected_path, $path );
             

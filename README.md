@@ -691,10 +691,3 @@ For detailed testing documentation, see [TESTING.md](TESTING.md).
 ## License
 
 Proprietary software developed for 84EM. All rights reserved.
-
----
-
-**Plugin Version**: 2.3.0  
-**WordPress Tested**: 6.8+  
-**PHP Minimum**: 8.2  
-**Last Updated**: August 7, 2025

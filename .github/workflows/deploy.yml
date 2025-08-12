@@ -4,6 +4,8 @@ on:
   push:
     branches: [ main ]
     tags: [ 'v*.*.*' ]
+  # Remove pull_request trigger if it exists
+  # pull_request trigger should NEVER deploy
   workflow_dispatch:
     inputs:
       environment:
@@ -115,6 +117,13 @@ jobs:
       run: |
         should_deploy="true"
         
+        # CRITICAL: Never deploy on pull requests
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          echo "❌ BLOCKED: Deployments are not allowed from pull requests"
+          echo "should_deploy=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
         # Skip deployment checks if force deploy is enabled
         if [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
           echo "⚠️ Force deployment enabled, skipping additional checks"
@@ -127,8 +136,16 @@ jobs:
           echo "✅ Tag-based deployment detected"
         elif [[ "${{ github.ref_name }}" == "main" ]]; then
           echo "✅ Main branch deployment"
+          # Additional safety: Ensure we're not in a PR context
+          if [[ -n "${{ github.event.pull_request }}" ]]; then
+            echo "❌ BLOCKED: This appears to be a PR to main, not a direct push"
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
         else
           echo "❌ Deployment only allowed from main branch or tags"
+          echo "Current ref: ${{ github.ref_name }}"
+          echo "Event: ${{ github.event_name }}"
           echo "should_deploy=false" >> $GITHUB_OUTPUT
           exit 1
         fi

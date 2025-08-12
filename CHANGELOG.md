@@ -5,6 +5,27 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.2] - 2025-08-12
+
+### Fixed
+- Fixed heredoc syntax errors throughout deploy.yml workflow causing YAML validation failures
+- Corrected Slack notification to use environment variable instead of invalid webhook_url parameter
+- Fixed all notification configurations to use secrets instead of repository variables
+- Added proper handling for optional health check URL with graceful skip if not configured
+- Removed all unnecessary export statements from SSH commands
+
+### Changed
+- All sensitive configuration (webhooks, emails, URLs) now properly stored as GitHub secrets
+- SSH commands now pass variables as positional parameters for better security
+- Added continue-on-error for optional notification steps
+- Health check now properly skips when URL not configured instead of failing
+- SSH_PORT now has default fallback value of 22
+
+### Improved
+- Cleaner, more maintainable workflow with consistent variable handling
+- Better error handling for optional features (notifications, health checks)
+- All heredocs now use unique delimiter names to prevent conflicts
+
 ## [2.4.1] - 2025-08-12
 
 ### Changed

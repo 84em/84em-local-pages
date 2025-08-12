@@ -1,53 +1,10 @@
 # Security Review Configuration
-# This file configures the automated security review process
 
-# Model Selection Guide (as of August 2025):
-#
-# Latest Claude Models for Security Analysis:
-#
-# - claude-sonnet-4-latest: RECOMMENDED - Best overall for security analysis
-#   * Claude Sonnet 4 - Hybrid reasoning model
-#   * 72.7% pass@1 on SWE-bench (exceptional coding performance)
-#   * Superior code understanding and vulnerability detection
-#   * Near-instant responses with extended reasoning capability
-#   * Parallel tool execution for complex analysis
-#   * $3/M input tokens, $15/M output tokens
-#   * Best balance of accuracy, speed, and cost
-#
-# - claude-opus-4-1-20250805: Maximum intelligence for critical code
-#   * Claude Opus 4.1 (Released August 5, 2025)
-#   * Most intelligent model - best for complex security analysis
-#   * Industry-leading performance on coding benchmarks
-#   * Advanced agentic capabilities for deep code analysis
-#   * $15/M input tokens, $75/M output tokens (5x more expensive)
-#   * Use for payment systems, auth, crypto, or critical infrastructure
-#
-# - claude-3-5-sonnet-20241022: Previous generation (still capable)
-#   * Older but still effective for basic security reviews
-#   * Lower cost than Sonnet 4
-#   * Good fallback option if newer models unavailable
-#
-# - claude-3-5-haiku-20241022: Fast, economical option
-#   * Good for quick scans on simple changes
-#   * Significantly cheaper than other models
-#   * May miss subtle vulnerabilities
-#   * Best for non-critical code or initial screening
-#
-# Model Comparison for Security Tasks:
-# ┌─────────────────────────┬──────────┬────────┬────────────┬─────────────────┐
-# │ Model                   │ Accuracy │ Speed  │ Cost       │ Best For        │
-# ├─────────────────────────┼──────────┼────────┼────────────┼─────────────────┤
-# │ Sonnet 4 (Latest)       │ 96%      │ Fast   │ $3/$15     │ Most PRs ✅     │
-# │ Opus 4.1 (Aug 2025)     │ 99%      │ Medium │ $15/$75    │ Critical code   │
-# │ Sonnet 3.5 (Oct 2024)   │ 92%      │ Fast   │ Lower      │ Budget option   │
-# │ Haiku 3.5 (Oct 2024)    │ 85%      │ V.Fast │ Very Low   │ Quick checks    │
-# └─────────────────────────┴──────────┴────────┴────────────┴─────────────────┘
-#
-# Cost Optimization Tips:
-# - Use prompt caching (up to 90% savings) for repeated reviews
-# - Use batch processing (50% savings) for non-urgent reviews
-# - Default to Sonnet 4 for regular PRs
-# - Reserve Opus 4.1 for security-critical code only
+# Available Models:
+# - claude-sonnet-4-20250514 (default) - Best for most PRs
+# - claude-opus-4-1-20250805 - Maximum accuracy for critical code  
+# - claude-3-5-sonnet-20241022 - Budget option
+# - claude-3-haiku-20240307 - Quick scans
 
 # Vulnerability categories to check
 categories:

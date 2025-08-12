@@ -72,7 +72,21 @@ jobs:
     - name: PHP Syntax Check
       run: |
         echo "::group::Checking PHP syntax"
-        find . -name "*.php" -not -path "./vendor/*" -not -path "./tests/*" -exec php -l {} + || exit 1
+        # Check all PHP files including tests (exclude only vendor)
+        error_count=0
+        while IFS= read -r -d '' file; do
+          output=$(php -l "$file" 2>&1)
+          if [[ $? -ne 0 ]]; then
+            echo "❌ Syntax error in $file:"
+            echo "$output"
+            error_count=$((error_count + 1))
+          fi
+        done < <(find . -name "*.php" -not -path "./vendor/*" -print0)
+        
+        if [[ $error_count -gt 0 ]]; then
+          echo "❌ Found $error_count file(s) with syntax errors"
+          exit 1
+        fi
         echo "✅ All PHP files have valid syntax"
         echo "::endgroup::"
 
@@ -154,7 +168,7 @@ jobs:
     name: Backup Current Production
     runs-on: ubuntu-latest
     needs: validate
-    if: needs.validate.outputs.should_deploy == 'true' && github.event.inputs.skip_backup != 'true'
+    if: needs.validate.result == 'success' && needs.validate.outputs.should_deploy == 'true' && github.event.inputs.skip_backup != 'true'
 
     steps:
     - name: Setup SSH key
@@ -233,7 +247,7 @@ EOF
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: [validate, backup]
-    if: needs.validate.outputs.should_deploy == 'true' && (needs.backup.result == 'success' || needs.backup.result == 'skipped')
+    if: needs.validate.result == 'success' && needs.validate.outputs.should_deploy == 'true' && (needs.backup.result == 'success' || needs.backup.result == 'skipped')
 
     environment:
       name: ${{ github.event.inputs.environment || 'production' }}
@@ -355,7 +369,7 @@ EOF
     name: Post-deployment Verification
     runs-on: ubuntu-latest
     needs: [validate, backup, deploy]
-    if: needs.validate.outputs.should_deploy == 'true'
+    if: needs.validate.result == 'success' && needs.deploy.result == 'success' && needs.validate.outputs.should_deploy == 'true'
 
     steps:
     - name: Setup SSH key

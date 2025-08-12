@@ -33,7 +33,7 @@ env:
   SITE_URL: 'https://84em.com'
   DEPLOY_PATH: '${{ secrets.DEPLOY_PATH }}'
   BACKUP_PATH: '${{ secrets.BACKUP_PATH }}'
-  SSH_PORT: '${{ secrets.DEPLOY_PORT }}'
+  SSH_PORT: '${{ secrets.DEPLOY_PORT || 22 }}'
 
 jobs:
   # Pre-deployment validation
@@ -336,12 +336,6 @@ jobs:
       run: |
         echo "::group::Setting file permissions"
         
-        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
-        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
-        export SSH_PORT="${{ env.SSH_PORT }}"
-        export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
-        export PLUGIN_NAME="${{ env.PLUGIN_NAME }}"
-        
         ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
           "${{ env.DEPLOY_PATH }}" \
           "${{ env.PLUGIN_NAME }}" <<'PERMS_EOF'
@@ -390,12 +384,6 @@ jobs:
     - name: Verify deployment
       run: |
         echo "::group::Verifying deployment"
-        
-        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
-        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
-        export SSH_PORT="${{ env.SSH_PORT }}"
-        export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
-        export PLUGIN_NAME="${{ env.PLUGIN_NAME }}"
         
         # Check if main plugin file exists
         ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
@@ -476,14 +464,22 @@ jobs:
         echo "::endgroup::"
 
     - name: Health check endpoint test
-      if: vars.HEALTH_CHECK_URL
       run: |
         echo "::group::Testing health check endpoint"
+        
+        HEALTH_CHECK_URL="${{ secrets.HEALTH_CHECK_URL }}"
+        
+        # Skip if health check URL is not configured
+        if [[ -z "$HEALTH_CHECK_URL" ]]; then
+          echo "ℹ️ Health check URL not configured, skipping"
+          echo "::endgroup::"
+          exit 0
+        fi
         
         # Wait a moment for changes to propagate
         sleep 10
         
-        response=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.HEALTH_CHECK_URL }}" || echo "000")
+        response=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_CHECK_URL" || echo "000")
         
         if [[ "$response" == "200" ]]; then
           echo "✅ Health check passed (HTTP $response)"
@@ -516,13 +512,6 @@ jobs:
     - name: Rollback to previous version
       run: |
         echo "::group::Rolling back deployment"
-        
-        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
-        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
-        export SSH_PORT="${{ env.SSH_PORT }}"
-        export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
-        export BACKUP_PATH="${{ env.BACKUP_PATH }}"
-        export BACKUP_NAME="${{ needs.validate.outputs.backup_name }}"
         
         ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
           "${{ env.DEPLOY_PATH }}" \
@@ -563,12 +552,6 @@ jobs:
 
     - name: Verify rollback
       run: |
-        export DEPLOY_USER="${{ secrets.DEPLOY_USER }}"
-        export DEPLOY_HOST="${{ secrets.DEPLOY_HOST }}"
-        export SSH_PORT="${{ env.SSH_PORT }}"
-        export DEPLOY_PATH="${{ env.DEPLOY_PATH }}"
-        export PLUGIN_NAME="${{ env.PLUGIN_NAME }}"
-        
         ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
           "${{ env.DEPLOY_PATH }}" \
           "${{ env.PLUGIN_NAME }}" <<'VERIFY_ROLLBACK_EOF'
@@ -619,9 +602,11 @@ jobs:
         fi
 
     - name: Send Slack notification
-      if: vars.SLACK_WEBHOOK_URL
+      if: always()
+      continue-on-error: true
       uses: 8398a7/action-slack@v3
       with:
+        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
         status: custom
         custom_payload: |
           {
@@ -670,11 +655,10 @@ jobs:
               }
             ]
           }
-      env:
-        SLACK_WEBHOOK_URL: ${{ vars.SLACK_WEBHOOK_URL }}
 
     - name: Send email notification
-      if: vars.NOTIFICATION_EMAIL && steps.status.outputs.status != 'success'
+      if: steps.status.outputs.status != 'success'
+      continue-on-error: true
       uses: dawidd6/action-send-mail@v3
       with:
         server_address: ${{ secrets.SMTP_SERVER }}
@@ -682,7 +666,7 @@ jobs:
         username: ${{ secrets.SMTP_USERNAME }}
         password: ${{ secrets.SMTP_PASSWORD }}
         subject: "84em Local Pages Deployment ${{ steps.status.outputs.status }}"
-        to: ${{ vars.NOTIFICATION_EMAIL }}
+        to: ${{ secrets.NOTIFICATION_EMAIL }}
         from: "GitHub Actions <noreply@github.com>"
         body: |
           Deployment Status: ${{ steps.status.outputs.message }}

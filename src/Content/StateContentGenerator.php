@@ -269,7 +269,13 @@ Include the following key elements:
 2. WordPress development services including: {$service_keywords_list}
 3. Why businesses in {$state} choose 84EM (30 years experience, diverse client industries, proven track record, reliable delivery)
 4. Call-to-action for {$state} businesses
-5. Include naturally-placed keywords: 'WordPress development {$state}', 'custom plugins {$state}', and mention each of these cities at least once: {$city_list}
+5. Include naturally-placed keywords: 'WordPress development in {$state}', 'custom plugins for {$state}', and mention each of these cities at least once: {$city_list}
+
+IMPORTANT GRAMMAR RULES:
+- Use proper prepositions (in, for, near) when mentioning locations
+- Never use city/state names as adjectives directly before service terms (avoid "{$state} solutions")
+- Correct: "businesses in {$state}", "services for {$state} companies", "development in {$state}"
+- Incorrect: "{$state} businesses seeking {$state} solutions"
 
 Write approximately 300-400 words in a professional, factual tone. Avoid hyperbole and superlatives. Focus on concrete services, technical expertise, and actual capabilities. Make it locally relevant through geographic references while emphasizing 84EM's remote-first approach serves clients nationwide.
 

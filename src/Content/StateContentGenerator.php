@@ -108,8 +108,15 @@ class StateContentGenerator implements ContentGeneratorInterface {
             throw new Exception( 'Failed to generate content from API' );
         }
 
-        // Process the raw content
-        $processed_content = $this->contentProcessor->processContent( $raw_content, [ 'state' => $state ] );
+        // Get cities for this state to enable city interlinking
+        $state_data = $this->statesProvider->get( $state );
+        $cities = $state_data['cities'] ?? [];
+
+        // Process the raw content with city context for interlinking
+        $processed_content = $this->contentProcessor->processContent( $raw_content, [
+            'state' => $state,
+            'cities' => $cities
+        ] );
 
         return $processed_content;
     }
@@ -323,53 +330,5 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
                 'post_name' => $desired_slug,
             ] );
         }
-    }
-
-    /**
-     * Get all generated state pages
-     *
-     * @return array Array of post objects
-     */
-    public function getAllStatePages(): array {
-        return get_posts( [
-            'post_type'   => 'local',
-            'numberposts' => - 1,
-            'post_status' => 'any',
-            'meta_query'  => [
-                [
-                    'key'     => '_local_page_state',
-                    'compare' => 'EXISTS',
-                ],
-                [
-                    'key'     => '_local_page_city',
-                    'compare' => 'NOT EXISTS',
-                ],
-            ],
-        ] );
-    }
-
-    /**
-     * Check if state page exists
-     *
-     * @param  string  $state  State name
-     *
-     * @return int|false Post ID if exists, false otherwise
-     */
-    public function statePageExists( string $state ): int|false {
-        $posts = get_posts( [
-            'post_type'   => 'local',
-            'meta_key'    => '_local_page_state',
-            'meta_value'  => $state,
-            'numberposts' => 1,
-            'post_status' => 'any',
-            'meta_query'  => [
-                [
-                    'key'     => '_local_page_city',
-                    'compare' => 'NOT EXISTS',
-                ],
-            ],
-        ] );
-
-        return ! empty( $posts ) ? $posts[0]->ID : false;
     }
 }

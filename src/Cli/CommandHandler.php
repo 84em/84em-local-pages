@@ -348,6 +348,7 @@ class CommandHandler {
         WP_CLI::line( '  --state="State Name"       Generate/update specific state page' );
         WP_CLI::line( '  --state="State" --city="City"  Generate/update specific city page' );
         WP_CLI::line( '  --state="State" --city=all     Generate/update all cities for a state' );
+        WP_CLI::line( '  --state="State" --city=all --complete  Generate all cities AND update state page' );
         WP_CLI::line( '' );
         WP_CLI::line( 'MAINTENANCE:' );
         WP_CLI::line( '  --delete --state="State"   Delete state and all its cities' );
@@ -362,6 +363,7 @@ class CommandHandler {
         WP_CLI::line( '  wp 84em local-pages --generate-all --states-only' );
         WP_CLI::line( '  wp 84em local-pages --state="California"' );
         WP_CLI::line( '  wp 84em local-pages --state="California" --city="Los Angeles"' );
+        WP_CLI::line( '  wp 84em local-pages --state="California" --city=all --complete' );
         WP_CLI::line( '' );
     }
 }

@@ -146,40 +146,4 @@ class StatesProvider implements DataProviderInterface {
             'Wyoming'        => [ 'cities' => [ 'Cheyenne', 'Casper', 'Laramie', 'Gillette', 'Rock Springs', 'Sheridan' ] ],
         ];
     }
-
-    /**
-     * Get cities for a specific state
-     *
-     * @param  string  $state  State name
-     *
-     * @return array
-     */
-    public function getCities( string $state ): array {
-        $state_data = $this->get( $state );
-        return $state_data['cities'] ?? [];
-    }
-
-    /**
-     * Get state abbreviation
-     *
-     * @param  string  $state  State name
-     *
-     * @return string|null
-     */
-    public function getAbbreviation( string $state ): ?string {
-        $state_data = $this->get( $state );
-        return $state_data['abbreviation'] ?? null;
-    }
-
-    /**
-     * Get state capital
-     *
-     * @param  string  $state  State name
-     *
-     * @return string|null
-     */
-    public function getCapital( string $state ): ?string {
-        $state_data = $this->get( $state );
-        return $state_data['capital'] ?? null;
-    }
 }

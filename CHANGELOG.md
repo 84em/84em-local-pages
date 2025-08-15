@@ -5,6 +5,53 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2] - 2025-08-15
+
+### Fixed
+- **Critical**: Fixed GitHub Actions deployment workflow triggering on dev branch pushes
+  - Changed trigger from `push` events to `pull_request` with `types: [closed]`
+  - Added job condition to check if PR was actually merged (`github.event.pull_request.merged == true`)
+  - Removed tag-based deployment triggers that were causing unintended deployments
+  - Deployment now ONLY occurs when PRs are merged to main branch or via manual dispatch from main
+
+### Security
+- Improved deployment security by preventing accidental production deployments from non-main branches
+- Ensured deployment workflow cannot be triggered by pushing tags on any branch
+
+## [3.0.1] - 2025-08-15
+
+### Added
+- New `--complete` flag for `--city=all` command to generate all cities AND update state page in one operation
+- Comprehensive tests for block structure handling to prevent regression
+- Tests for keyword linking with proper case preservation
+
+### Fixed
+- **Critical**: Fixed invalid WordPress block structure that prevented editing in Block Editor
+  - ContentProcessor now detects existing block markup to prevent double-wrapping
+  - Eliminated nested paragraph blocks and malformed HTML structures
+- Fixed state page query bug where state commands incorrectly updated city pages
+  - Added proper meta_query checking for `_local_page_city` NOT EXISTS
+- Fixed city name interlinking in state pages
+  - City names now properly link to their respective city pages
+  - Processing order changed to handle location links before service keywords
+  - Removed hardcoded location-specific keywords that interfered with dynamic linking
+- Fixed service keyword linking for multi-word keywords
+  - Improved regex pattern for better word boundary detection
+  - Keywords like "API integrations" and "security audits" now link correctly
+  - Preserves original case from content when creating links
+- Implemented missing `--regenerate-schema` command functionality
+  - Command was introduced in v2.2.2 but never implemented
+  - Now properly regenerates LD-JSON schema for all pages without touching content
+  - Supports all documented filtering options (states-only, specific state, specific city)
+
+### Changed
+- KeywordsProvider now uses `/services/` URL instead of `/wordpress-development-services/`
+- Updated test expectations to match new service URLs
+- Improved ContentProcessor to handle existing block content intelligently
+
+### Removed
+- Removed unused `getCities` method from StatesProvider (using `get()` method instead)
+
 ## [3.0.0] - 2025-08-12
 
 ### Changed

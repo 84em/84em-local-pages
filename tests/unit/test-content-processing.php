@@ -98,24 +98,81 @@ class Test_Content_Processing extends TestCase {
         // Test multiple keywords with different URLs
         $content      = 'We offer WordPress maintenance and API integrations.';
         $result       = $this->contentProcessor->processContent( $content, [] );
-        $services_url = site_url( '/wordpress-development-services/' );
+        $services_url = site_url( '/services/' );
         // These have different URLs so both should be linked
         $this->assertStringContainsString( '<a href="' . $services_url . '">WordPress maintenance</a>', $result );
         $this->assertStringContainsString( '<a href="' . $work_url . '">API integrations</a>', $result );
 
-        // Test case insensitive matching
+        // Test case insensitive matching - preserves content case
         $content = 'We provide WORDPRESS DEVELOPMENT and WordPress Maintenance.';
         $result       = $this->contentProcessor->processContent( $content, [] );
-        $services_url = site_url( '/wordpress-development-services/' );
-        // The method replaces with the original keyword case
-        $this->assertStringContainsString( '<a href="' . $work_url . '">WordPress development</a>', $result );
-        $this->assertStringContainsString( '<a href="' . $services_url . '">WordPress maintenance</a>', $result );
+        $services_url = site_url( '/services/' );
+        // The method preserves the case from the content, not the keyword definition
+        $this->assertStringContainsString( '<a href="' . $work_url . '">WORDPRESS DEVELOPMENT</a>', $result );
+        $this->assertStringContainsString( '<a href="' . $services_url . '">WordPress Maintenance</a>', $result );
 
-        // Test avoiding double-linking (current implementation creates nested links)
+        // Test avoiding double-linking - should not create nested links
         $content = 'Check our <a href="/test">WordPress development</a> page.';
         $result       = $this->contentProcessor->processContent( $content, [] );
-        // For now, test the actual behavior (nested links)
-        $this->assertStringContainsString( '<a href="/test"><a href="' . $work_url . '">WordPress development</a></a>', $result );
+        // Should NOT create nested links - text already in a link should be left alone
+        $this->assertStringContainsString( '<a href="/test">WordPress development</a>', $result );
+        // And should NOT contain the work URL link
+        $this->assertStringNotContainsString( '<a href="' . $work_url . '">WordPress development</a>', $result );
+    }
+
+    /**
+     * Test block structure handling - should not duplicate blocks
+     */
+    public function test_block_structure_no_duplication() {
+        // Test content that already has WordPress block markup
+        $content_with_blocks = '<!-- wp:paragraph -->
+<p>This is a paragraph with WordPress development services.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2} -->
+<h2><strong>Test Heading</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Another paragraph with API integrations content.</p>
+<!-- /wp:paragraph -->';
+        
+        $result = $this->contentProcessor->processContent( $content_with_blocks, [] );
+        
+        // Should NOT have nested paragraph blocks
+        $this->assertStringNotContainsString( '<!-- wp:paragraph --> <p><!-- wp:paragraph -->', $result );
+        $this->assertStringNotContainsString( '<p><p>', $result );
+        
+        // Should still have the original block structure
+        $this->assertStringContainsString( '<!-- wp:paragraph -->', $result );
+        $this->assertStringContainsString( '<!-- wp:heading {"level":2} -->', $result );
+        
+        // Count occurrences - should not be duplicated
+        $paragraph_count = substr_count( $result, '<!-- wp:paragraph -->' );
+        $this->assertEquals( 2, $paragraph_count, 'Should have exactly 2 paragraph blocks, not duplicated' );
+    }
+
+    /**
+     * Test block structure creation for plain content
+     */
+    public function test_block_structure_plain_content() {
+        // Test content without any block markup
+        $plain_content = 'This is a plain paragraph.
+
+<h2>Plain Heading</h2>
+
+Another plain paragraph.';
+        
+        $result = $this->contentProcessor->processContent( $plain_content, [] );
+        
+        // Should have block markup added
+        $this->assertStringContainsString( '<!-- wp:paragraph -->', $result );
+        $this->assertStringContainsString( '<!-- wp:heading', $result );
+        $this->assertStringContainsString( '<p>This is a plain paragraph.</p>', $result );
+        
+        // Should NOT have malformed nesting
+        $this->assertStringNotContainsString( '<p><p>', $result );
+        $this->assertStringNotContainsString( '<!-- wp:paragraph --> <p><!-- wp:paragraph -->', $result );
     }
 
     /**

@@ -293,9 +293,9 @@ Include the following key elements:
 
 IMPORTANT GRAMMAR RULES:
 - Use proper prepositions (in, for, near) when mentioning locations
-- Never use city/state names as adjectives directly before service terms (avoid "{$city} solutions")
-- Correct: "businesses in {$city}", "services for {$city} companies", "development in {$city}"
-- Incorrect: "{$city} businesses seeking {$city} solutions"
+- Never use city/state names as adjectives directly before service terms (avoid \"{$city} solutions\")
+- Correct: \"businesses in {$city}\", \"services for {$city} companies\", \"development in {$city}\"
+- Incorrect: \"{$city} businesses seeking {$city} solutions\"
 
 Write approximately 250-350 words in a professional, factual tone. Avoid hyperbole and superlatives. Focus on concrete services, technical expertise, and actual capabilities. Make it locally relevant through geographic references while emphasizing 84EM's remote-first approach serves clients nationwide.
 

@@ -5,6 +5,14 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.4] - 2025-08-15
+
+### Fixed
+- **Critical**: Fixed PHP syntax errors in content generator prompt strings
+  - Escaped quotes in grammar rule examples to prevent parse errors (exit code 255)
+  - Fixed both StateContentGenerator.php and CityContentGenerator.php
+  - All PHP files now pass syntax validation checks
+
 ## [3.0.3] - 2025-08-15
 
 ### Fixed

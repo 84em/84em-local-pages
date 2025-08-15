@@ -5,6 +5,19 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2] - 2025-08-15
+
+### Fixed
+- **Critical**: Fixed GitHub Actions deployment workflow triggering on dev branch pushes
+  - Changed trigger from `push` events to `pull_request` with `types: [closed]`
+  - Added job condition to check if PR was actually merged (`github.event.pull_request.merged == true`)
+  - Removed tag-based deployment triggers that were causing unintended deployments
+  - Deployment now ONLY occurs when PRs are merged to main branch or via manual dispatch from main
+
+### Security
+- Improved deployment security by preventing accidental production deployments from non-main branches
+- Ensured deployment workflow cannot be triggered by pushing tags on any branch
+
 ## [3.0.1] - 2025-08-15
 
 ### Added

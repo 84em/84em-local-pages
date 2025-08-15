@@ -190,7 +190,7 @@ class CityContentGenerator implements ContentGeneratorInterface {
                     '_local_page_city'      => $city,
                     '_local_page_generated' => current_time( 'mysql' ),
                     '_genesis_description' => "Professional WordPress development, custom plugins, and web solutions for businesses in {$city}, {$state}. White-label services and expert support.",
-                    '_genesis_title'    => "WordPress Development Services in {$city}, {$state} | 84EM",
+                    '_genesis_title'    => "Expert WordPress Development Services in {$city}, {$state} | 84EM",
                 ],
             ];
 
@@ -250,7 +250,7 @@ class CityContentGenerator implements ContentGeneratorInterface {
             // Update metadata
             update_post_meta( $post_id, '_local_page_generated', current_time( 'mysql' ) );
             update_post_meta( $post_id, '_genesis_description', "Professional WordPress development, custom plugins, and web solutions for businesses in {$city}, {$state}. White-label services and expert support." );
-            update_post_meta( $post_id, '_genesis_title', "WordPress Development Services in {$city}, {$state} | 84EM" );
+            update_post_meta( $post_id, '_genesis_title', "Expert WordPress Development Services in {$city}, {$state} | 84EM" );
 
             // Regenerate schema
             $schema = $this->schemaGenerator->generateCitySchema( $state, $city );

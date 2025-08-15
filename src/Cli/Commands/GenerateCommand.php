@@ -144,8 +144,18 @@ class GenerateCommand {
             // Generate/update state page first
             $existing_state_posts = get_posts( [
                 'post_type'   => 'local',
-                'meta_key'    => '_local_page_state',
-                'meta_value'  => $state,
+                'meta_query'  => [
+                    'relation' => 'AND',
+                    [
+                        'key'     => '_local_page_state',
+                        'value'   => $state,
+                        'compare' => '='
+                    ],
+                    [
+                        'key'     => '_local_page_city',
+                        'compare' => 'NOT EXISTS'
+                    ]
+                ],
                 'numberposts' => 1,
                 'post_status' => 'any',
             ] );
@@ -153,10 +163,10 @@ class GenerateCommand {
             if ( ! empty( $existing_state_posts ) ) {
                 if ( $this->stateContentGenerator->updateStatePage( $existing_state_posts[0]->ID, $state ) ) {
                     $state_updated_count ++;
-                    WP_CLI::log( "  ✅ Updated state page: {$state}" );
+                    WP_CLI::log( "  ✅ Updated state page: {$state} (ID: {$existing_state_posts[0]->ID})" );
                 }
                 else {
-                    WP_CLI::warning( "  ❌ Failed to update state page: {$state}" );
+                    WP_CLI::warning( "  ❌ Failed to update state page: {$state} (ID: {$existing_state_posts[0]->ID})" );
                 }
             }
             else {
@@ -195,17 +205,17 @@ class GenerateCommand {
                     if ( ! empty( $existing_city_posts ) ) {
                         if ( $this->cityContentGenerator->updateCityPage( $existing_city_posts[0]->ID, $state, $city ) ) {
                             $city_updated_count ++;
-                            WP_CLI::log( "    ✅ Updated city page: {$city}, {$state}" );
+                            WP_CLI::log( "    ✅ Updated city page: {$city}, {$state} (ID: {$existing_city_posts[0]->ID})" );;
                         }
                         else {
-                            WP_CLI::warning( "    ❌ Failed to update city page: {$city}, {$state}" );
+                            WP_CLI::warning( "    ❌ Failed to update city page: {$city}, {$state} (ID: {$existing_city_posts[0]->ID})" );
                         }
                     }
                     else {
                         $post_id = $this->cityContentGenerator->generateCityPage( $state, $city );
                         if ( $post_id ) {
                             $city_created_count ++;
-                            WP_CLI::log( "    ✅ Created city page: {$city}, {$state}" );
+                            WP_CLI::log( "    ✅ Created city page: {$city}, {$state} (ID: {$post_id})" );
                         }
                         else {
                             WP_CLI::warning( "    ❌ Failed to create city page: {$city}, {$state}" );
@@ -379,10 +389,10 @@ class GenerateCommand {
             if ( ! empty( $existing_posts ) ) {
                 if ( $this->stateContentGenerator->updateStatePage( $existing_posts[0]->ID, $state_name ) ) {
                     $updated_count ++;
-                    WP_CLI::success( "Updated state page: {$state_name}" );
+                    WP_CLI::success( "Updated state page: {$state_name} (ID: {$existing_posts[0]->ID})" );;
                 }
                 else {
-                    WP_CLI::error( "Failed to update state page: {$state_name}" );
+                    WP_CLI::error( "Failed to update state page: {$state_name} (ID: {$existing_posts[0]->ID})" );
                 }
             }
             else {
@@ -476,10 +486,10 @@ class GenerateCommand {
             if ( ! empty( $existing_posts ) ) {
                 if ( $this->cityContentGenerator->updateCityPage( $existing_posts[0]->ID, $state_arg, $city_name ) ) {
                     $updated_count ++;
-                    WP_CLI::success( "Updated city page: {$city_name}, {$state_arg}" );
+                    WP_CLI::success( "Updated city page: {$city_name}, {$state_arg} (ID: {$existing_posts[0]->ID})" );
                 }
                 else {
-                    WP_CLI::error( "Failed to update city page: {$city_name}, {$state_arg}" );
+                    WP_CLI::error( "Failed to update city page: {$city_name}, {$state_arg} (ID: {$existing_posts[0]->ID})" );
                 }
             }
             else {
@@ -584,7 +594,7 @@ class GenerateCommand {
         $state_filter = $assoc_args['state'] ?? null;
         $city_filter  = $assoc_args['city'] ?? null;
         $states_only  = isset( $assoc_args['states-only'] ) || isset( $assoc_args['state-only'] );
-        
+
         // Build query args
         $query_args = [
             'post_type'   => 'local',
@@ -622,7 +632,7 @@ class GenerateCommand {
         }
 
         $posts = get_posts( $query_args );
-        
+
         if ( empty( $posts ) ) {
             WP_CLI::warning( 'No local pages found to regenerate schema for.' );
             return;
@@ -630,18 +640,18 @@ class GenerateCommand {
 
         $total = count( $posts );
         WP_CLI::line( "🔧 Regenerating schema markup for {$total} pages..." );
-        
+
         $progress = \WP_CLI\Utils\make_progress_bar( 'Regenerating schemas', $total );
         $success_count = 0;
         $error_count = 0;
-        
+
         // Get schema generator
         $schemaGenerator = new SchemaGenerator( $this->statesProvider );
-        
+
         foreach ( $posts as $post ) {
             $state = get_post_meta( $post->ID, '_local_page_state', true );
             $city  = get_post_meta( $post->ID, '_local_page_city', true );
-            
+
             try {
                 if ( $city ) {
                     // Generate city schema
@@ -650,28 +660,28 @@ class GenerateCommand {
                     // Generate state schema
                     $schema = $schemaGenerator->generateStateSchema( $state );
                 }
-                
+
                 // Update the schema meta
                 update_post_meta( $post->ID, 'schema', $schema );
                 $success_count++;
-                
+
             } catch ( \Exception $e ) {
                 WP_CLI::warning( "Failed to regenerate schema for {$post->post_title}: " . $e->getMessage() );
                 $error_count++;
             }
-            
+
             $progress->tick();
         }
-        
+
         $progress->finish();
-        
+
         WP_CLI::line( '' );
         WP_CLI::line( '📊 Schema Regeneration Summary' );
         WP_CLI::line( '==============================' );
         WP_CLI::line( "Successfully regenerated: {$success_count}" );
         WP_CLI::line( "Failed: {$error_count}" );
         WP_CLI::line( "Total processed: {$total}" );
-        
+
         if ( $error_count === 0 ) {
             WP_CLI::success( 'All schemas regenerated successfully!' );
         } else {
@@ -756,7 +766,7 @@ class GenerateCommand {
         if ( $update_state_page ) {
             WP_CLI::line( '' );
             WP_CLI::line( "🏛️ Now updating {$state} state page..." );
-            
+
             // Check if state page exists
             $existing_state_posts = get_posts( [
                 'post_type'   => 'local',
@@ -778,10 +788,10 @@ class GenerateCommand {
 
             if ( ! empty( $existing_state_posts ) ) {
                 if ( $this->stateContentGenerator->updateStatePage( $existing_state_posts[0]->ID, $state ) ) {
-                    WP_CLI::success( "Updated state page: {$state}" );
+                    WP_CLI::success( "Updated state page: {$state} (ID: {$existing_state_posts[0]->ID})" );;
                 }
                 else {
-                    WP_CLI::error( "Failed to update state page: {$state}" );
+                    WP_CLI::error( "Failed to update state page: {$state} (ID: {$existing_state_posts[0]->ID})" );;
                 }
             }
             else {
@@ -793,7 +803,7 @@ class GenerateCommand {
                     WP_CLI::error( "Failed to create state page: {$state}" );
                 }
             }
-            
+
             sleep( 2 );
         }
     }

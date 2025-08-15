@@ -499,5 +499,5 @@ namespace EightyFourEM\LocalPages\Content;
 **API Version**: 2023-06-01  
 **Content Strategy**: Hierarchical location pages with automatic interlinking  
 **Total Pages**: 350 (50 states + 300 cities)  
-**Plugin Version**: 3.0.4  
+**Plugin Version**: 3.0.5  
 **Architecture**: Modular PSR-4 autoloaded classes with dependency injection

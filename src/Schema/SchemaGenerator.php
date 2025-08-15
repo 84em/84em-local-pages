@@ -125,7 +125,7 @@ class SchemaGenerator implements SchemaGeneratorInterface {
             ],
         ];
 
-        return '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT ) . '</script>';
+        return wp_json_encode( $schema );
     }
 
     /**
@@ -211,7 +211,7 @@ class SchemaGenerator implements SchemaGeneratorInterface {
             ],
         ];
 
-        return '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT ) . '</script>';
+        return wp_json_encode( $schema );
     }
 
     /**
@@ -244,7 +244,7 @@ class SchemaGenerator implements SchemaGeneratorInterface {
             'provider'    => $this->getOrganizationSchema(),
         ];
 
-        return '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT ) . '</script>';
+        return wp_json_encode( $schema );
     }
 
     /**

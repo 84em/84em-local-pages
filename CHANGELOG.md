@@ -5,6 +5,27 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.5] - 2025-08-15
+
+### Fixed
+- **Critical**: Fixed --generate-all command updating wrong post IDs for state pages
+  - State page queries now check that `_local_page_city` does NOT exist
+  - Prevents city pages from being mistakenly updated as state pages
+- **City Page Titles**: Fixed city pages not having their titles updated during updates
+  - Added `post_title` to the update array in CityContentGenerator::updateCityPage()
+  - City pages now properly show "WordPress Development Services in {City}, {State} | 84EM"
+- **Schema Generation**: Fixed missing schema generation in StateContentGenerator
+  - State pages now generate schema on creation (generateStatePage)
+  - State pages now regenerate schema on update (updateStatePage)
+  - Ensures consistency with city pages which were already generating schema
+
+### Changed
+- Standardized schema meta key to use 'schema' instead of '_local_page_schema'
+- SEO meta fields changed from Yoast (_yoast_wpseo_*) to Genesis Framework (_genesis_*)
+  - Changed _yoast_wpseo_metadesc to _genesis_description
+  - Changed _yoast_wpseo_title to _genesis_title
+  - Removed _yoast_wpseo_canonical field
+
 ## [3.0.4] - 2025-08-15
 
 ### Fixed

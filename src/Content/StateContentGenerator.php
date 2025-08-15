@@ -159,9 +159,13 @@ class StateContentGenerator implements ContentGeneratorInterface {
                 WP_CLI::warning( "Content quality issues for {$state}: " . implode( ', ', $validation['issues'] ) );
             }
 
+            // Get cities for meta description
+            $state_data = $this->statesProvider->get( $state );
+            $cities     = $state_data['cities'] ?? [];
+
             // Create the WordPress post
             $post_data = [
-                'post_title'   => $sections['title'] ?: "WordPress Development Services in {$state}",
+                'post_title'   => "WordPress Development Services in {$state} | 84EM",
                 'post_content' => $sections['content'],
                 'post_excerpt' => $sections['excerpt'],
                 'post_status'  => 'publish',
@@ -169,9 +173,8 @@ class StateContentGenerator implements ContentGeneratorInterface {
                 'post_author'  => 1,
                 'meta_input'   => [
                     '_local_page_state'      => $state,
-                    '_yoast_wpseo_metadesc'  => $sections['meta_description'],
-                    '_yoast_wpseo_title'     => $sections['title'] ?: "WordPress Development Services in {$state}",
-                    '_yoast_wpseo_canonical' => $this->generateStateUrl( $state ),
+                    '_genesis_description' => "Professional WordPress development, custom plugins, and web solutions for businesses in {$state}. White-label services for agencies in " . implode( ', ', $cities ) . ".",
+                    '_genesis_title'     => "WordPress Development Services in {$state} | 84EM",
                 ],
             ];
 
@@ -183,6 +186,10 @@ class StateContentGenerator implements ContentGeneratorInterface {
 
             // Set up URL structure
             $this->setupStateUrl( $post_id, $state );
+
+            // Generate and save schema
+            $schema = $this->schemaGenerator->generateStateSchema( $state );
+            update_post_meta( $post_id, 'schema', $schema );
 
             WP_CLI::log( "✅ Generated state page for {$state} (ID: {$post_id})" );
 
@@ -214,7 +221,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
             // Update the post
             $post_data = [
                 'ID'            => $post_id,
-                'post_title'    => $sections['title'] ?: "WordPress Development Services in {$state}",
+                'post_title'    => "WordPress Development Services in {$state} | 84EM",
                 'post_content'  => $sections['content'],
                 'post_excerpt'  => $sections['excerpt'],
                 'post_modified' => current_time( 'mysql' ),
@@ -226,17 +233,24 @@ class StateContentGenerator implements ContentGeneratorInterface {
                 throw new Exception( 'Failed to update post: ' . $result->get_error_message() );
             }
 
+            // Get cities for meta description
+            $state_data = $this->statesProvider->get( $state );
+            $cities     = $state_data['cities'] ?? [];
+
             // Update meta fields
-            update_post_meta( $post_id, '_yoast_wpseo_metadesc', $sections['meta_description'] );
-            update_post_meta( $post_id, '_yoast_wpseo_title', $sections['title'] ?: "WordPress Development Services in {$state}" );
-            update_post_meta( $post_id, '_yoast_wpseo_canonical', $this->generateStateUrl( $state ) );
+            update_post_meta( $post_id, '_genesis_description', "Professional WordPress development, custom plugins, and web solutions for businesses in {$state}. White-label services for agencies in " . implode( ', ', $cities ) . "." );
+            update_post_meta( $post_id, '_genesis_title', "WordPress Development Services in {$state} | 84EM" );
+
+            // Regenerate and save schema
+            $schema = $this->schemaGenerator->generateStateSchema( $state );
+            update_post_meta( $post_id, 'schema', $schema );
 
             WP_CLI::log( "✅ Updated state page for {$state} (ID: {$post_id})" );
 
             return true;
 
         } catch ( Exception $e ) {
-            WP_CLI::error( "Failed to update state page for {$state}: " . $e->getMessage() );
+            WP_CLI::error( "Failed to update state page for {$state}  (ID: {$post_id}): " . $e->getMessage() );
             return false;
         }
     }

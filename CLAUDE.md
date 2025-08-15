@@ -2,7 +2,7 @@
 
 This document contains the Claude AI prompt templates and guidelines used by the 84EM Local Pages Generator plugin for creating unique, SEO-optimized content for each US state and city.
 
-## Current Prompt Templates (Updated August 2025)
+## Current Prompt Templates (Updated August 2025 - v3.0.3)
 
 The plugin uses two distinct prompt structures for generating location-specific content:
 
@@ -16,11 +16,17 @@ IMPORTANT: Create unique, original content that is different from other state pa
 84EM is a 100% FULLY REMOTE WordPress development company. Do NOT mention on-site visits, in-person consultations, local offices, or physical presence. All work is done remotely.
 
 Include the following key elements:
-1. A professional opening paragraph mentioning {STATE} and cities like {CITY_LIST} (6 largest cities)
+1. A professional opening paragraph mentioning {STATE} and ALL of these cities: {CITY_LIST} (you MUST mention all 6 cities)
 2. WordPress development services including: {SERVICE_KEYWORDS_LIST}
-3. Why businesses in {STATE} choose 84EM (remote expertise, proven track record, reliable delivery)
+3. Why businesses in {STATE} choose 84EM (30 years experience, diverse client industries, proven track record, reliable delivery)
 4. Call-to-action for {STATE} businesses
-5. Include naturally-placed keywords: 'WordPress development {STATE}', 'custom plugins {STATE}', 'web development {CITY_LIST}'
+5. Include naturally-placed keywords: 'WordPress development in {STATE}', 'custom plugins for {STATE}', and mention each of these cities at least once: {CITY_LIST}
+
+IMPORTANT GRAMMAR RULES:
+- Use proper prepositions (in, for, near) when mentioning locations
+- Never use city/state names as adjectives directly before service terms (avoid "{STATE} solutions")
+- Correct: "businesses in {STATE}", "services for {STATE} companies", "development in {STATE}"
+- Incorrect: "{STATE} businesses seeking {STATE} solutions"
 
 Write approximately 300-400 words in a professional, factual tone. Avoid hyperbole and superlatives. Focus on concrete services, technical expertise, and actual capabilities. Make it locally relevant through geographic references while emphasizing 84EM's remote-first approach serves clients nationwide.
 
@@ -61,7 +67,13 @@ Include the following key elements:
 2. WordPress development services including: {SERVICE_KEYWORDS_LIST}
 3. Why businesses in {CITY} choose 84EM (remote expertise, proven track record, reliable delivery)
 4. Call-to-action for {CITY} businesses
-5. Include naturally-placed keywords: 'WordPress development {CITY}', 'custom plugins {CITY}', 'web development {STATE}'
+5. Include naturally-placed keywords: 'WordPress development in {CITY}', 'custom plugins for {CITY}', 'web development in {STATE}'
+
+IMPORTANT GRAMMAR RULES:
+- Use proper prepositions (in, for, near) when mentioning locations
+- Never use city/state names as adjectives directly before service terms (avoid "{CITY} solutions")
+- Correct: "businesses in {CITY}", "services for {CITY} companies", "development in {CITY}"
+- Incorrect: "{CITY} businesses seeking {CITY} solutions"
 
 Write approximately 250-350 words in a professional, factual tone. Avoid hyperbole and superlatives. Focus on concrete services, technical expertise, and actual capabilities. Make it locally relevant through geographic references while emphasizing 84EM's remote-first approach serves clients nationwide.
 
@@ -487,5 +499,5 @@ namespace EightyFourEM\LocalPages\Content;
 **API Version**: 2023-06-01  
 **Content Strategy**: Hierarchical location pages with automatic interlinking  
 **Total Pages**: 350 (50 states + 300 cities)  
-**Plugin Version**: 3.0.2  
+**Plugin Version**: 3.0.3  
 **Architecture**: Modular PSR-4 autoloaded classes with dependency injection

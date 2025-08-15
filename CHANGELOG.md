@@ -5,6 +5,33 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.4] - 2025-08-15
+
+### Fixed
+- **Critical**: Fixed PHP syntax errors in content generator prompt strings
+  - Escaped quotes in grammar rule examples to prevent parse errors (exit code 255)
+  - Fixed both StateContentGenerator.php and CityContentGenerator.php
+  - All PHP files now pass syntax validation checks
+
+## [3.0.3] - 2025-08-15
+
+### Fixed
+- **Content Generation**: State pages now properly mention ALL 6 cities instead of only 4
+  - Updated prompt to explicitly require mentioning all cities in the list
+  - Changed from "cities like" to "ALL of these cities" with explicit instruction
+- **Grammar Issues**: Fixed grammatical errors in generated content
+  - Added proper preposition usage (in, for) with location names
+  - Prevented awkward constructions like "Hoover businesses seeking Hoover solutions"
+  - Added explicit grammar rules to both state and city content prompts
+  - Keywords now use proper format: "WordPress development in {city}" instead of "WordPress development {city}"
+
+### Changed
+- Improved content generation prompts for better grammatical accuracy
+- Enhanced location keyword formatting for more natural reading
+
+### Documentation
+- Updated prompt templates to reflect new grammar rules and city mention requirements
+
 ## [3.0.2] - 2025-08-15
 
 ### Fixed

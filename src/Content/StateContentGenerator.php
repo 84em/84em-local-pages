@@ -265,11 +265,11 @@ IMPORTANT: Create unique, original content that is different from other state pa
 84EM is a 100% FULLY REMOTE WordPress development company. Do NOT mention on-site visits, in-person consultations, local offices, or physical presence. All work is done remotely.
 
 Include the following key elements:
-1. A professional opening paragraph mentioning {$state} and cities like {$city_list}
+1. A professional opening paragraph mentioning {$state} and ALL of these cities: {$city_list} (you MUST mention all 6 cities)
 2. WordPress development services including: {$service_keywords_list}
 3. Why businesses in {$state} choose 84EM (30 years experience, diverse client industries, proven track record, reliable delivery)
 4. Call-to-action for {$state} businesses
-5. Include naturally-placed keywords: 'WordPress development {$state}', 'custom plugins {$state}', 'web development {$city_list}'
+5. Include naturally-placed keywords: 'WordPress development {$state}', 'custom plugins {$state}', and mention each of these cities at least once: {$city_list}
 
 Write approximately 300-400 words in a professional, factual tone. Avoid hyperbole and superlatives. Focus on concrete services, technical expertise, and actual capabilities. Make it locally relevant through geographic references while emphasizing 84EM's remote-first approach serves clients nationwide.
 

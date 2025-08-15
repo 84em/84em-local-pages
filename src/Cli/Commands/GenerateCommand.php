@@ -357,11 +357,21 @@ class GenerateCommand {
                 continue;
             }
 
-            // Check if page already exists
+            // Check if page already exists (state page, not city)
             $existing_posts = get_posts( [
                 'post_type'   => 'local',
-                'meta_key'    => '_local_page_state',
-                'meta_value'  => $state_name,
+                'meta_query'  => [
+                    'relation' => 'AND',
+                    [
+                        'key'     => '_local_page_state',
+                        'value'   => $state_name,
+                        'compare' => '='
+                    ],
+                    [
+                        'key'     => '_local_page_city',
+                        'compare' => 'NOT EXISTS'
+                    ]
+                ],
                 'numberposts' => 1,
                 'post_status' => 'any',
             ] );
@@ -424,7 +434,9 @@ class GenerateCommand {
 
         // Handle 'all' cities for a state
         if ( $city_arg === 'all' ) {
-            $this->generateAllCitiesForState( $state_arg );
+            // Check if --complete flag is set to also update state page
+            $complete = isset( $assoc_args['complete'] );
+            $this->generateAllCitiesForState( $state_arg, $complete );
             return;
         }
 
@@ -569,11 +581,102 @@ class GenerateCommand {
      * @return void
      */
     public function handleSchemaRegeneration( array $args, array $assoc_args ): void {
-        WP_CLI::line( '🔧 Regenerating schema markup for all local pages...' );
+        $state_filter = $assoc_args['state'] ?? null;
+        $city_filter  = $assoc_args['city'] ?? null;
+        $states_only  = isset( $assoc_args['states-only'] ) || isset( $assoc_args['state-only'] );
+        
+        // Build query args
+        $query_args = [
+            'post_type'   => 'local',
+            'post_status' => 'any',
+            'numberposts' => -1,
+            'meta_query'  => [
+                [
+                    'key'     => '_local_page_state',
+                    'compare' => 'EXISTS',
+                ],
+            ],
+        ];
 
-        // This would integrate with the schema generation functionality
-        // For now, provide a placeholder
-        WP_CLI::warning( 'Schema regeneration functionality needs to be implemented.' );
+        // Filter by specific state if provided
+        if ( $state_filter ) {
+            $query_args['meta_query'][] = [
+                'key'   => '_local_page_state',
+                'value' => $state_filter,
+            ];
+        }
+
+        // Filter by specific city if provided
+        if ( $city_filter ) {
+            $query_args['meta_query'][] = [
+                'key'   => '_local_page_city',
+                'value' => $city_filter,
+            ];
+        }
+        // If states-only flag is set, exclude city pages
+        elseif ( $states_only ) {
+            $query_args['meta_query'][] = [
+                'key'     => '_local_page_city',
+                'compare' => 'NOT EXISTS',
+            ];
+        }
+
+        $posts = get_posts( $query_args );
+        
+        if ( empty( $posts ) ) {
+            WP_CLI::warning( 'No local pages found to regenerate schema for.' );
+            return;
+        }
+
+        $total = count( $posts );
+        WP_CLI::line( "🔧 Regenerating schema markup for {$total} pages..." );
+        
+        $progress = \WP_CLI\Utils\make_progress_bar( 'Regenerating schemas', $total );
+        $success_count = 0;
+        $error_count = 0;
+        
+        // Get schema generator
+        $schemaGenerator = new SchemaGenerator( $this->statesProvider );
+        
+        foreach ( $posts as $post ) {
+            $state = get_post_meta( $post->ID, '_local_page_state', true );
+            $city  = get_post_meta( $post->ID, '_local_page_city', true );
+            
+            try {
+                if ( $city ) {
+                    // Generate city schema
+                    $schema = $schemaGenerator->generateCitySchema( $state, $city );
+                } else {
+                    // Generate state schema
+                    $schema = $schemaGenerator->generateStateSchema( $state );
+                }
+                
+                // Update the schema meta
+                update_post_meta( $post->ID, 'schema', $schema );
+                $success_count++;
+                
+            } catch ( \Exception $e ) {
+                WP_CLI::warning( "Failed to regenerate schema for {$post->post_title}: " . $e->getMessage() );
+                $error_count++;
+            }
+            
+            $progress->tick();
+        }
+        
+        $progress->finish();
+        
+        WP_CLI::line( '' );
+        WP_CLI::line( '📊 Schema Regeneration Summary' );
+        WP_CLI::line( '==============================' );
+        WP_CLI::line( "Successfully regenerated: {$success_count}" );
+        WP_CLI::line( "Failed: {$error_count}" );
+        WP_CLI::line( "Total processed: {$total}" );
+        
+        if ( $error_count === 0 ) {
+            WP_CLI::success( 'All schemas regenerated successfully!' );
+        } else {
+            WP_CLI::warning( "Schema regeneration completed with {$error_count} errors." );
+        }
     }
 
     /**
@@ -583,7 +686,7 @@ class GenerateCommand {
      *
      * @return void
      */
-    private function generateAllCitiesForState( string $state ): void {
+    private function generateAllCitiesForState( string $state, bool $update_state_page = false ): void {
         $state_data = $this->statesProvider->get( $state );
         if ( ! $state_data ) {
             WP_CLI::error( "Invalid state: {$state}" );
@@ -647,7 +750,52 @@ class GenerateCommand {
         $progress->finish();
 
         WP_CLI::line( '' );
-        WP_CLI::success( "Completed {$state}: Created {$created_count}, Updated {$updated_count}" );
+        WP_CLI::success( "Completed {$state} cities: Created {$created_count}, Updated {$updated_count}" );
+
+        // If requested, also update the state page
+        if ( $update_state_page ) {
+            WP_CLI::line( '' );
+            WP_CLI::line( "🏛️ Now updating {$state} state page..." );
+            
+            // Check if state page exists
+            $existing_state_posts = get_posts( [
+                'post_type'   => 'local',
+                'meta_query'  => [
+                    'relation' => 'AND',
+                    [
+                        'key'     => '_local_page_state',
+                        'value'   => $state,
+                        'compare' => '='
+                    ],
+                    [
+                        'key'     => '_local_page_city',
+                        'compare' => 'NOT EXISTS'
+                    ]
+                ],
+                'numberposts' => 1,
+                'post_status' => 'any',
+            ] );
+
+            if ( ! empty( $existing_state_posts ) ) {
+                if ( $this->stateContentGenerator->updateStatePage( $existing_state_posts[0]->ID, $state ) ) {
+                    WP_CLI::success( "Updated state page: {$state}" );
+                }
+                else {
+                    WP_CLI::error( "Failed to update state page: {$state}" );
+                }
+            }
+            else {
+                $post_id = $this->stateContentGenerator->generateStatePage( $state );
+                if ( $post_id ) {
+                    WP_CLI::success( "Created state page: {$state} (ID: {$post_id})" );
+                }
+                else {
+                    WP_CLI::error( "Failed to create state page: {$state}" );
+                }
+            }
+            
+            sleep( 2 );
+        }
     }
 
     /**

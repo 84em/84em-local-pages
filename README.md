@@ -200,6 +200,9 @@ wp 84em local-pages --update --state="California,New York"
 # All cities for a state
 wp 84em local-pages --state="California" --city=all
 
+# All cities for a state AND update state page
+wp 84em local-pages --state="California" --city=all --complete
+
 # Specific cities
 wp 84em local-pages --state="California" --city="Los Angeles"
 wp 84em local-pages --state="California" --city="Los Angeles,San Diego,San Francisco"
@@ -401,6 +404,8 @@ https://84em.com/wordpress-development-services-texas/dallas/
 - Proper block markup for paragraphs, headings, and CTAs
 - Bold headings with `<strong>` tags
 - Clean, structured HTML output
+- Smart block detection prevents duplicate wrapping (v3.0.1+)
+- Full compatibility with WordPress Block Editor for editing
 
 ### Remote-First Messaging
 - Emphasizes 84EM's 100% remote operations

@@ -55,8 +55,16 @@ All test files are located in the `tests/unit/` directory:
 - `test-url-generation.php` - URL and permalink tests
 - `test-ld-json-schema.php` - Schema generation tests
 - `test-wp-cli-args.php` - CLI argument parsing tests
-- `test-content-processing.php` - Content processing tests
+- `test-content-processing.php` - Content processing tests (includes block structure and keyword linking tests)
 - `test-simple.php` - Basic functionality tests
+
+### Recent Test Additions
+
+The `test-content-processing.php` file now includes:
+- **Block Structure Tests**: Verifies that WordPress block markup isn't duplicated when content already has blocks
+- **Plain Content Tests**: Ensures plain content gets proper block structure added
+- **Keyword Linking Tests**: Validates service keywords are properly linked with correct case preservation
+- **Double-linking Prevention**: Confirms text already in links isn't re-linked
 
 ## Test Framework
 

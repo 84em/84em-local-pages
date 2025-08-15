@@ -42,11 +42,12 @@ class ContentProcessor {
         // Clean up the content first
         $processed_content = $this->cleanContent( $content );
 
-        // Add internal links to service keywords
-        $processed_content = $this->addServiceLinks( $processed_content );
-
-        // Add location-specific internal links
+        // Add location-specific internal links FIRST (cities/states)
+        // This ensures city names get linked before longer keyword phrases that might contain them
         $processed_content = $this->addLocationLinks( $processed_content, $context );
+
+        // Add internal links to service keywords AFTER location links
+        $processed_content = $this->addServiceLinks( $processed_content );
 
         // Format headings properly
         $processed_content = $this->formatHeadings( $processed_content );
@@ -93,18 +94,27 @@ class ContentProcessor {
         $service_keywords = $this->keywordsProvider->getAll();
 
         foreach ( $service_keywords as $keyword => $url ) {
-            // Only link the first occurrence of each keyword
-            $pattern = '/\b' . preg_quote( $keyword, '/' ) . '\b/i';
+            // Create a pattern that matches the keyword (case-insensitive)
+            // but not if it's already in a link or is part of another word
+            $pattern = '/(?<![\w>])(' . preg_quote( $keyword, '/' ) . ')(?![\w<])/i';
 
-            // Check if this keyword already has a link
-            if ( strpos( $content, '<a href="' . $url . '"' ) !== false ) {
+            // Check if this keyword is already linked anywhere in the content
+            if ( stripos( $content, '<a href="' . $url . '">' . $keyword . '</a>' ) !== false ) {
+                continue;
+            }
+            
+            // Check if keyword exists in content (case-insensitive)
+            if ( ! preg_match( $pattern, $content, $matches ) ) {
                 continue;
             }
 
-            // Add the link to the first occurrence
-            $content = preg_replace(
+            // Use a callback to preserve the original case from the content
+            $content = preg_replace_callback(
                 $pattern,
-                '<a href="' . esc_url( $url ) . '">' . $keyword . '</a>',
+                function( $matches ) use ( $url ) {
+                    // Check if this match is already inside an HTML tag or link
+                    return '<a href="' . esc_url( $url ) . '">' . $matches[1] . '</a>';
+                },
                 $content,
                 1 // Only replace first occurrence
             );
@@ -124,10 +134,29 @@ class ContentProcessor {
     private function addLocationLinks( string $content, array $context = [] ): string {
         $state = $context['state'] ?? null;
         $city  = $context['city'] ?? null;
+        $cities = $context['cities'] ?? null;
 
         if ( $state ) {
-            // Link to state page from city pages
-            if ( $city ) {
+            // For state pages: Link city names to their respective city pages
+            if ( ! $city && $cities ) {
+                foreach ( $cities as $city_name ) {
+                    $city_url = $this->generateCityUrl( $state, $city_name );
+                    // Create a pattern that matches the city name but not if it's already in a link
+                    $pattern = '/\b' . preg_quote( $city_name, '/' ) . '\b(?![^<]*>)(?![^<]*<\/a>)/';
+                    
+                    // Only link the first occurrence of each city name
+                    if ( strpos( $content, $city_url ) === false ) {
+                        $content = preg_replace(
+                            $pattern,
+                            '<a href="' . esc_url( $city_url ) . '">' . $city_name . '</a>',
+                            $content,
+                            1  // Only replace first occurrence
+                        );
+                    }
+                }
+            }
+            // For city pages: Link to state page
+            elseif ( $city ) {
                 $state_url = $this->generateStateUrl( $state );
                 $pattern   = '/\b' . preg_quote( $state, '/' ) . '\b(?![^<]*>)/';
 
@@ -176,6 +205,13 @@ class ContentProcessor {
      * @return string Content with block structure
      */
     private function addBlockStructure( string $content ): string {
+        // Check if content already has WordPress block markup
+        if ( strpos( $content, '<!-- wp:' ) !== false ) {
+            // Content already has block markup, don't add it again
+            return $content;
+        }
+
+        // Only add block structure if it doesn't already exist
         $blocks     = [];
         $paragraphs = explode( "\n\n", $content );
 

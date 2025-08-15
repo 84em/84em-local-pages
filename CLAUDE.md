@@ -278,6 +278,9 @@ wp 84em local-pages --state=all
 wp 84em local-pages --state="California" --city=all
 wp 84em local-pages --state="California" --city="Los Angeles"
 wp 84em local-pages --state="California" --city="Los Angeles,San Diego"
+
+# Generate all cities AND update state page
+wp 84em local-pages --state="California" --city=all --complete
 ```
 
 ### Supporting Operations
@@ -449,13 +452,40 @@ namespace EightyFourEM\LocalPages\Content;
 // etc.
 ```
 
+## Recent Updates (v3.0.1)
+
+### Bug Fixes
+1. **State Page Query Fix**: Fixed issue where state commands were incorrectly updating city pages instead of state pages. The query now properly checks for `_local_page_city` meta NOT EXISTS to ensure state pages are correctly identified.
+
+2. **City Interlinking Fix**: City names in state pages are now properly hyperlinked to their respective city pages. The fix involved:
+   - Processing location links BEFORE service keywords to prevent keyword conflicts
+   - Passing cities context to ContentProcessor for state pages
+   - Removing hardcoded location-specific keywords that interfered with dynamic linking
+
+3. **Block Editor Compatibility Fix**: Fixed invalid WordPress block structure that prevented editing in the Block Editor:
+   - ContentProcessor now detects if content already has WordPress block markup
+   - Prevents double-wrapping of blocks which was creating nested/malformed structures
+   - Content from Claude API (already with blocks) is no longer re-wrapped
+   - Added tests to prevent regression of this issue
+
+4. **Service Keyword Linking Fix**: Fixed issues with multi-word keywords not being linked:
+   - Improved regex pattern for better word boundary detection
+   - Preserves original case from content when creating links
+   - Fixed handling of keywords like "API integrations" and "security audits"
+
+### New Features
+1. **Complete State Generation**: New `--complete` flag for generating all cities AND updating the state page in one command:
+   ```bash
+   wp 84em local-pages --state="California" --city=all --complete
+   ```
+
 ---
 
-**Last Updated**: August 12, 2025  
+**Last Updated**: August 15, 2025  
 **Claude Model**: claude-sonnet-4-20250514  
 **Content Format**: WordPress Block Editor (Gutenberg)  
 **API Version**: 2023-06-01  
 **Content Strategy**: Hierarchical location pages with automatic interlinking  
 **Total Pages**: 350 (50 states + 300 cities)  
-**Plugin Version**: 3.0.0  
+**Plugin Version**: 3.0.1  
 **Architecture**: Modular PSR-4 autoloaded classes with dependency injection

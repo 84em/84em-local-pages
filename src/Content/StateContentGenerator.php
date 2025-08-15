@@ -174,7 +174,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
                 'meta_input'   => [
                     '_local_page_state'      => $state,
                     '_genesis_description' => "Professional WordPress development, custom plugins, and web solutions for businesses in {$state}. White-label services for agencies in " . implode( ', ', $cities ) . ".",
-                    '_genesis_title'     => "WordPress Development Services in {$state} | 84EM",
+                    '_genesis_title'     => "Expert WordPress Development Services in {$state} | 84EM",
                 ],
             ];
 
@@ -239,7 +239,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
 
             // Update meta fields
             update_post_meta( $post_id, '_genesis_description', "Professional WordPress development, custom plugins, and web solutions for businesses in {$state}. White-label services for agencies in " . implode( ', ', $cities ) . "." );
-            update_post_meta( $post_id, '_genesis_title', "WordPress Development Services in {$state} | 84EM" );
+            update_post_meta( $post_id, '_genesis_title', "Expert WordPress Development Services in {$state} | 84EM" );
 
             // Regenerate and save schema
             $schema = $this->schemaGenerator->generateStateSchema( $state );

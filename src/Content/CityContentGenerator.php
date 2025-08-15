@@ -189,8 +189,8 @@ class CityContentGenerator implements ContentGeneratorInterface {
                     '_local_page_state'     => $state,
                     '_local_page_city'      => $city,
                     '_local_page_generated' => current_time( 'mysql' ),
-                    '_yoast_wpseo_metadesc' => $sections['meta_description'] ?? '',
-                    '_yoast_wpseo_title'    => $sections['seo_title'] ?? '',
+                    '_genesis_description' => $sections['meta_description'] ?? '',
+                    '_genesis_title'    => $sections['seo_title'] ?? '',
                 ],
             ];
 
@@ -202,7 +202,7 @@ class CityContentGenerator implements ContentGeneratorInterface {
 
             // Generate and save schema
             $schema = $this->schemaGenerator->generateCitySchema( $state, $city );
-            update_post_meta( $post_id, '_local_page_schema', $schema );
+            update_post_meta( $post_id, 'schema', $schema );
 
             WP_CLI::success( "Created city page: {$city}, {$state} (ID: {$post_id})" );
 
@@ -235,6 +235,7 @@ class CityContentGenerator implements ContentGeneratorInterface {
             // Update post
             $post_data = [
                 'ID'            => $post_id,
+                'post_title'    => $sections['title'] ?? "WordPress Development Services in {$city}, {$state} | 84EM",
                 'post_content'  => $content,
                 'post_excerpt'  => $sections['excerpt'] ?? '',
                 'post_modified' => current_time( 'mysql' ),
@@ -248,12 +249,12 @@ class CityContentGenerator implements ContentGeneratorInterface {
 
             // Update metadata
             update_post_meta( $post_id, '_local_page_generated', current_time( 'mysql' ) );
-            update_post_meta( $post_id, '_yoast_wpseo_metadesc', $sections['meta_description'] ?? '' );
-            update_post_meta( $post_id, '_yoast_wpseo_title', $sections['seo_title'] ?? '' );
+            update_post_meta( $post_id, '_genesis_description', $sections['meta_description'] ?? '' );
+            update_post_meta( $post_id, '_genesis_title', $sections['seo_title'] ?? '' );
 
             // Regenerate schema
             $schema = $this->schemaGenerator->generateCitySchema( $state, $city );
-            update_post_meta( $post_id, '_local_page_schema', $schema );
+            update_post_meta( $post_id, 'schema', $schema );
 
             WP_CLI::success( "Updated city page: {$city}, {$state}" );
 

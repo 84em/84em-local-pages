@@ -169,9 +169,8 @@ class StateContentGenerator implements ContentGeneratorInterface {
                 'post_author'  => 1,
                 'meta_input'   => [
                     '_local_page_state'      => $state,
-                    '_yoast_wpseo_metadesc'  => $sections['meta_description'],
-                    '_yoast_wpseo_title'     => $sections['title'] ?: "WordPress Development Services in {$state}",
-                    '_yoast_wpseo_canonical' => $this->generateStateUrl( $state ),
+                    '_genesis_description'  => $sections['meta_description'],
+                    '_genesis_title'     => $sections['title'] ?: "WordPress Development Services in {$state}",
                 ],
             ];
 
@@ -183,6 +182,10 @@ class StateContentGenerator implements ContentGeneratorInterface {
 
             // Set up URL structure
             $this->setupStateUrl( $post_id, $state );
+
+            // Generate and save schema
+            $schema = $this->schemaGenerator->generateStateSchema( $state );
+            update_post_meta( $post_id, 'schema', $schema );
 
             WP_CLI::log( "✅ Generated state page for {$state} (ID: {$post_id})" );
 
@@ -227,9 +230,12 @@ class StateContentGenerator implements ContentGeneratorInterface {
             }
 
             // Update meta fields
-            update_post_meta( $post_id, '_yoast_wpseo_metadesc', $sections['meta_description'] );
-            update_post_meta( $post_id, '_yoast_wpseo_title', $sections['title'] ?: "WordPress Development Services in {$state}" );
-            update_post_meta( $post_id, '_yoast_wpseo_canonical', $this->generateStateUrl( $state ) );
+            update_post_meta( $post_id, '_genesis_description', $sections['meta_description'] );
+            update_post_meta( $post_id, '_genesis_title', $sections['title'] ?: "WordPress Development Services in {$state}" );
+
+            // Regenerate and save schema
+            $schema = $this->schemaGenerator->generateStateSchema( $state );
+            update_post_meta( $post_id, 'schema', $schema );
 
             WP_CLI::log( "✅ Updated state page for {$state} (ID: {$post_id})" );
 

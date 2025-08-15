@@ -144,8 +144,18 @@ class GenerateCommand {
             // Generate/update state page first
             $existing_state_posts = get_posts( [
                 'post_type'   => 'local',
-                'meta_key'    => '_local_page_state',
-                'meta_value'  => $state,
+                'meta_query'  => [
+                    'relation' => 'AND',
+                    [
+                        'key'     => '_local_page_state',
+                        'value'   => $state,
+                        'compare' => '='
+                    ],
+                    [
+                        'key'     => '_local_page_city',
+                        'compare' => 'NOT EXISTS'
+                    ]
+                ],
                 'numberposts' => 1,
                 'post_status' => 'any',
             ] );

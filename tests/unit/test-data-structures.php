@@ -88,51 +88,6 @@ class Test_Data_Structures extends TestCase {
         $this->assertContains( 'San Diego', $california_cities );
     }
 
-    /**
-     * Test parse state names functionality
-     */
-    public function test_parse_state_names() {
-        // Test single state
-        $result = $this->parseStateNames( 'California' );
-        $this->assertEquals( ['California'], $result );
-
-        // Test multiple states
-        $result = $this->parseStateNames( 'California, Texas, Florida' );
-        $this->assertEquals( ['California', 'Texas', 'Florida'], $result );
-
-        // Test with extra spaces
-        $result = $this->parseStateNames( ' California , Texas , Florida ' );
-        $this->assertEquals( ['California', 'Texas', 'Florida'], $result );
-
-        // Test empty string - legacy behavior returned ['']
-        $result = $this->parseStateNames( '' );
-        $this->assertEquals( [''], $result );
-
-        // Test with tabs and newlines
-        $result = $this->parseStateNames( "California,\nTexas,\tFlorida" );
-        $this->assertEquals( ['California', 'Texas', 'Florida'], $result );
-    }
-
-    /**
-     * Test parse city names functionality
-     */
-    public function test_parse_city_names() {
-        // Test single city
-        $result = $this->parseCityNames( 'Los Angeles' );
-        $this->assertEquals( ['Los Angeles'], $result );
-
-        // Test multiple cities
-        $result = $this->parseCityNames( 'Los Angeles, San Francisco, San Diego' );
-        $this->assertEquals( ['Los Angeles', 'San Francisco', 'San Diego'], $result );
-
-        // Test with extra spaces
-        $result = $this->parseCityNames( ' Los Angeles , San Francisco ' );
-        $this->assertEquals( ['Los Angeles', 'San Francisco'], $result );
-
-        // Test city with special characters
-        $result = $this->parseCityNames( "St. Paul, O'Fallon" );
-        $this->assertEquals( ['St. Paul', "O'Fallon"], $result );
-    }
 
     /**
      * Test service keywords list generation for prompts
@@ -186,25 +141,5 @@ class Test_Data_Structures extends TestCase {
             $this->assertArrayHasKey( $state, $states, "Missing state: $state" );
             $this->assertCount( 6, $states[$state]['cities'], "State $state doesn't have 6 cities" );
         }
-    }
-
-    /**
-     * Helper method to parse state names (mimics legacy behavior)
-     */
-    private function parseStateNames( string $state_arg ): array {
-        // Legacy behavior: empty string returns array with empty string
-        if ( $state_arg === '' ) {
-            return [ '' ];
-        }
-        $states = array_map( 'trim', explode( ',', $state_arg ) );
-        return array_values( array_filter( $states ) );
-    }
-
-    /**
-     * Helper method to parse city names
-     */
-    private function parseCityNames( string $city_arg ): array {
-        $cities = array_map( 'trim', explode( ',', $city_arg ) );
-        return array_filter( $cities );
     }
 }

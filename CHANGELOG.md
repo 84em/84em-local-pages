@@ -5,6 +5,48 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2025-08-16
+
+### Changed
+- **Test Architecture Modernization**: Migrated test code from legacy procedural to object-oriented design
+  - Refactored ld-json and cli-args tests to use proper namespacing and dependency injection
+  - Updated test architecture to align with plugin's modular structure
+  - Simplified data loading by removing external config file dependency
+  - Re-enabled previously disabled test suites after fixing fatal errors
+
+- **Major Test Suite Refactoring**: Comprehensive overhaul of all test suites to focus on actual plugin functionality
+  - Rewrote content-processing tests to test actual ContentProcessor methods instead of mock implementations
+  - Rewrote error-handling tests to test real error conditions in the plugin
+  - Rewrote security tests to test actual security features (API key encryption, input sanitization)
+  - Fixed data-structures tests by removing tests for non-existent helper methods
+  - Removed database-operations test suite (tested static conventions, not actual functionality)
+  - Removed basic-functions test suite (only tested WordPress core functions)
+  - Removed simple test suite (duplicate of basic-functions)
+  - Removed url-generation test suite (outdated and no longer relevant)
+
+### Added
+- **New Test Suites**: Implemented comprehensive test coverage for core functionality
+  - Container tests for dependency injection (12 tests)
+  - API client tests for Claude API integration (9 tests)
+  - Content generators tests for state/city generation (12 tests)
+  - Error handling tests for real error conditions (12 tests)
+  - Security tests for encryption and sanitization (10 tests)
+
+### Improved
+- **Test Coverage Quality**: All remaining test suites now test actual plugin classes and methods
+  - 10 focused test suites with 106 tests total
+  - No more testing of imaginary features or WordPress core functions
+  - Tests now validate real business logic used in production
+  - Better alignment between tests and actual plugin architecture
+  - Comprehensive schema generation tests with proper validation
+
+### Fixed
+- **Container Tests**: Fixed assertion methods and exception handling
+- **API Client Tests**: Fixed mock ApiKeyManager implementation
+- **Content Generator Tests**: Fixed method signatures to match actual implementation
+- **CLI Args Tests**: Fixed to use GenerateCommand class with proper dependency injection
+- **LD-JSON Tests**: Fixed to use SchemaGenerator class directly
+
 ## [3.0.6] - 2025-08-16
 
 ### Added

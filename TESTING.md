@@ -36,15 +36,20 @@ wp 84em local-pages --test --suite=content-processing
 wp 84em local-pages --test --suite=simple
 ```
 
-### Available Test Suites
+### Available Test Suites (v3.1.0)
 
-1. **encryption** - Tests for API key encryption and decryption
-2. **data-structures** - Tests for service keywords and US states data
-3. **url-generation** - Tests for URL generation and permalinks
-4. **ld-json** - Tests for LD-JSON schema generation
-5. **cli-args** - Tests for WP-CLI argument parsing
-6. **content-processing** - Tests for content processing and title case
-7. **simple** - Basic functionality tests
+1. **encryption** - Tests for API key encryption and decryption (7 tests)
+2. **data-structures** - Tests for service keywords and US states data (5 tests)
+3. **content-processing** - Tests for ContentProcessor class methods (13 tests)
+4. **cli-args** - Tests for WP-CLI argument parsing (12 tests)
+5. **ld-json** - Tests for LD-JSON schema generation (14 tests)
+6. **container** - Tests for dependency injection container (12 tests)
+7. **api-client** - Tests for Claude API client (9 tests)
+8. **content-generators** - Tests for state and city content generators (12 tests)
+9. **error-handling** - Tests for error handling and logging (12 tests)
+10. **security** - Tests for security features (10 tests)
+
+**Total: 106 tests across 10 test suites**
 
 ## Test Files
 
@@ -52,19 +57,22 @@ All test files are located in the `tests/unit/` directory:
 
 - `test-encryption.php` - API key encryption/decryption tests
 - `test-data-structures.php` - Data structure validation tests
-- `test-url-generation.php` - URL and permalink tests
-- `test-ld-json-schema.php` - Schema generation tests
+- `test-content-processing.php` - ContentProcessor class tests (actual methods)
 - `test-wp-cli-args.php` - CLI argument parsing tests
-- `test-content-processing.php` - Content processing tests (includes block structure and keyword linking tests)
-- `test-simple.php` - Basic functionality tests
+- `test-ld-json-schema.php` - Schema generation tests
+- `test-container.php` - Dependency injection container tests
+- `test-api-client.php` - Claude API client tests
+- `test-content-generators.php` - Content generator integration tests
+- `test-error-handling.php` - Error handling and recovery tests
+- `test-security.php` - Security feature tests
 
-### Recent Test Additions
+### Version 3.1.0 Test Improvements
 
-The `test-content-processing.php` file now includes:
-- **Block Structure Tests**: Verifies that WordPress block markup isn't duplicated when content already has blocks
-- **Plain Content Tests**: Ensures plain content gets proper block structure added
-- **Keyword Linking Tests**: Validates service keywords are properly linked with correct case preservation
-- **Double-linking Prevention**: Confirms text already in links isn't re-linked
+Major refactoring of test suites to focus on actual plugin functionality:
+- **Rewrote Tests**: content-processing, error-handling, and security tests now test actual plugin methods
+- **Removed Tests**: Eliminated tests for WordPress core functions and imaginary features
+- **Improved Coverage**: All tests now validate real business logic used in production
+- **Better Architecture**: Tests align with actual plugin modular architecture
 
 ## Test Framework
 
@@ -165,14 +173,12 @@ Some tests that instantiate the plugin class directly may cause critical errors 
 - Conflicts with singleton patterns or global state
 - WordPress hooks being registered multiple times
 
-Currently working test suites:
-- `simple` - Basic functionality tests (5 tests, all passing)
-- `basic` - WordPress environment tests (6 tests, all passing)
-- `encryption` - API key encryption tests (7 tests, all passing)
-- `data-structures` - Data validation tests (7 tests, all passing)
-- `content-processing` - Content processing tests (5 tests, all passing)
+Currently working test suites (v3.1.0):
+- All 10 test suites are passing with 106 total tests
+- Tests focus on actual plugin functionality
+- No longer testing WordPress core or mock implementations
 
-**Total: 30 tests, all passing**
+**Total: 106 tests, all passing**
 
 Note: Some tests had to be modified to:
 - Skip operations that would cause fatal errors when instantiating the plugin class multiple times

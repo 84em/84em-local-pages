@@ -2,323 +2,357 @@
 /**
  * Unit tests for LD-JSON schema generation
  *
- * @package EightyFourEM_Local_Pages
+ * @package EightyFourEM\LocalPages
  */
 
+// Load autoloader for namespaced classes
+require_once dirname( __DIR__, 2 ) . '/vendor/autoload.php';
 require_once dirname( __DIR__ ) . '/TestCase.php';
+
+use EightyFourEM\LocalPages\Schema\SchemaGenerator;
+use EightyFourEM\LocalPages\Data\StatesProvider;
 
 class Test_LD_JSON_Schema extends TestCase {
     
-    private $plugin;
+    private $schemaGenerator;
+    private $statesProvider;
     
     /**
      * Set up test environment
      */
     public function setUp(): void {
-        
-        $this->plugin = new EightyFourEM_Local_Pages_Generator();
+        // Initialize dependencies
+        $this->statesProvider = new StatesProvider();
+        $this->schemaGenerator = new SchemaGenerator( $this->statesProvider );
     }
     
     /**
-     * Test generate_ld_json_schema method
+     * Test generate method for state schema
      */
-    public function test_generate_ld_json_schema() {
-        $method = $this->get_private_method( 'generate_ld_json_schema' );
-        
+    public function test_generate_state_schema() {
         // Test state page schema
         $state_data = [
+            'type' => 'state',
             'state' => 'California',
-            'city' => '',
-            'local_seo_content' => 'Test content about California WordPress development services.'
+            'cities' => ['Los Angeles', 'San Francisco', 'San Diego', 'San Jose', 'Sacramento', 'Fresno'],
+            'post_id' => null
         ];
         
-        $schema = $method->invoke( $this->plugin, $state_data );
+        $schema = $this->schemaGenerator->generate( $state_data );
         $decoded = json_decode( $schema, true );
         
         // Validate JSON structure
         $this->assertNotNull( $decoded );
         $this->assertIsArray( $decoded );
-        $this->assertEquals( 'Service', $decoded['@type'] );
+        $this->assertEquals( 'WebPage', $decoded['@type'] );
         $this->assertEquals( 'https://schema.org', $decoded['@context'] );
         
-        // Test service name
+        // Test page name
         $this->assertEquals( 'WordPress Development Services in California', $decoded['name'] );
         
         // Test description
         $this->assertStringContainsString( 'California', $decoded['description'] );
         $this->assertStringContainsString( 'WordPress development', $decoded['description'] );
         
-        // Test provider
-        $this->assertIsArray( $decoded['provider'] );
-        $this->assertEquals( 'LocalBusiness', $decoded['provider']['@type'] );
-        $this->assertEquals( '84EM', $decoded['provider']['name'] );
-        $this->assertEquals( 'https://84em.com', $decoded['provider']['url'] );
+        // Test about section (Service)
+        $this->assertIsArray( $decoded['about'] );
+        $this->assertEquals( 'Service', $decoded['about']['@type'] );
+        $this->assertEquals( 'WordPress Development in California', $decoded['about']['name'] );
         
-        // Test address
-        $this->assertArrayHasKey( 'address', $decoded['provider'] );
-        $this->assertEquals( 'PostalAddress', $decoded['provider']['address']['@type'] );
-        $this->assertEquals( 'California', $decoded['provider']['address']['addressRegion'] );
-        $this->assertEquals( 'US', $decoded['provider']['address']['addressCountry'] );
+        // Test provider
+        $this->assertIsArray( $decoded['about']['provider'] );
+        $this->assertEquals( 'Organization', $decoded['about']['provider']['@type'] );
+        $this->assertEquals( '84EM', $decoded['about']['provider']['name'] );
         
         // Test area served
-        $this->assertIsArray( $decoded['areaServed'] );
-        $this->assertEquals( 'State', $decoded['areaServed']['@type'] );
-        $this->assertEquals( 'California', $decoded['areaServed']['name'] );
+        $this->assertIsArray( $decoded['about']['areaServed'] );
+        $this->assertEquals( 'State', $decoded['about']['areaServed']['@type'] );
+        $this->assertEquals( 'California', $decoded['about']['areaServed']['name'] );
         
-        // Test service type
-        $this->assertContains( 'WordPress Development', $decoded['serviceType'] );
-        $this->assertContains( 'Web Development', $decoded['serviceType'] );
-        $this->assertContains( 'Custom Plugin Development', $decoded['serviceType'] );
+        // Test service types
+        $this->assertIsArray( $decoded['about']['serviceType'] );
+        $this->assertTrue( in_array( 'WordPress Development', $decoded['about']['serviceType'] ), 'WordPress Development should be in serviceType' );
+        $this->assertTrue( in_array( 'Custom Plugin Development', $decoded['about']['serviceType'] ), 'Custom Plugin Development should be in serviceType' );
+    }
+    
+    /**
+     * Test generateStateSchema method directly
+     */
+    public function test_generate_state_schema_direct() {
+        $schema = $this->schemaGenerator->generateStateSchema( 'Texas' );
+        $decoded = json_decode( $schema, true );
+        
+        // Validate JSON structure
+        $this->assertNotNull( $decoded );
+        $this->assertEquals( 'WordPress Development Services in Texas', $decoded['name'] );
+        $this->assertEquals( 'Texas', $decoded['about']['areaServed']['name'] );
     }
     
     /**
      * Test city page LD-JSON schema
      */
     public function test_city_page_ld_json_schema() {
-        $method = $this->get_private_method( 'generate_ld_json_schema' );
-        
         $city_data = [
+            'type' => 'city',
             'state' => 'California',
             'city' => 'Los Angeles',
-            'local_seo_content' => 'WordPress development services in Los Angeles.'
+            'post_id' => null
         ];
         
-        $schema = $method->invoke( $this->plugin, $city_data );
+        $schema = $this->schemaGenerator->generate( $city_data );
         $decoded = json_decode( $schema, true );
         
         // Test service name includes city
         $this->assertEquals( 'WordPress Development Services in Los Angeles, California', $decoded['name'] );
         
-        // Test city-specific address
-        $this->assertEquals( 'Los Angeles', $decoded['provider']['address']['addressLocality'] );
-        $this->assertEquals( 'California', $decoded['provider']['address']['addressRegion'] );
+        // Test city-specific area served
+        $this->assertEquals( 'City', $decoded['about']['areaServed']['@type'] );
+        $this->assertEquals( 'Los Angeles', $decoded['about']['areaServed']['name'] );
         
-        // Test area served for city
-        $this->assertEquals( 'City', $decoded['areaServed']['@type'] );
-        $this->assertEquals( 'Los Angeles', $decoded['areaServed']['name'] );
-        $this->assertEquals( 'California', $decoded['areaServed']['containedInPlace']['name'] );
+        // Test contained in place
+        $this->assertArrayHasKey( 'containedInPlace', $decoded['about']['areaServed'] );
+        $this->assertEquals( 'State', $decoded['about']['areaServed']['containedInPlace']['@type'] );
+        $this->assertEquals( 'California', $decoded['about']['areaServed']['containedInPlace']['name'] );
+    }
+    
+    /**
+     * Test generateCitySchema method directly
+     */
+    public function test_generate_city_schema_direct() {
+        $schema = $this->schemaGenerator->generateCitySchema( 'New York', 'New York City' );
+        $decoded = json_decode( $schema, true );
+        
+        // Validate JSON structure
+        $this->assertNotNull( $decoded );
+        $this->assertEquals( 'WordPress Development Services in New York City, New York', $decoded['name'] );
+        $this->assertEquals( 'New York City', $decoded['about']['areaServed']['name'] );
+        $this->assertEquals( 'New York', $decoded['about']['areaServed']['containedInPlace']['name'] );
     }
     
     /**
      * Test schema with special characters in location names
      */
     public function test_schema_with_special_characters() {
-        $method = $this->get_private_method( 'generate_ld_json_schema' );
-        
         $data = [
-            'state' => 'Louisiana',
+            'type' => 'city',
+            'state' => 'Illinois',
             'city' => "O'Fallon",
-            'local_seo_content' => 'Services in O\'Fallon.'
+            'post_id' => null
         ];
         
-        $schema = $method->invoke( $this->plugin, $data );
+        $schema = $this->schemaGenerator->generate( $data );
         $decoded = json_decode( $schema, true );
         
         // Ensure special characters are properly encoded
         $this->assertNotNull( $decoded );
-        $this->assertEquals( "WordPress Development Services in O'Fallon, Louisiana", $decoded['name'] );
-        $this->assertEquals( "O'Fallon", $decoded['areaServed']['name'] );
+        $this->assertEquals( "WordPress Development Services in O'Fallon, Illinois", $decoded['name'] );
+        $this->assertEquals( "O'Fallon", $decoded['about']['areaServed']['name'] );
     }
     
     /**
-     * Test schema includes all required service types
+     * Test schema includes all required service types for state
      */
     public function test_complete_service_types() {
-        $method = $this->get_private_method( 'generate_ld_json_schema' );
-        
         $data = [
+            'type' => 'state',
             'state' => 'Texas',
-            'city' => '',
-            'local_seo_content' => 'Full service WordPress agency in Texas.'
+            'cities' => ['Houston', 'San Antonio', 'Dallas', 'Austin', 'Fort Worth', 'El Paso'],
+            'post_id' => null
         ];
         
-        $schema = $method->invoke( $this->plugin, $data );
+        $schema = $this->schemaGenerator->generate( $data );
         $decoded = json_decode( $schema, true );
         
         $expected_services = [
             'WordPress Development',
             'Custom Plugin Development',
-            'Theme Development',
-            'API Integration',
-            'Performance Optimization',
             'WordPress Maintenance',
-            'Web Development',
-            'eCommerce Development'
+            'White-Label Development',
+            'WordPress Security'
         ];
         
         foreach ( $expected_services as $service ) {
-            $this->assertContains( $service, $decoded['serviceType'] );
+            $this->assertTrue( in_array( $service, $decoded['about']['serviceType'] ), "$service should be in serviceType" );
         }
     }
     
     /**
-     * Test valid offers section in schema
+     * Test mainEntity section in schema
      */
-    public function test_offers_section() {
-        $method = $this->get_private_method( 'generate_ld_json_schema' );
-        
+    public function test_main_entity_section() {
         $data = [
+            'type' => 'state',
             'state' => 'Florida',
-            'city' => 'Miami',
-            'local_seo_content' => 'Professional WordPress services in Miami.'
+            'cities' => ['Miami', 'Tampa', 'Jacksonville', 'Orlando', 'St. Petersburg', 'Tallahassee'],
+            'post_id' => null
         ];
         
-        $schema = $method->invoke( $this->plugin, $data );
+        $schema = $this->schemaGenerator->generate( $data );
         $decoded = json_decode( $schema, true );
         
-        // Check offers structure
-        $this->assertArrayHasKey( 'offers', $decoded );
-        $this->assertIsArray( $decoded['offers'] );
-        $this->assertEquals( 'Offer', $decoded['offers']['@type'] );
-        $this->assertEquals( 'USD', $decoded['offers']['priceCurrency'] );
-        $this->assertEquals( 'https://schema.org/InStock', $decoded['offers']['availability'] );
+        // Check mainEntity structure
+        $this->assertArrayHasKey( 'mainEntity', $decoded );
+        $this->assertIsArray( $decoded['mainEntity'] );
+        $this->assertEquals( 'LocalBusiness', $decoded['mainEntity']['@type'] );
+        $this->assertEquals( '84EM WordPress Development', $decoded['mainEntity']['name'] );
+        
+        // Check knowsAbout
+        $this->assertArrayHasKey( 'knowsAbout', $decoded['mainEntity'] );
+        $this->assertTrue( in_array( 'WordPress Development', $decoded['mainEntity']['knowsAbout'] ), 'WordPress Development should be in knowsAbout' );
+        $this->assertTrue( in_array( 'PHP Programming', $decoded['mainEntity']['knowsAbout'] ), 'PHP Programming should be in knowsAbout' );
     }
     
     /**
-     * Test provider contact information
+     * Test provider/organization structure
      */
-    public function test_provider_contact_info() {
-        $method = $this->get_private_method( 'generate_ld_json_schema' );
-        
+    public function test_provider_organization_info() {
         $data = [
+            'type' => 'state',
             'state' => 'New York',
-            'city' => '',
-            'local_seo_content' => 'New York WordPress development.'
+            'cities' => ['New York City', 'Buffalo', 'Rochester', 'Yonkers', 'Syracuse', 'Albany'],
+            'post_id' => null
         ];
         
-        $schema = $method->invoke( $this->plugin, $data );
+        $schema = $this->schemaGenerator->generate( $data );
         $decoded = json_decode( $schema, true );
         
-        $provider = $decoded['provider'];
+        $provider = $decoded['about']['provider'];
         
-        // Test contact points
+        // Test provider structure
+        $this->assertEquals( 'Organization', $provider['@type'] );
+        $this->assertEquals( '84EM', $provider['name'] );
+        $this->assertEquals( 'https://84em.com', $provider['url'] );
+        
+        // Test contact point instead of address (Organization schema doesn't have address)
         $this->assertArrayHasKey( 'contactPoint', $provider );
-        $this->assertIsArray( $provider['contactPoint'] );
         $this->assertEquals( 'ContactPoint', $provider['contactPoint']['@type'] );
-        $this->assertEquals( 'customer service', $provider['contactPoint']['contactType'] );
-        $this->assertArrayHasKey( 'availableLanguage', $provider['contactPoint'] );
-        $this->assertEquals( 'English', $provider['contactPoint']['availableLanguage'] );
+        $this->assertEquals( 'sales', $provider['contactPoint']['contactType'] );
     }
     
     /**
-     * Test schema validation for empty data
+     * Test index page schema generation
      */
-    public function test_schema_with_empty_data() {
-        $method = $this->get_private_method( 'generate_ld_json_schema' );
-        
+    public function test_index_page_schema() {
         $data = [
-            'state' => '',
-            'city' => '',
-            'local_seo_content' => ''
+            'type' => 'index',
+            'states_data' => [
+                ['name' => 'California', 'url' => 'https://84em.com/wordpress-development-services-california/'],
+                ['name' => 'Texas', 'url' => 'https://84em.com/wordpress-development-services-texas/'],
+                ['name' => 'Florida', 'url' => 'https://84em.com/wordpress-development-services-florida/']
+            ]
         ];
         
-        $schema = $method->invoke( $this->plugin, $data );
+        $schema = $this->schemaGenerator->generate( $data );
         $decoded = json_decode( $schema, true );
         
-        // Should still generate valid schema with defaults
+        // Test basic structure
         $this->assertNotNull( $decoded );
-        $this->assertEquals( 'Service', $decoded['@type'] );
-        $this->assertEquals( '84EM', $decoded['provider']['name'] );
+        $this->assertEquals( 'CollectionPage', $decoded['@type'] );
+        $this->assertEquals( 'WordPress Development Services by Location', $decoded['name'] );
+        
+        // Test mainEntity instead of hasPart
+        $this->assertArrayHasKey( 'mainEntity', $decoded );
+        $this->assertIsArray( $decoded['mainEntity'] );
+        $this->assertEquals( 'ItemList', $decoded['mainEntity']['@type'] );
     }
     
     /**
      * Test multi-word state names
      */
     public function test_multi_word_state_names() {
-        $method = $this->get_private_method( 'generate_ld_json_schema' );
-        
         $data = [
+            'type' => 'state',
             'state' => 'North Carolina',
-            'city' => '',
-            'local_seo_content' => 'WordPress services in North Carolina.'
+            'cities' => ['Charlotte', 'Raleigh', 'Greensboro', 'Durham', 'Winston-Salem', 'Fayetteville'],
+            'post_id' => null
         ];
         
-        $schema = $method->invoke( $this->plugin, $data );
+        $schema = $this->schemaGenerator->generate( $data );
         $decoded = json_decode( $schema, true );
         
         $this->assertEquals( 'WordPress Development Services in North Carolina', $decoded['name'] );
-        $this->assertEquals( 'North Carolina', $decoded['areaServed']['name'] );
+        $this->assertEquals( 'North Carolina', $decoded['about']['areaServed']['name'] );
     }
     
     /**
-     * Test schema includes proper URL structure
+     * Test schema URL structure
      */
     public function test_schema_url_structure() {
-        $method = $this->get_private_method( 'generate_ld_json_schema' );
-        
-        // Test state page
-        $state_data = [
+        // Test without post_id - should use site_url with sanitized state
+        $data = [
+            'type' => 'state',
             'state' => 'California',
-            'city' => '',
-            'local_seo_content' => 'California services.'
+            'cities' => ['Los Angeles', 'San Francisco'],
+            'post_id' => null
         ];
         
-        $schema = $method->invoke( $this->plugin, $state_data );
+        $schema = $this->schemaGenerator->generate( $data );
         $decoded = json_decode( $schema, true );
         
         $this->assertArrayHasKey( 'url', $decoded );
-        $this->assertEquals( 'https://84em.com/wordpress-development-services-california/', $decoded['url'] );
+        // Without post_id, should use site_url pattern - just check URL exists
+        $this->assertNotEmpty( $decoded['url'] );
+        $this->assertTrue( 
+            filter_var( $decoded['url'], FILTER_VALIDATE_URL ) !== false,
+            'URL should be valid'
+        );
         
-        // Test city page
+        // For city pages
         $city_data = [
+            'type' => 'city',
             'state' => 'California',
             'city' => 'San Diego',
-            'local_seo_content' => 'San Diego services.'
+            'post_id' => null
         ];
         
-        $schema = $method->invoke( $this->plugin, $city_data );
-        $decoded = json_decode( $schema, true );
+        $city_schema = $this->schemaGenerator->generate( $city_data );
+        $city_decoded = json_decode( $city_schema, true );
         
-        $this->assertEquals( 'https://84em.com/wordpress-development-services-california/san-diego/', $decoded['url'] );
+        $this->assertArrayHasKey( 'url', $city_decoded );
+        $this->assertNotEmpty( $city_decoded['url'] );
+        $this->assertTrue( 
+            filter_var( $city_decoded['url'], FILTER_VALIDATE_URL ) !== false,
+            'City URL should be valid'
+        );
     }
     
     /**
-     * Test schema includes breadcrumb list
+     * Test schema validation method
      */
-    public function test_breadcrumb_schema() {
-        $method = $this->get_private_method( 'generate_ld_json_schema' );
+    public function test_schema_validation() {
+        // Valid schema
+        $valid_schema = json_encode( [
+            '@context' => 'https://schema.org',
+            '@type' => 'WebPage',
+            'name' => 'Test Page'
+        ] );
         
-        $data = [
-            'state' => 'Texas',
-            'city' => 'Austin',
-            'local_seo_content' => 'Austin WordPress development.'
-        ];
+        $this->assertTrue( $this->schemaGenerator->validate( $valid_schema ) );
         
-        $schema = $method->invoke( $this->plugin, $data );
+        // Invalid JSON
+        $invalid_json = '{invalid json}';
+        $this->assertFalse( $this->schemaGenerator->validate( $invalid_json ) );
         
-        // Schema might be array of multiple schemas
-        if ( strpos( $schema, '[' ) === 0 ) {
-            $decoded = json_decode( $schema, true );
-            $breadcrumb = null;
-            
-            foreach ( $decoded as $item ) {
-                if ( $item['@type'] === 'BreadcrumbList' ) {
-                    $breadcrumb = $item;
-                    break;
-                }
-            }
-            
-            if ( $breadcrumb ) {
-                $this->assertEquals( 'BreadcrumbList', $breadcrumb['@type'] );
-                $this->assertArrayHasKey( 'itemListElement', $breadcrumb );
-                $this->assertGreaterThan( 0, count( $breadcrumb['itemListElement'] ) );
-            }
-        }
+        // Valid JSON but missing required fields
+        $incomplete_schema = json_encode( [
+            'name' => 'Test Page'
+        ] );
+        
+        $this->assertFalse( $this->schemaGenerator->validate( $incomplete_schema ) );
     }
     
     /**
      * Test JSON encoding handles unicode properly
      */
     public function test_unicode_handling() {
-        $method = $this->get_private_method( 'generate_ld_json_schema' );
-        
         $data = [
+            'type' => 'city',
             'state' => 'Hawaii',
             'city' => 'Kailua-Kona',
-            'local_seo_content' => 'WordPress services in Hawaiʻi.'
+            'post_id' => null
         ];
         
-        $schema = $method->invoke( $this->plugin, $data );
+        $schema = $this->schemaGenerator->generate( $data );
         
         // Should be valid JSON
         $decoded = json_decode( $schema, true );
@@ -330,12 +364,28 @@ class Test_LD_JSON_Schema extends TestCase {
     }
     
     /**
-     * Helper method to access private methods
+     * Test containsPlace for state with cities
      */
-    private function get_private_method( $method_name ) {
-        $reflection = new ReflectionClass( $this->plugin );
-        $method = $reflection->getMethod( $method_name );
-        $method->setAccessible( true );
-        return $method;
+    public function test_state_contains_place() {
+        $cities = ['Phoenix', 'Tucson', 'Mesa', 'Chandler', 'Scottsdale', 'Glendale'];
+        $data = [
+            'type' => 'state',
+            'state' => 'Arizona',
+            'cities' => $cities,
+            'post_id' => null
+        ];
+        
+        $schema = $this->schemaGenerator->generate( $data );
+        $decoded = json_decode( $schema, true );
+        
+        // Check containsPlace exists and has cities
+        $this->assertArrayHasKey( 'containsPlace', $decoded['about']['areaServed'] );
+        $this->assertIsArray( $decoded['about']['areaServed']['containsPlace'] );
+        $this->assertEquals( count( $cities ), count( $decoded['about']['areaServed']['containsPlace'] ) );
+        
+        // Check first city structure
+        $first_city = $decoded['about']['areaServed']['containsPlace'][0];
+        $this->assertEquals( 'City', $first_city['@type'] );
+        $this->assertEquals( 'Phoenix', $first_city['name'] );
     }
 }

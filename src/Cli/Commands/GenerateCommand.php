@@ -559,11 +559,69 @@ class GenerateCommand {
      * @return void
      */
     public function handleSitemapGeneration( array $args, array $assoc_args ): void {
-        WP_CLI::line( '🗺️ Generating XML sitemap for local pages...' );
 
-        // This would integrate with the sitemap generation functionality
-        // For now, provide a placeholder
-        WP_CLI::warning( 'Sitemap generation functionality needs to be implemented.' );
+        WP_CLI::log( '🗺️ Generating XML sitemap for Local Pages...' );
+
+        // Initialize WordPress filesystem
+        global $wp_filesystem;
+        if ( empty( $wp_filesystem ) ) {
+            require_once ABSPATH . '/wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+
+        // Get all published local pages using WP_Query
+        $query = new \WP_Query( [
+            'post_type'      => 'local',
+            'post_status'    => 'publish',
+            'posts_per_page' => - 1,
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+        ] );
+
+        if ( ! $query->have_posts() ) {
+            WP_CLI::warning( 'No published Local Pages found. Nothing to add to sitemap.' );
+
+            return;
+        }
+
+        // Build XML sitemap content
+        $xml_content = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $xml_content .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+
+        $page_count = 0;
+        while ( $query->have_posts() ) {
+            $query->the_post();
+            $post_id       = get_the_ID();
+            $permalink     = get_permalink( $post_id );
+            $modified_date = get_the_modified_date( 'c', $post_id ); // ISO 8601 format
+
+            $xml_content .= '  <url>' . "\n";
+            $xml_content .= '    <loc>' . esc_url( $permalink ) . '</loc>' . "\n";
+            $xml_content .= '    <lastmod>' . $modified_date . '</lastmod>' . "\n";
+            $xml_content .= '    <changefreq>monthly</changefreq>' . "\n";
+            $xml_content .= '    <priority>0.7</priority>' . "\n";
+            $xml_content .= '  </url>' . "\n";
+
+            $page_count ++;
+        }
+
+        $xml_content .= '</urlset>' . "\n";
+
+        // Reset post data
+        wp_reset_postdata();
+
+        // Define sitemap file path (root directory)
+        $sitemap_file = ABSPATH . 'sitemap-local.xml';
+
+        // Write sitemap to file using WordPress filesystem
+        if ( $wp_filesystem->put_contents( $sitemap_file, $xml_content, FS_CHMOD_FILE ) ) {
+            WP_CLI::success( "✅ Sitemap generated successfully! Added {$page_count} pages to sitemap-local.xml" );
+            WP_CLI::log( "📄 Sitemap saved to: {$sitemap_file}" );
+        }
+        else {
+            WP_CLI::error( '❌ Failed to write sitemap file. Check file permissions.' );
+        }
+
     }
 
     /**

@@ -1,45 +1,66 @@
-name: Deploy to Production
+name: Reusable Deployment Workflow
 
 on:
-  pull_request:
-    types: [ closed ]
-    branches: [ main ]
-  workflow_dispatch:
+  workflow_call:
     inputs:
       environment:
         description: 'Deployment environment'
         required: true
-        default: 'production'
-        type: choice
-        options:
-        - production
-        - staging
+        type: string
       force_deploy:
         description: 'Force deployment (skip checks)'
         required: false
         default: false
         type: boolean
       skip_backup:
-        description: 'Skip backup creation (use with caution)'
+        description: 'Skip backup creation'
         required: false
         default: false
         type: boolean
+      ref:
+        description: 'Git ref to deploy'
+        required: false
+        default: ''
+        type: string
+    secrets:
+      DEPLOY_HOST:
+        required: true
+      DEPLOY_USER:
+        required: true
+      DEPLOY_PATH:
+        required: true
+      DEPLOY_SSH_KEY:
+        required: true
+      DEPLOY_PORT:
+        required: false
+      BACKUP_PATH:
+        required: false
+      HEALTH_CHECK_URL:
+        required: false
+      SLACK_WEBHOOK_URL:
+        required: false
+      SMTP_SERVER:
+        required: false
+      SMTP_PORT:
+        required: false
+      SMTP_USERNAME:
+        required: false
+      SMTP_PASSWORD:
+        required: false
+      NOTIFICATION_EMAIL:
+        required: false
 
 env:
   PHP_VERSION: '8.2'
   PLUGIN_NAME: '84em-local-pages'
-  SITE_URL: 'https://84em.com'
-  DEPLOY_PATH: '${{ secrets.DEPLOY_PATH }}'
-  BACKUP_PATH: '${{ secrets.BACKUP_PATH }}'
-  SSH_PORT: '${{ secrets.DEPLOY_PORT || 22 }}'
+  SITE_URL: ${{ inputs.environment == 'production' && 'https://84em.com' || inputs.environment == 'dev' && 'https://dev.84em.com' || 'https://staging.84em.com' }}
+  SSH_PORT: ${{ secrets.DEPLOY_PORT || 22 }}
 
 jobs:
   # Pre-deployment validation
   validate:
     name: Pre-deployment Validation
     runs-on: ubuntu-latest
-    # Only run if the PR was merged (not just closed)
-    if: github.event.pull_request.merged == true
 
     outputs:
       should_deploy: ${{ steps.check.outputs.should_deploy }}
@@ -50,6 +71,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
+        ref: ${{ inputs.ref || github.ref }}
         fetch-depth: 2
 
     - name: Setup PHP
@@ -67,12 +89,11 @@ jobs:
         restore-keys: composer-
 
     - name: Install Composer dependencies
-      run: composer install --no-dev --optimize-autoloader --no-progress --no-suggest
+      run: composer install --no-dev --optimize-autoloader --no-progress
 
     - name: PHP Syntax Check
       run: |
         echo "::group::Checking PHP syntax"
-        # Check all PHP files including tests (exclude only vendor)
         error_count=0
         while IFS= read -r -d '' file; do
           output=$(php -l "$file" 2>&1)
@@ -91,6 +112,7 @@ jobs:
         echo "::endgroup::"
 
     - name: Validate composer.json
+      if: inputs.environment == 'production'
       run: |
         echo "::group::Validating Composer configuration"
         composer validate --no-check-all --no-check-publish
@@ -124,7 +146,7 @@ jobs:
     - name: Generate backup name
       id: backup
       run: |
-        backup_name="84em-local-pages-backup-$(date +%Y%m%d-%H%M%S)-${{ github.sha }}"
+        backup_name="84em-local-pages-backup-${{ inputs.environment }}-$(date +%Y%m%d-%H%M%S)-${{ github.sha }}"
         echo "backup_name=$backup_name" >> $GITHUB_OUTPUT
         echo "Generated backup name: $backup_name"
 
@@ -133,29 +155,27 @@ jobs:
       run: |
         should_deploy="true"
         
-        # For pull_request events, we should always deploy since we have the merge check in the job condition
-        # This step is reached only if the PR was merged
-        
-        # Skip deployment checks if force deploy is enabled (workflow_dispatch only)
-        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]] && [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
+        # Skip deployment checks if force deploy is enabled
+        if [[ "${{ inputs.force_deploy }}" == "true" ]]; then
           echo "⚠️ Force deployment enabled, skipping additional checks"
           echo "should_deploy=true" >> $GITHUB_OUTPUT
           exit 0
         fi
         
-        # For pull_request events, always allow (already checked for merged status in job condition)
-        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-          echo "✅ Merged pull request deployment"
-          echo "should_deploy=true" >> $GITHUB_OUTPUT
-          exit 0
+        # For dev environment, allow deployment from dev or main branch
+        if [[ "${{ inputs.environment }}" == "dev" ]]; then
+          if [[ "${{ github.ref_name }}" == "dev" ]] || [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "✅ Dev deployment from ${{ github.ref_name }} branch"
+          else
+            echo "⚠️ Dev deployment typically from dev or main branch"
+            echo "Current ref: ${{ github.ref_name }}"
+          fi
         fi
         
-        # For workflow_dispatch, check branch
-        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-          if [[ "${{ github.ref_name }}" == "main" ]]; then
-            echo "✅ Manual deployment from main branch"
-          else
-            echo "❌ Manual deployment only allowed from main branch"
+        # For production, require main branch
+        if [[ "${{ inputs.environment }}" == "production" ]]; then
+          if [[ "${{ github.ref_name }}" != "main" ]]; then
+            echo "❌ Production deployment only allowed from main branch"
             echo "Current ref: ${{ github.ref_name }}"
             echo "should_deploy=false" >> $GITHUB_OUTPUT
             exit 1
@@ -163,14 +183,18 @@ jobs:
         fi
         
         echo "should_deploy=$should_deploy" >> $GITHUB_OUTPUT
-        echo "✅ Pre-deployment validation passed"
+        echo "✅ Pre-deployment validation passed for ${{ inputs.environment }}"
 
-  # Create backup of current production
+  # Create backup of current deployment
   backup:
-    name: Backup Current Production
+    name: Backup Current ${{ inputs.environment }}
     runs-on: ubuntu-latest
     needs: validate
-    if: needs.validate.result == 'success' && needs.validate.outputs.should_deploy == 'true' && github.event.inputs.skip_backup != 'true'
+    if: |
+      needs.validate.result == 'success' && 
+      needs.validate.outputs.should_deploy == 'true' && 
+      !inputs.skip_backup &&
+      (inputs.environment == 'production' || inputs.environment == 'staging')
 
     steps:
     - name: Setup SSH key
@@ -189,14 +213,19 @@ jobs:
         ssh -p ${{ env.SSH_PORT }} -o ConnectTimeout=10 ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "echo 'SSH connection successful'"
         echo "::endgroup::"
 
-    - name: Create production backup
+    - name: Create backup
       run: |
-        echo "::group::Creating backup"
+        echo "::group::Creating backup for ${{ inputs.environment }}"
         
-        # Create backup directory if it doesn't exist and perform backup
+        BACKUP_PATH="${{ secrets.BACKUP_PATH }}"
+        if [[ -z "$BACKUP_PATH" ]]; then
+          echo "ℹ️ Backup path not configured for ${{ inputs.environment }}, skipping backup"
+          exit 0
+        fi
+        
         ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
-          "${{ env.DEPLOY_PATH }}" \
-          "${{ env.BACKUP_PATH }}" \
+          "${{ secrets.DEPLOY_PATH }}" \
+          "$BACKUP_PATH" \
           "${{ needs.validate.outputs.backup_name }}" <<'BACKUP_EOF'
           set -e
           DEPLOY_PATH="$1"
@@ -210,11 +239,11 @@ jobs:
             cp -r "${DEPLOY_PATH}" "${BACKUP_PATH}/${BACKUP_NAME}"
             echo "Backup created successfully"
             
-            # Keep only last 10 backups (with locking to prevent race conditions)
+            # Keep only last 10 backups for this environment
             (
               flock -x 200
               cd "${BACKUP_PATH}"
-              ls -t | grep -E '^84em-local-pages-backup-' | tail -n +11 | xargs -r rm -rf
+              ls -t | grep -E "^84em-local-pages-backup-${{ inputs.environment }}-" | tail -n +11 | xargs -r rm -rf
               echo "Old backups cleaned up"
             ) 200>/tmp/backup_cleanup.lock
           else
@@ -226,8 +255,13 @@ jobs:
 
     - name: Backup verification
       run: |
+        BACKUP_PATH="${{ secrets.BACKUP_PATH }}"
+        if [[ -z "$BACKUP_PATH" ]]; then
+          exit 0
+        fi
+        
         backup_size=$(ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
-          "${{ env.BACKUP_PATH }}" \
+          "$BACKUP_PATH" \
           "${{ needs.validate.outputs.backup_name }}" <<'VERIFY_EOF'
           BACKUP_PATH="$1"
           BACKUP_NAME="$2"
@@ -245,20 +279,25 @@ jobs:
           echo "ℹ️ No backup created (fresh installation)"
         fi
 
-  # Deploy to production
+  # Deploy to target environment
   deploy:
-    name: Deploy to Production
+    name: Deploy to ${{ inputs.environment }}
     runs-on: ubuntu-latest
     needs: [validate, backup]
-    if: needs.validate.result == 'success' && needs.validate.outputs.should_deploy == 'true' && (needs.backup.result == 'success' || needs.backup.result == 'skipped')
+    if: |
+      needs.validate.result == 'success' && 
+      needs.validate.outputs.should_deploy == 'true' && 
+      (needs.backup.result == 'success' || needs.backup.result == 'skipped')
 
     environment:
-      name: ${{ github.event.inputs.environment || 'production' }}
+      name: ${{ inputs.environment }}
       url: ${{ env.SITE_URL }}
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.ref || github.ref }}
 
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
@@ -270,12 +309,12 @@ jobs:
     - name: Install production dependencies
       run: |
         echo "::group::Installing production dependencies"
-        composer install --no-dev --optimize-autoloader --no-progress --no-suggest
+        composer install --no-dev --optimize-autoloader --no-progress
         echo "::endgroup::"
 
     - name: Prepare deployment files
       run: |
-        echo "::group::Preparing files for deployment"
+        echo "::group::Preparing files for ${{ inputs.environment }} deployment"
         
         # Remove development and CI files
         rm -f deploy.sh
@@ -287,12 +326,17 @@ jobs:
         rm -f .gitattributes
         rm -f phpunit.xml
         rm -f phpcs.xml
-        rm -f README.md
-        rm -f TESTING.md
-        rm -f Claude.md
+        
+        # Keep documentation for dev, remove for production
+        if [[ "${{ inputs.environment }}" == "production" ]]; then
+          rm -f README.md
+          rm -f TESTING.md
+          rm -f CLAUDE.md
+        fi
         
         # Create deployment manifest
         echo "Deployment Info:" > DEPLOYMENT_INFO.txt
+        echo "- Environment: ${{ inputs.environment }}" >> DEPLOYMENT_INFO.txt
         echo "- Commit: ${{ github.sha }}" >> DEPLOYMENT_INFO.txt
         echo "- Branch: ${{ github.ref_name }}" >> DEPLOYMENT_INFO.txt
         echo "- Deployed at: $(date -u)" >> DEPLOYMENT_INFO.txt
@@ -315,9 +359,14 @@ jobs:
 
     - name: Deploy files via rsync
       run: |
-        echo "::group::Deploying files"
+        echo "::group::Deploying files to ${{ inputs.environment }}"
         
-        # Deploy with rsync (equivalent to original deploy.sh)
+        # Additional excludes for dev environment
+        EXTRA_EXCLUDES=""
+        if [[ "${{ inputs.environment }}" != "dev" ]]; then
+          EXTRA_EXCLUDES="--exclude='*.md'"
+        fi
+        
         rsync -avz \
           --delete \
           --exclude='deploy.sh' \
@@ -325,13 +374,13 @@ jobs:
           --exclude='node_modules' \
           --exclude='.github' \
           --exclude='tests' \
-          --exclude='*.md' \
+          $EXTRA_EXCLUDES \
           --progress \
           --stats \
           -e "ssh -p ${{ env.SSH_PORT }}" \
-          ./ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ env.DEPLOY_PATH }}/
+          ./ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/
         
-        echo "✅ Files deployed successfully"
+        echo "✅ Files deployed successfully to ${{ inputs.environment }}"
         echo "::endgroup::"
 
     - name: Set proper file permissions
@@ -339,7 +388,7 @@ jobs:
         echo "::group::Setting file permissions"
         
         ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
-          "${{ env.DEPLOY_PATH }}" \
+          "${{ secrets.DEPLOY_PATH }}" \
           "${{ env.PLUGIN_NAME }}" <<'PERMS_EOF'
           set -e
           DEPLOY_PATH="$1"
@@ -370,7 +419,10 @@ jobs:
     name: Post-deployment Verification
     runs-on: ubuntu-latest
     needs: [validate, backup, deploy]
-    if: needs.validate.result == 'success' && needs.deploy.result == 'success' && needs.validate.outputs.should_deploy == 'true'
+    if: |
+      needs.validate.result == 'success' && 
+      needs.deploy.result == 'success' && 
+      needs.validate.outputs.should_deploy == 'true'
 
     steps:
     - name: Setup SSH key
@@ -385,11 +437,10 @@ jobs:
 
     - name: Verify deployment
       run: |
-        echo "::group::Verifying deployment"
+        echo "::group::Verifying ${{ inputs.environment }} deployment"
         
-        # Check if main plugin file exists
         ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
-          "${{ env.DEPLOY_PATH }}" \
+          "${{ secrets.DEPLOY_PATH }}" \
           "${{ env.PLUGIN_NAME }}" <<'VERIFY_DEPLOY_EOF'
           set -e
           DEPLOY_PATH="$1"
@@ -448,9 +499,8 @@ jobs:
       run: |
         echo "::group::Testing basic functionality"
         
-        # Test that the plugin file can be included without errors
         ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
-          "${{ env.DEPLOY_PATH }}" \
+          "${{ secrets.DEPLOY_PATH }}" \
           "${{ env.PLUGIN_NAME }}" <<'LOAD_TEST_EOF'
           set -e
           DEPLOY_PATH="$1"
@@ -466,12 +516,12 @@ jobs:
         echo "::endgroup::"
 
     - name: Health check endpoint test
+      if: inputs.environment == 'production'
       run: |
         echo "::group::Testing health check endpoint"
         
         HEALTH_CHECK_URL="${{ secrets.HEALTH_CHECK_URL }}"
         
-        # Skip if health check URL is not configured
         if [[ -z "$HEALTH_CHECK_URL" ]]; then
           echo "ℹ️ Health check URL not configured, skipping"
           echo "::endgroup::"
@@ -493,12 +543,16 @@ jobs:
         
         echo "::endgroup::"
 
-  # Rollback job (only runs on failure)
+  # Rollback job (only runs on failure for production/staging)
   rollback:
     name: Rollback on Failure
     runs-on: ubuntu-latest
     needs: [validate, backup, deploy, verify]
-    if: failure() && needs.backup.result == 'success' && github.event.inputs.skip_backup != 'true'
+    if: |
+      failure() && 
+      needs.backup.result == 'success' && 
+      !inputs.skip_backup &&
+      (inputs.environment == 'production' || inputs.environment == 'staging')
 
     steps:
     - name: Setup SSH key
@@ -513,11 +567,11 @@ jobs:
 
     - name: Rollback to previous version
       run: |
-        echo "::group::Rolling back deployment"
+        echo "::group::Rolling back ${{ inputs.environment }} deployment"
         
         ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
-          "${{ env.DEPLOY_PATH }}" \
-          "${{ env.BACKUP_PATH }}" \
+          "${{ secrets.DEPLOY_PATH }}" \
+          "${{ secrets.BACKUP_PATH }}" \
           "${{ needs.validate.outputs.backup_name }}" \
           "${{ github.sha }}" <<'ROLLBACK_EOF'
           set -e
@@ -555,18 +609,16 @@ jobs:
     - name: Verify rollback
       run: |
         ssh -p ${{ env.SSH_PORT }} ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -s -- \
-          "${{ env.DEPLOY_PATH }}" \
+          "${{ secrets.DEPLOY_PATH }}" \
           "${{ env.PLUGIN_NAME }}" <<'VERIFY_ROLLBACK_EOF'
           set -e
           DEPLOY_PATH="$1"
           PLUGIN_NAME="$2"
           if [[ -f "${DEPLOY_PATH}/${PLUGIN_NAME}.php" ]]; then
             echo "✅ Main plugin file exists after rollback"
-            # Additional verification
             php -l "${DEPLOY_PATH}/${PLUGIN_NAME}.php" || exit 1
             echo "✅ PHP syntax check passed after rollback"
             
-            # Check critical directories
             if [[ -d "${DEPLOY_PATH}/vendor" ]]; then
               echo "✅ Vendor directory restored"
             fi
@@ -591,20 +643,20 @@ jobs:
       run: |
         if [[ "${{ needs.verify.result }}" == "success" ]]; then
           echo "status=success" >> $GITHUB_OUTPUT
-          echo "message=✅ Deployment completed successfully" >> $GITHUB_OUTPUT
+          echo "message=✅ ${{ inputs.environment }} deployment completed successfully" >> $GITHUB_OUTPUT
           echo "color=good" >> $GITHUB_OUTPUT
         elif [[ "${{ needs.rollback.result }}" == "success" ]]; then
           echo "status=rolled_back" >> $GITHUB_OUTPUT
-          echo "message=⚠️ Deployment failed and was rolled back" >> $GITHUB_OUTPUT
+          echo "message=⚠️ ${{ inputs.environment }} deployment failed and was rolled back" >> $GITHUB_OUTPUT
           echo "color=warning" >> $GITHUB_OUTPUT
         else
           echo "status=failed" >> $GITHUB_OUTPUT
-          echo "message=❌ Deployment failed" >> $GITHUB_OUTPUT
+          echo "message=❌ ${{ inputs.environment }} deployment failed" >> $GITHUB_OUTPUT
           echo "color=danger" >> $GITHUB_OUTPUT
         fi
 
     - name: Send Slack notification
-      if: always()
+      if: always() && (inputs.environment == 'production' || (inputs.environment != 'production' && needs.verify.result != 'success'))
       continue-on-error: true
       uses: 8398a7/action-slack@v3
       env:
@@ -627,7 +679,7 @@ jobs:
                 "fields": [
                   {
                     "type": "mrkdwn",
-                    "text": "*Environment:*\n${{ github.event.inputs.environment || 'production' }}"
+                    "text": "*Environment:*\n${{ inputs.environment }}"
                   },
                   {
                     "type": "mrkdwn",
@@ -660,7 +712,7 @@ jobs:
           }
 
     - name: Send email notification
-      if: steps.status.outputs.status != 'success'
+      if: steps.status.outputs.status != 'success' && inputs.environment == 'production'
       continue-on-error: true
       uses: dawidd6/action-send-mail@v3
       with:
@@ -668,13 +720,13 @@ jobs:
         server_port: ${{ secrets.SMTP_PORT || 587 }}
         username: ${{ secrets.SMTP_USERNAME }}
         password: ${{ secrets.SMTP_PASSWORD }}
-        subject: "84em Local Pages Deployment ${{ steps.status.outputs.status }}"
+        subject: "84em Local Pages ${{ inputs.environment }} Deployment ${{ steps.status.outputs.status }}"
         to: ${{ secrets.NOTIFICATION_EMAIL }}
         from: "GitHub Actions <noreply@github.com>"
         body: |
           Deployment Status: ${{ steps.status.outputs.message }}
           
-          Environment: ${{ github.event.inputs.environment || 'production' }}
+          Environment: ${{ inputs.environment }}
           Commit: ${{ github.sha }}
           Branch: ${{ github.ref_name }}
           Triggered by: ${{ github.actor }}
@@ -688,7 +740,7 @@ jobs:
         echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
         echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
         echo "| Status | ${{ steps.status.outputs.message }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| Environment | ${{ github.event.inputs.environment || 'production' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Environment | ${{ inputs.environment }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Commit | [\`${{ github.sha }}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) |" >> $GITHUB_STEP_SUMMARY
         echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
         echo "| Triggered by | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
@@ -698,10 +750,11 @@ jobs:
         fi
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Deployment Details" >> $GITHUB_STEP_SUMMARY
-        echo "- **Target path:** \`${{ env.DEPLOY_PATH }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "- **Backup path:** \`${{ env.BACKUP_PATH }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Target path:** \`${{ secrets.DEPLOY_PATH }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Backup path:** \`${{ secrets.BACKUP_PATH || 'Not configured' }}\`" >> $GITHUB_STEP_SUMMARY
         echo "- **SSH Port:** ${{ env.SSH_PORT }}" >> $GITHUB_STEP_SUMMARY
         echo "- **PHP version:** ${{ env.PHP_VERSION }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Site URL:** ${{ env.SITE_URL }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### Job Results" >> $GITHUB_STEP_SUMMARY
         echo "- **Validation:** ${{ needs.validate.result }} ✅" >> $GITHUB_STEP_SUMMARY

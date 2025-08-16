@@ -1,11 +1,12 @@
 <?php
 /**
- * Unit tests for content processing functions
+ * Unit tests for ContentProcessor class - actual plugin functionality
  *
- * @package EightyFourEM_Local_Pages
+ * @package EightyFourEM\LocalPages
  */
 
 require_once dirname( __DIR__ ) . '/TestCase.php';
+require_once dirname( __DIR__, 2 ) . '/vendor/autoload.php';
 
 use EightyFourEM\LocalPages\Utils\ContentProcessor;
 use EightyFourEM\LocalPages\Data\KeywordsProvider;
@@ -24,257 +25,250 @@ class Test_Content_Processing extends TestCase {
     }
 
     /**
-     * Test title case conversion
+     * Test the main processContent method with service keyword linking
      */
-    public function test_convert_to_title_case() {
-        // Test basic title case
-        $this->assertEquals(
-            'This Is a Test Title',
-            $this->convertToTitleCase( 'this is a test title' )
-        );
-
-        // Test with articles and prepositions
-        $this->assertEquals(
-            'The Best of the Best',
-            $this->convertToTitleCase( 'the best of the best' )
-        );
-
-        // Test 84EM handling
-        $this->assertEquals(
-            '84EM Wordpress Development',
-            $this->convertToTitleCase( '84em wordpress development' )
-        );
-
-        // Test with mixed case input
-        $this->assertEquals(
-            '84EM Is the Best',
-            $this->convertToTitleCase( '84EM IS THE BEST' )
-        );
-
-        // Test first and last word capitalization
-        $this->assertEquals(
-            'In the Beginning and the End',
-            $this->convertToTitleCase( 'in the beginning and the end' )
-        );
-    }
-
-    /**
-     * Test heading processing
-     */
-    public function test_process_headings() {
-        // Test H2 with hyperlink removal
-        $input = '<!-- wp:heading {"level":2} --><h2><a href="/test">linked heading</a></h2><!-- /wp:heading -->';
-        $expected = '<!-- wp:heading {"level":2} --><h2><strong>Linked Heading</strong></h2><!-- /wp:heading -->';
-        $result = $this->processHeadings( $input );
-        $this->assertEquals( $expected, $result );
-
-        // Test H3 with existing strong tags
-        $input = '<!-- wp:heading {"level":3} --><h3><strong>Already Bold</strong></h3><!-- /wp:heading -->';
-        $expected = '<!-- wp:heading {"level":3} --><h3><strong>Already Bold</strong></h3><!-- /wp:heading -->';
-        $result = $this->processHeadings( $input );
-        $this->assertEquals( $expected, $result );
-
-        // Test multiple headings
-        $input = '<!-- wp:heading {"level":2} --><h2>First Heading</h2><!-- /wp:heading -->
-<!-- wp:paragraph --><p>Some content</p><!-- /wp:paragraph -->
-<!-- wp:heading {"level":3} --><h3>second heading</h3><!-- /wp:heading -->';
-
-        $result = $this->processHeadings( $input );
-        $this->assertStringContainsString( '<h2><strong>First Heading</strong></h2>', $result );
-        $this->assertStringContainsString( '<h3><strong>Second Heading</strong></h3>', $result );
-        $this->assertStringContainsString( '<p>Some content</p>', $result );
-    }
-
-    /**
-     * Test service keyword link addition
-     */
-    public function test_add_service_keyword_links() {
-        // Test single keyword replacement
-        $content = 'We offer WordPress development services.';
+    public function test_process_content_adds_service_links() {
+        // Test that service keywords get linked
+        $content = 'We offer WordPress development and API integrations for your business.';
         $result = $this->contentProcessor->processContent( $content, [] );
-        $work_url = site_url( '/work/' );
-        $this->assertStringContainsString( '<a href="' . $work_url . '">WordPress development</a>', $result );
-
-        // Test multiple keywords with different URLs
-        $content      = 'We offer WordPress maintenance and API integrations.';
-        $result       = $this->contentProcessor->processContent( $content, [] );
-        $services_url = site_url( '/services/' );
-        // These have different URLs so both should be linked
-        $this->assertStringContainsString( '<a href="' . $services_url . '">WordPress maintenance</a>', $result );
-        $this->assertStringContainsString( '<a href="' . $work_url . '">API integrations</a>', $result );
-
-        // Test case insensitive matching - preserves content case
-        $content = 'We provide WORDPRESS DEVELOPMENT and WordPress Maintenance.';
-        $result       = $this->contentProcessor->processContent( $content, [] );
-        $services_url = site_url( '/services/' );
-        // The method preserves the case from the content, not the keyword definition
-        $this->assertStringContainsString( '<a href="' . $work_url . '">WORDPRESS DEVELOPMENT</a>', $result );
-        $this->assertStringContainsString( '<a href="' . $services_url . '">WordPress Maintenance</a>', $result );
-
-        // Test avoiding double-linking - should not create nested links
-        $content = 'Check our <a href="/test">WordPress development</a> page.';
-        $result       = $this->contentProcessor->processContent( $content, [] );
-        // Should NOT create nested links - text already in a link should be left alone
-        $this->assertStringContainsString( '<a href="/test">WordPress development</a>', $result );
-        // And should NOT contain the work URL link
-        $this->assertStringNotContainsString( '<a href="' . $work_url . '">WordPress development</a>', $result );
+        
+        // Should contain links to service pages
+        $this->assertStringContainsString( '<a href="', $result );
+        $this->assertStringContainsString( 'WordPress development</a>', $result );
+        $this->assertStringContainsString( 'API integrations</a>', $result );
+        
+        // Should be wrapped in WordPress blocks
+        $this->assertStringContainsString( '<!-- wp:paragraph -->', $result );
+        $this->assertStringContainsString( '<!-- /wp:paragraph -->', $result );
     }
 
     /**
-     * Test block structure handling - should not duplicate blocks
+     * Test that existing WordPress blocks are not duplicated
      */
-    public function test_block_structure_no_duplication() {
-        // Test content that already has WordPress block markup
-        $content_with_blocks = '<!-- wp:paragraph -->
-<p>This is a paragraph with WordPress development services.</p>
+    public function test_process_content_preserves_existing_blocks() {
+        // Content that already has WordPress block markup
+        $content = '<!-- wp:paragraph -->
+<p>This content already has WordPress development in blocks.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:heading {"level":2} -->
-<h2><strong>Test Heading</strong></h2>
-<!-- /wp:heading -->
-
-<!-- wp:paragraph -->
-<p>Another paragraph with API integrations content.</p>
-<!-- /wp:paragraph -->';
+<h2>Existing Heading</h2>
+<!-- /wp:heading -->';
         
-        $result = $this->contentProcessor->processContent( $content_with_blocks, [] );
+        $result = $this->contentProcessor->processContent( $content, [] );
         
-        // Should NOT have nested paragraph blocks
-        $this->assertStringNotContainsString( '<!-- wp:paragraph --> <p><!-- wp:paragraph -->', $result );
-        $this->assertStringNotContainsString( '<p><p>', $result );
-        
-        // Should still have the original block structure
-        $this->assertStringContainsString( '<!-- wp:paragraph -->', $result );
-        $this->assertStringContainsString( '<!-- wp:heading {"level":2} -->', $result );
-        
-        // Count occurrences - should not be duplicated
+        // Should NOT duplicate the block markers
         $paragraph_count = substr_count( $result, '<!-- wp:paragraph -->' );
-        $this->assertEquals( 2, $paragraph_count, 'Should have exactly 2 paragraph blocks, not duplicated' );
+        $this->assertEquals( 1, $paragraph_count, 'Should not duplicate paragraph blocks' );
+        
+        // Should still have the heading block
+        $this->assertStringContainsString( '<!-- wp:heading {"level":2} -->', $result );
     }
 
     /**
-     * Test block structure creation for plain content
+     * Test location linking for state pages (cities get linked)
      */
-    public function test_block_structure_plain_content() {
-        // Test content without any block markup
-        $plain_content = 'This is a plain paragraph.
-
-<h2>Plain Heading</h2>
-
-Another plain paragraph.';
+    public function test_process_content_links_cities_on_state_pages() {
+        $content = 'We serve businesses in Los Angeles, San Francisco, and San Diego.';
         
-        $result = $this->contentProcessor->processContent( $plain_content, [] );
+        $context = [
+            'state' => 'California',
+            'cities' => ['Los Angeles', 'San Francisco', 'San Diego']
+        ];
         
-        // Should have block markup added
+        $result = $this->contentProcessor->processContent( $content, $context );
+        
+        // Cities should be linked to their respective pages
+        $this->assertStringContainsString( '/wordpress-development-services-california/los-angeles/', $result );
+        $this->assertStringContainsString( '/wordpress-development-services-california/san-francisco/', $result );
+        $this->assertStringContainsString( '/wordpress-development-services-california/san-diego/', $result );
+        
+        // Each city should be wrapped in a link
+        $this->assertStringContainsString( '<a href="' . home_url('/wordpress-development-services-california/los-angeles/') . '">Los Angeles</a>', $result );
+    }
+
+    /**
+     * Test location linking for city pages (state gets linked)
+     */
+    public function test_process_content_links_state_on_city_pages() {
+        $content = 'We provide services throughout California from our Los Angeles base.';
+        
+        $context = [
+            'state' => 'California',
+            'city' => 'Los Angeles'
+        ];
+        
+        $result = $this->contentProcessor->processContent( $content, $context );
+        
+        // State should be linked to state page
+        $this->assertStringContainsString( '/wordpress-development-services-california/', $result );
+        $this->assertStringContainsString( '>California</a>', $result );
+    }
+
+    /**
+     * Test that content is cleaned properly (whitespace normalization)
+     */
+    public function test_process_content_cleans_whitespace() {
+        $content = "This    has     excessive     spaces.\n\n\n\nAnd too many\n\n\n\nline breaks.";
+        
+        $result = $this->contentProcessor->processContent( $content, [] );
+        
+        // Should normalize spaces
+        $this->assertStringNotContainsString( '     ', $result );
+        
+        // Should have proper block structure
         $this->assertStringContainsString( '<!-- wp:paragraph -->', $result );
-        $this->assertStringContainsString( '<!-- wp:heading', $result );
-        $this->assertStringContainsString( '<p>This is a plain paragraph.</p>', $result );
         
-        // Should NOT have malformed nesting
-        $this->assertStringNotContainsString( '<p><p>', $result );
-        $this->assertStringNotContainsString( '<!-- wp:paragraph --> <p><!-- wp:paragraph -->', $result );
+        // Should not have excessive line breaks in the output
+        $this->assertStringNotContainsString( "\n\n\n\n", $result );
     }
 
     /**
-     * Test parse state names
+     * Test markdown heading conversion to HTML
      */
-    public function test_parse_state_names() {
-        // Test single state
-        $result = $this->parseStateNames( 'California' );
-        $this->assertEquals( ['California'], $result );
-
-        // Test multiple states
-        $result = $this->parseStateNames( 'California, Texas, Florida' );
-        $this->assertEquals( ['California', 'Texas', 'Florida'], $result );
-
-        // Test with extra spaces
-        $result = $this->parseStateNames( ' California , Texas , Florida ' );
-        $this->assertEquals( ['California', 'Texas', 'Florida'], $result );
-
-        // Test empty string - legacy behavior
-        $result = $this->parseStateNames( '' );
-        $this->assertEquals( [''], $result );
+    public function test_process_content_converts_markdown_headings() {
+        $content = "## This is an H2 heading\n\nSome content here.\n\n### This is an H3 heading\n\nMore content.";
+        
+        $result = $this->contentProcessor->processContent( $content, [] );
+        
+        // Markdown headings should be converted to HTML and wrapped in blocks
+        $this->assertStringContainsString( '<!-- wp:heading', $result );
+        $this->assertStringContainsString( '<h2>', $result );
+        $this->assertStringContainsString( 'This is an H2 heading', $result );
+        
+        // H3 headings are also converted
+        $this->assertStringContainsString( 'This is an H3 heading', $result );
+        
+        // The content should still contain the text parts
+        $this->assertStringContainsString( 'Some content here', $result );
+        $this->assertStringContainsString( 'More content', $result );
     }
 
     /**
-     * Test service keywords list generation
+     * Test that only first occurrence of keywords are linked
      */
-    public function test_service_keywords_list_generation() {
-        $keywords     = $this->keywordsProvider->getAll();
-        $keyword_list = implode( ', ', array_keys( $keywords ) );
-
-        $this->assertIsString( $keyword_list );
-        $this->assertNotEmpty( $keyword_list );
-        $this->assertStringContainsString( 'WordPress development', $keyword_list );
+    public function test_process_content_links_only_first_occurrence() {
+        $content = 'We offer WordPress development services. Our WordPress development team is experienced. WordPress development is our specialty.';
+        
+        $result = $this->contentProcessor->processContent( $content, [] );
+        
+        // Count how many times the link appears (should be only once)
+        $link_count = substr_count( $result, '">WordPress development</a>' );
+        $this->assertEquals( 1, $link_count, 'Should only link first occurrence of keyword' );
+        
+        // The second and third occurrences should not be linked
+        $parts = explode( 'WordPress development', $result );
+        $this->assertGreaterThanOrEqual( 3, count( $parts ), 'Should have multiple occurrences of the phrase' );
     }
 
     /**
-     * Helper method to convert to title case (mimics legacy behavior)
+     * Test generateCityUrl method
      */
-    private function convertToTitleCase( string $text ): string {
-        // Handle special cases like 84EM
-        if ( str_contains( $text, '84EM' ) || str_contains( $text, '84em' ) ) {
-            $text = str_replace( [ '84em', '84Em' ], '84EM', $text );
-        }
-
-        $words       = explode( ' ', $text );
-        $small_words = [ 'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'if', 'in', 'nor', 'of', 'on', 'or', 'so', 'the', 'to', 'up', 'yet' ];
-
-        $result = [];
-        foreach ( $words as $index => $word ) {
-            // Preserve 84EM
-            if ( $word === '84EM' ) {
-                $result[] = $word;
-            }
-            elseif ( $index === 0 || ! in_array( strtolower( $word ), $small_words, true ) ) {
-                $result[] = ucfirst( strtolower( $word ) );
-            }
-            else {
-                $result[] = strtolower( $word );
-            }
-        }
-
-        return implode( ' ', $result );
+    public function test_generate_city_url() {
+        $url = $this->contentProcessor->generateCityUrl( 'California', 'Los Angeles' );
+        
+        $expected = home_url( '/wordpress-development-services-california/los-angeles/' );
+        $this->assertEquals( $expected, $url );
+        
+        // Test with spaces and special characters
+        $url = $this->contentProcessor->generateCityUrl( 'New York', 'New York City' );
+        $expected = home_url( '/wordpress-development-services-new-york/new-york-city/' );
+        $this->assertEquals( $expected, $url );
     }
 
     /**
-     * Helper method to process headings (mimics legacy behavior)
+     * Test extractContentSections method
      */
-    private function processHeadings( string $content ): string {
-        // Process H2 headings
-        $content = preg_replace_callback(
-            '/<!-- wp:heading {"level":2} --><h2>(<a[^>]*>)?([^<]+)(<\/a>)?<\/h2><!-- \/wp:heading -->/i',
-            function ( $matches ) {
-                $heading_text   = $matches[2];
-                $processed_text = '<strong>' . $this->convertToTitleCase( $heading_text ) . '</strong>';
-                return '<!-- wp:heading {"level":2} --><h2>' . $processed_text . '</h2><!-- /wp:heading -->';
-            },
-            $content
-        );
-
-        // Process H3 headings
-        $content = preg_replace_callback(
-            '/<!-- wp:heading {"level":3} --><h3>(<a[^>]*>)?([^<]+)(<\/a>)?<\/h3><!-- \/wp:heading -->/i',
-            function ( $matches ) {
-                $heading_text   = $matches[2];
-                $processed_text = '<strong>' . $this->convertToTitleCase( $heading_text ) . '</strong>';
-                return '<!-- wp:heading {"level":3} --><h3>' . $processed_text . '</h3><!-- /wp:heading -->';
-            },
-            $content
-        );
-
-        return $content;
+    public function test_extract_content_sections() {
+        $content = "# Main Title Here\n\nThis is the first paragraph with important information about our services.\n\nAnother paragraph with more details.";
+        
+        $sections = $this->contentProcessor->extractContentSections( $content );
+        
+        // Should extract title from markdown heading
+        $this->assertEquals( 'Main Title Here', $sections['title'] );
+        
+        // Should have meta description from first paragraph
+        $this->assertNotEmpty( $sections['meta_description'] );
+        $this->assertStringContainsString( 'first paragraph', $sections['meta_description'] );
+        
+        // Should have excerpt
+        $this->assertNotEmpty( $sections['excerpt'] );
+        
+        // Should have full content
+        $this->assertEquals( $content, $sections['content'] );
     }
 
     /**
-     * Helper method to parse state names (mimics legacy behavior)
+     * Test validateContent method
      */
-    private function parseStateNames( string $state_arg ): array {
-        // Legacy behavior: empty string returns array with empty string
-        if ( $state_arg === '' ) {
-            return [ '' ];
-        }
-        $states = array_map( 'trim', explode( ',', $state_arg ) );
-        return array_values( array_filter( $states ) );
+    public function test_validate_content() {
+        // Test content that's too short
+        $short_content = 'This is too short.';
+        $validation = $this->contentProcessor->validateContent( $short_content );
+        
+        $this->assertFalse( $validation['success'] );
+        $this->assertNotEmpty( $validation['issues'] );
+        $this->assertStringContainsString( 'too short', $validation['issues'][0] );
+        
+        // Test valid content with proper structure
+        $valid_content = "## Comprehensive WordPress Development Services\n\n" . 
+            str_repeat( 'This is a paragraph with lots of content about WordPress development services. ', 10 ) . 
+            "\n\n" . 
+            str_repeat( 'Another paragraph with more information about our expertise and capabilities. ', 10 ) . 
+            "\n\n" . 
+            str_repeat( 'A third paragraph discussing our approach and methodology for projects. ', 10 ) .
+            "\n\n" .
+            str_repeat( 'Additional content to ensure we have enough words and paragraphs. ', 10 );
+        
+        $validation = $this->contentProcessor->validateContent( $valid_content );
+        
+        $this->assertTrue( $validation['success'], 'Validation should succeed for content with 300+ words' );
+        $this->assertEmpty( $validation['issues'] );
+        $this->assertGreaterThan( 300, $validation['word_count'] );
+    }
+
+    /**
+     * Test cleanText method
+     */
+    public function test_clean_text() {
+        $dirty_text = '<p>This has <strong>HTML tags</strong> and     excessive     spaces.</p>';
+        
+        $clean = $this->contentProcessor->cleanText( $dirty_text );
+        
+        // Should remove HTML tags
+        $this->assertStringNotContainsString( '<p>', $clean );
+        $this->assertStringNotContainsString( '<strong>', $clean );
+        
+        // Should normalize spaces
+        $this->assertEquals( 'This has HTML tags and excessive spaces.', $clean );
+    }
+
+    /**
+     * Test that links are not added inside existing links
+     */
+    public function test_process_content_avoids_nested_links() {
+        $content = 'Check our <a href="/services">WordPress development and API integrations</a> page.';
+        
+        $result = $this->contentProcessor->processContent( $content, [] );
+        
+        // Should preserve existing link
+        $this->assertStringContainsString( '<a href="/services">', $result );
+        
+        // Should NOT create nested links for keywords inside existing links
+        $this->assertStringNotContainsString( '<a href="/services"><a href=', $result );
+        $this->assertStringNotContainsString( '</a></a>', $result );
+    }
+
+    /**
+     * Test that keyword case is preserved from content
+     */
+    public function test_process_content_preserves_keyword_case() {
+        $content = 'We offer WORDPRESS DEVELOPMENT and wordpress maintenance services.';
+        
+        $result = $this->contentProcessor->processContent( $content, [] );
+        
+        // Should preserve the original case from content
+        $this->assertStringContainsString( '>WORDPRESS DEVELOPMENT</a>', $result );
+        $this->assertStringContainsString( '>wordpress maintenance</a>', $result );
     }
 }

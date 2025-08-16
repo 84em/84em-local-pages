@@ -73,27 +73,11 @@ class StatesProvider implements DataProviderInterface {
     }
 
     /**
-     * Load states data from config file
+     * Get states data
      */
     private function loadData(): void {
-        $config_file = dirname( __DIR__, 2 ) . '/config/us-states-cities.php';
 
-        if ( file_exists( $config_file ) ) {
-            $this->data = require $config_file;
-        }
-        else {
-            // Fallback to minimal data if config file not found
-            $this->data = $this->getDefaultData();
-        }
-    }
-
-    /**
-     * Get default states data
-     *
-     * @return array
-     */
-    private function getDefaultData(): array {
-        return [
+        $this->data = [
             'Alabama'        => [ 'cities' => [ 'Birmingham', 'Montgomery', 'Mobile', 'Huntsville', 'Tuscaloosa', 'Hoover' ] ],
             'Alaska'         => [ 'cities' => [ 'Anchorage', 'Fairbanks', 'Juneau', 'Sitka', 'Ketchikan', 'Wasilla' ] ],
             'Arizona'        => [ 'cities' => [ 'Phoenix', 'Tucson', 'Mesa', 'Chandler', 'Scottsdale', 'Glendale' ] ],

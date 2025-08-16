@@ -42,11 +42,10 @@ jobs:
         claudecode-timeout: 20
         run-every-commit: false
 
-  # Optional: Run additional security tools
+  # Run dependency security checks
   dependency-check:
     name: Dependency Security Check
     runs-on: ubuntu-latest
-    if: contains(fromJSON('["composer.json", "composer.lock", "package.json", "package-lock.json"]'), github.event.pull_request.changed_files)
     
     steps:
     - name: Checkout code
@@ -58,20 +57,16 @@ jobs:
         php-version: '8.2'
         tools: composer:v2
         
-    - name: Check PHP dependencies
-      if: hashFiles('composer.lock') != ''
-      run: |
-        composer install --no-scripts --no-progress
-        composer audit || true
+    - name: Validate composer.json
+      run: composer validate --strict
         
-    - name: Setup Node.js
-      if: hashFiles('package-lock.json') != ''
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
+    - name: Install PHP dependencies
+      run: composer install --no-scripts --no-progress --prefer-dist
         
-    - name: Check Node.js dependencies
-      if: hashFiles('package-lock.json') != ''
+    - name: Check PHP dependencies for vulnerabilities
       run: |
-        npm ci
-        npm audit --audit-level=high || true
+        echo "🔍 Checking PHP dependencies for known vulnerabilities..."
+        composer audit || {
+          echo "⚠️ Vulnerabilities found in dependencies. Please review and update."
+          exit 0  # Don't fail the workflow, just warn
+        }

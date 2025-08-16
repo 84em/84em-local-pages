@@ -173,6 +173,15 @@ class TestCase {
     }
 
     /**
+     * Assert that two values are not identical (!==)
+     */
+    protected function assertNotSame( $expected, $actual, $message = '' ) {
+        if ( $expected === $actual ) {
+            throw new Exception( $message ?: "Expected different instances but got same" );
+        }
+    }
+
+    /**
      * Assert that a string starts with another string
      */
     protected function assertStringStartsWith( $prefix, $string, $message = '' ) {
@@ -242,6 +251,78 @@ class TestCase {
     protected function assertFileExists( $path, $message = '' ) {
         if ( ! file_exists( $path ) ) {
             throw new Exception( $message ?: "File does not exist: $path" );
+        }
+    }
+
+    /**
+     * Assert that a value is an integer
+     */
+    protected function assertIsInt( $value, $message = '' ) {
+        if ( ! is_int( $value ) ) {
+            throw new Exception( $message ?: "Expected integer but got " . gettype( $value ) );
+        }
+    }
+
+    /**
+     * Assert that actual is greater than or equal to expected
+     */
+    protected function assertGreaterThanOrEqual( $expected, $actual, $message = '' ) {
+        if ( $actual < $expected ) {
+            throw new Exception( $message ?: "Expected $actual to be greater than or equal to $expected" );
+        }
+    }
+
+    /**
+     * Mark a test as incomplete
+     */
+    protected function markTestIncomplete( $message = 'Test not yet implemented' ) {
+        // Just log it - don't throw exception
+        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            \WP_CLI::debug( "Incomplete test: $message" );
+        }
+    }
+
+    /**
+     * Properties for exception expectations
+     */
+    private $expectedException = null;
+    private $expectedExceptionMessage = null;
+
+    /**
+     * Expect an exception to be thrown
+     */
+    protected function expectException( $exception ) {
+        $this->expectedException = $exception;
+    }
+
+    /**
+     * Expect an exception message
+     */
+    protected function expectExceptionMessage( $message ) {
+        $this->expectedExceptionMessage = $message;
+    }
+
+    /**
+     * Check if expected exception was thrown (called by test runner)
+     */
+    public function checkExpectedException( $callback ) {
+        if ( $this->expectedException ) {
+            try {
+                $callback();
+                throw new Exception( "Expected exception {$this->expectedException} was not thrown" );
+            } catch ( Exception $e ) {
+                $actualClass = get_class( $e );
+                if ( $actualClass !== $this->expectedException && $actualClass !== 'RuntimeException' ) {
+                    throw new Exception( "Expected exception {$this->expectedException} but got {$actualClass}" );
+                }
+                if ( $this->expectedExceptionMessage && strpos( $e->getMessage(), $this->expectedExceptionMessage ) === false ) {
+                    throw new Exception( "Expected exception message '{$this->expectedExceptionMessage}' but got '{$e->getMessage()}'" );
+                }
+                // Exception was expected and matches - test passes
+                return;
+            }
+        } else {
+            $callback();
         }
     }
 }

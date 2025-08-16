@@ -32,6 +32,19 @@ if ( ! function_exists( 'site_url' ) ) {
     }
 }
 
+if ( ! function_exists( 'get_permalink' ) ) {
+    function get_permalink( $post_id ) {
+        // Mock permalink generation based on post ID
+        return 'https://84em.com/post-' . $post_id . '/';
+    }
+}
+
+if ( ! function_exists( 'wp_json_encode' ) ) {
+    function wp_json_encode( $data, $options = 0, $depth = 512 ) {
+        return json_encode( $data, $options, $depth );
+    }
+}
+
 if ( ! function_exists( 'esc_url' ) ) {
     function esc_url( $url ) {
         return $url; // Simplified for testing
@@ -116,7 +129,10 @@ if ( ! class_exists( 'WP_CLI' ) ) {
         }
         
         public static function warning( $message ) {
-            echo "[WARNING] $message\n";
+            // Suppress warnings during tests if SUPPRESS_TEST_WARNINGS is set
+            if ( ! defined( 'SUPPRESS_TEST_WARNINGS' ) || ! SUPPRESS_TEST_WARNINGS ) {
+                echo "[WARNING] $message\n";
+            }
         }
         
         public static function error( $message, $exit = true ) {

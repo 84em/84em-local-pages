@@ -129,7 +129,10 @@ if ( ! class_exists( 'WP_CLI' ) ) {
         }
         
         public static function warning( $message ) {
-            echo "[WARNING] $message\n";
+            // Suppress warnings during tests if SUPPRESS_TEST_WARNINGS is set
+            if ( ! defined( 'SUPPRESS_TEST_WARNINGS' ) || ! SUPPRESS_TEST_WARNINGS ) {
+                echo "[WARNING] $message\n";
+            }
         }
         
         public static function error( $message, $exit = true ) {

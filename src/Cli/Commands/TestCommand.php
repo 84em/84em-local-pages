@@ -25,10 +25,13 @@ class TestCommand {
             'encryption'         => 'test-encryption.php',
             'data-structures'    => 'test-data-structures.php',
             'content-processing' => 'test-content-processing.php',
-            'basic-functions'    => 'test-basic-functions.php',
-            'simple'             => 'test-simple.php',
             'cli-args'           => 'test-wp-cli-args.php',
             'ld-json'            => 'test-ld-json-schema.php',
+            'container'          => 'test-container.php',
+            'api-client'         => 'test-api-client.php',
+            'content-generators' => 'test-content-generators.php',
+            'error-handling'      => 'test-error-handling.php',
+            'security'            => 'test-security.php',
         ];
 
     /**

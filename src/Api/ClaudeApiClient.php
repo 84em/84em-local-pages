@@ -36,7 +36,7 @@ class ClaudeApiClient implements ApiClientInterface {
     /**
      * Request timeout in seconds
      */
-    private const TIMEOUT = 60;
+    private const TIMEOUT = ( 10 * MINUTE_IN_SECONDS );
 
     /**
      * API key manager

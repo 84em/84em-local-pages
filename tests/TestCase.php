@@ -273,6 +273,15 @@ class TestCase {
     }
 
     /**
+     * Assert that actual is less than or equal to expected
+     */
+    protected function assertLessThanOrEqual( $expected, $actual, $message = '' ) {
+        if ( $actual > $expected ) {
+            throw new Exception( $message ?: "Expected $actual to be less than or equal to $expected" );
+        }
+    }
+
+    /**
      * Mark a test as incomplete
      */
     protected function markTestIncomplete( $message = 'Test not yet implemented' ) {

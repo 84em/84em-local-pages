@@ -5,6 +5,43 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.2] - 2025-08-16
+
+### Added
+- **Robust Error Handling**: Enhanced ClaudeApiClient with comprehensive retry logic
+  - Implemented exponential backoff with 3 retry attempts for transient failures
+  - Added intelligent error classification (retryable vs non-retryable errors)
+  - Added rate limiting support with Retry-After header handling
+  - Implemented detailed error logging at multiple levels (Error, Warning, Info)
+
+- **Test Framework Enhancement**: Extended TestCase with missing assertion method
+  - Added `assertLessThanOrEqual()` method to fix test execution issues
+  - Enabled full execution of all 12 API client tests
+
+### Fixed
+- **Test Runner Issues**: Resolved test suite execution stopping after 2 tests
+  - Fixed missing TestCase assertion method causing silent test failures
+  - All test suites now execute completely without interruption
+
+- **Test Output Clarity**: Suppressed expected warning messages during test execution
+  - Added test context detection to prevent confusion from intentional error testing
+  - Test output now shows only pass/fail status without noise from error handling tests
+  - Production warning behavior remains unchanged
+
+### Changed
+- **API Timeout Configuration**: Replaced WordPress constant with hardcoded value
+  - Changed `TIMEOUT` from `10 * MINUTE_IN_SECONDS` to `600` for better portability
+  - Ensures compatibility in environments where WordPress constants aren't loaded
+
+- **Composer Configuration**: Removed version field from composer.json
+  - Eliminates version conflicts between composer.json and plugin header
+  - Enables proper deployment pipeline versioning
+
+### Removed
+- **Unused API Method**: Removed `getUsageStats()` method from ClaudeApiClient
+  - Method was not used anywhere in the codebase
+  - Simplifies API client interface
+
 ## [3.1.1] - 2025-08-16
 
 ### Fixed

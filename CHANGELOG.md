@@ -5,6 +5,21 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.6] - 2025-08-16
+
+### Added
+- **Index Page Generation**: Implemented `--generate-index` command functionality
+  - Creates a master index page listing all 50 states alphabetically
+  - Generates WordPress Development Services USA page with proper block editor syntax
+  - Includes automated state links to respective local pages
+  - Generates comprehensive LD-JSON schema for the index page
+  - Supports both creation and updates of existing index page
+
+### Fixed
+- Completed missing `handleIndexGeneration` method in `GenerateCommand` class
+- Added `buildIndexPageContent` helper method for content generation
+- Fixed SchemaGenerator property injection in GenerateCommand constructor
+
 ## [3.0.5] - 2025-08-15
 
 ### Fixed

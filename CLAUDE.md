@@ -248,18 +248,22 @@ Clean hierarchical URLs without post type slug:
 
 ## API Configuration
 
-### Current Model Settings (v3.0.0+)
+### Current Model Settings (v3.1.2+)
 ```php
 // Located in src/Api/ClaudeApiClient.php
 private const MODEL = 'claude-sonnet-4-20250514';
 private const MAX_TOKENS = 4000;
-private const TIMEOUT = 60;
+private const TIMEOUT = 600;  // 10 minutes
 private const API_VERSION = '2023-06-01';
+private const MAX_RETRIES = 3;  // Retry failed requests with exponential backoff
+private const INITIAL_RETRY_DELAY = 1;  // Initial delay between retries
 ```
 
-### Rate Limiting
+### Rate Limiting and Error Handling
 - **Delay Between Requests**: 1 second minimum
-- **Timeout**: 60 seconds per request
+- **Timeout**: 600 seconds (10 minutes) per request
+- **Retry Logic**: Up to 3 attempts with exponential backoff for transient errors
+- **Retryable Errors**: Network issues, rate limits, server errors (500-503)
 - **Progress Tracking**: Real-time duration monitoring
 - **Bulk Operations**: Progress bars with comprehensive statistics
 
@@ -381,8 +385,8 @@ wp 84em local-pages --regenerate-schema --state="California" --city="Los Angeles
 ### API Issues
 
 #### Timeout Errors
-**Problem**: Requests exceeding 60-second limit
-**Solution**: Check network connectivity and API status
+**Problem**: Requests exceeding 600-second (10 minute) limit
+**Solution**: Check network connectivity and API status. The plugin will automatically retry up to 3 times with exponential backoff for transient errors
 
 #### Rate Limiting
 **Problem**: Too many requests too quickly
@@ -409,6 +413,28 @@ The `--generate-sitemap` command creates XML sitemaps. This command:
 - **Includes All Pages**: Both state and city pages in sitemap
 - **Static output**: Creates `sitemap-local.xml` in WordPress root directory
 
+## Health Check Endpoint
+
+The plugin provides a REST API health check endpoint for deployment verification:
+
+### Endpoint
+```
+GET /wp-json/84em-local-pages/v1/health
+```
+
+### Response
+```json
+{
+    "status": "ok"
+}
+```
+
+### Purpose
+- Verify plugin is active after deployment
+- Used by GitHub Actions deployment workflows
+- Returns HTTP 200 if plugin is functioning
+- Minimal response for security (no system information exposed)
+
 ## Plugin Architecture (v3.0.0+)
 
 ### Modular Structure
@@ -421,8 +447,9 @@ The plugin has been refactored from a monolithic class to a modern modular archi
 
 #### API Layer (`src/Api/`)
 - **`ApiKeyManager`**: Handles API key storage and retrieval
-- **`ClaudeApiClient`**: Manages communication with Claude API
+- **`ClaudeApiClient`**: Manages communication with Claude API (includes retry logic and error handling)
 - **`Encryption`**: Provides AES-256-CBC encryption for API keys
+- **`HealthCheckEndpoint`**: REST API endpoint for deployment verification
 
 #### CLI Layer (`src/Cli/`)
 - **`CommandHandler`**: Main WP-CLI command registration and routing
@@ -464,6 +491,53 @@ namespace EightyFourEM\LocalPages\Content;
 // etc.
 ```
 
+## Testing Framework
+
+The plugin includes a comprehensive WP-CLI-based testing framework:
+
+### Running Tests
+```bash
+# Run all test suites
+wp 84em local-pages --test --all
+
+# Run specific test suite
+wp 84em local-pages --test --suite=api-client
+```
+
+### Available Test Suites (v3.1.2)
+- **encryption** - API key encryption and security
+- **data-structures** - Service keywords and states data
+- **content-processing** - Content processing and linking
+- **cli-args** - WP-CLI argument parsing
+- **ld-json** - Schema.org structured data
+- **container** - Dependency injection container
+- **api-client** - Claude API client with retry logic
+- **content-generators** - State and city content generation
+- **error-handling** - Error handling and recovery
+- **security** - Security and input sanitization
+
+**Total**: 10 test suites with 100+ tests
+
+For detailed testing documentation, see [TESTING.md](TESTING.md).
+
+## Recent Updates (v3.1.2)
+
+### Enhanced Error Handling
+- **Retry Logic**: API calls now retry up to 3 times with exponential backoff
+- **Smart Error Classification**: Distinguishes between retryable and permanent errors
+- **Rate Limit Handling**: Respects Retry-After headers from API
+- **Comprehensive Logging**: Multi-level logging (Error, Warning, Info) for debugging
+
+### Health Check Endpoint
+- **Simple REST API**: `/wp-json/84em-local-pages/v1/health`
+- **Minimal Response**: Returns only `{"status": "ok"}` for security
+- **Deployment Verification**: Used by GitHub Actions workflows
+
+### Testing Improvements
+- **Full Test Coverage**: All test suites now execute completely
+- **Context-Aware Output**: Suppresses expected warnings during tests
+- **Extended TestCase**: Added missing assertion methods
+
 ## Version History
 
 For a complete list of changes, bug fixes, and new features, see [CHANGELOG.md](CHANGELOG.md).
@@ -476,5 +550,9 @@ For a complete list of changes, bug fixes, and new features, see [CHANGELOG.md](
 **API Version**: 2023-06-01  
 **Content Strategy**: Hierarchical location pages with automatic interlinking  
 **Total Pages**: 350 (50 states + 300 cities)  
-**Plugin Version**: 3.1.1  
+**Plugin Version**: 3.1.2  
 **Architecture**: Modular PSR-4 autoloaded classes with dependency injection
+
+- Always ensure the CLAUDE.md is up to date.
+- Always ensure the README.md is up to date.
+- Always ensure TESTING.md is up to date after any change to the test framework.

@@ -14,6 +14,7 @@ use EightyFourEM\LocalPages\PostTypes\LocalPostType;
 use EightyFourEM\LocalPages\Api\Encryption;
 use EightyFourEM\LocalPages\Api\ApiKeyManager;
 use EightyFourEM\LocalPages\Api\ClaudeApiClient;
+use EightyFourEM\LocalPages\Api\HealthCheckEndpoint;
 use EightyFourEM\LocalPages\Data\StatesProvider;
 use EightyFourEM\LocalPages\Data\KeywordsProvider;
 use EightyFourEM\LocalPages\Content\StateContentGenerator;
@@ -84,6 +85,10 @@ class Plugin {
         $postType = $this->container->get( LocalPostType::class );
         $postType->register();
 
+        // Register health check endpoint
+        $healthCheck = $this->container->get( HealthCheckEndpoint::class );
+        $healthCheck->register();
+
         // Register WP-CLI commands if available
         if ( defined( 'WP_CLI' ) && WP_CLI ) {
             $commandHandler = $this->container->get( CommandHandler::class );
@@ -139,6 +144,10 @@ class Plugin {
             );
         } );
 
+        $this->container->register( HealthCheckEndpoint::class, function () {
+            return new HealthCheckEndpoint();
+        } );
+
         // Content Services
         $this->container->register( ContentProcessor::class, function ( $container ) {
             return new ContentProcessor(
@@ -151,6 +160,7 @@ class Plugin {
                 $container->get( ApiKeyManager::class ),
                 $container->get( StatesProvider::class ),
                 $container->get( KeywordsProvider::class ),
+                $container->get( SchemaGenerator::class ),
                 $container->get( ContentProcessor::class )
             );
         } );
@@ -160,6 +170,7 @@ class Plugin {
                 $container->get( ApiKeyManager::class ),
                 $container->get( StatesProvider::class ),
                 $container->get( KeywordsProvider::class ),
+                $container->get( SchemaGenerator::class ),
                 $container->get( ContentProcessor::class )
             );
         } );
@@ -190,6 +201,11 @@ class Plugin {
                 $container->get( StatesProvider::class ),
                 $container->get( KeywordsProvider::class )
             );
+        } );
+
+        // Register alias for backward compatibility and health check
+        $this->container->register( 'api.key_manager', function ( $container ) {
+            return $container->get( ApiKeyManager::class );
         } );
     }
 

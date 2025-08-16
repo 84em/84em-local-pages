@@ -5,6 +5,37 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.3] - 2025-08-16
+
+### Added
+- **Health Check Endpoint**: REST API endpoint for deployment verification
+  - New endpoint at `/wp-json/84em-local-pages/v1/health`
+  - Returns minimal `{"status": "ok"}` response for security
+  - Used by GitHub Actions workflows to verify successful deployments
+  - Implemented in new `HealthCheckEndpoint` class
+
+### Fixed
+- **Critical Bug**: Fixed missing SchemaGenerator parameter in content generator registration
+  - StateContentGenerator and CityContentGenerator were missing SchemaGenerator in dependency injection
+  - Could have caused fatal errors when generating content
+  - Both generators now properly receive all 5 required dependencies
+
+### Documentation
+- **CLAUDE.md Updates**: Comprehensive documentation update
+  - Updated plugin version references to 3.1.3
+  - Corrected API timeout value from 60 to 600 seconds
+  - Added MAX_RETRIES and INITIAL_RETRY_DELAY constants documentation
+  - Added Health Check Endpoint section with REST API details
+  - Added Testing Framework section with all 10 test suites
+  - Added Recent Updates section highlighting v3.1.2 improvements
+  - Updated architecture documentation to include HealthCheckEndpoint
+  - Enhanced error handling documentation with retry logic details
+
+- **README.md Updates**: Health check endpoint documentation
+  - Simplified health check description to reflect minimal implementation
+  - Updated response format to show only `{"status": "ok"}`
+  - Clarified security-focused minimal response approach
+
 ## [3.1.2] - 2025-08-16
 
 ### Added

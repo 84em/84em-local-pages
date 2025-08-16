@@ -119,33 +119,4 @@ class ApiKeyManager {
         // Claude API keys start with 'sk-ant-api03-' followed by 93 characters
         return (bool) preg_match( '/^sk-ant-api03-[\w\-]{93}$/', $key );
     }
-
-    /**
-     * Prompt user for API key (CLI only)
-     *
-     * @return string|false API key or false on failure
-     */
-    public function promptForKey(): string|false {
-        if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
-            return false;
-        }
-
-        \WP_CLI::line( 'Enter your Claude API key:' );
-
-        // Use shell exec to hide input
-        $command = 'read -s api_key && echo $api_key';
-        $key     = trim( shell_exec( 'bash -c "' . $command . '"' ) ?: '' );
-
-        if ( empty( $key ) ) {
-            \WP_CLI::error( 'No API key provided.' );
-            return false;
-        }
-
-        if ( ! $this->validateKeyFormat( $key ) ) {
-            \WP_CLI::error( 'Invalid API key format. Claude API keys should start with "sk-ant-api03-".' );
-            return false;
-        }
-
-        return $key;
-    }
 }

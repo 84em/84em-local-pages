@@ -66,6 +66,13 @@ class GenerateCommand {
     private ContentProcessor $contentProcessor;
 
     /**
+     * Schema generator
+     *
+     * @var SchemaGenerator
+     */
+    private SchemaGenerator $schemaGenerator;
+
+    /**
      * Constructor
      *
      * @param  ApiKeyManager  $apiKeyManager
@@ -83,20 +90,20 @@ class GenerateCommand {
 
         // Initialize content processors and generators
         $this->contentProcessor = new ContentProcessor( $keywordsProvider );
-        $schemaGenerator        = new SchemaGenerator( $statesProvider );
+        $this->schemaGenerator  = new SchemaGenerator( $statesProvider );
 
         $this->stateContentGenerator = new StateContentGenerator(
             $apiKeyManager,
             $statesProvider,
             $keywordsProvider,
-            $schemaGenerator,
+            $this->schemaGenerator,
             $this->contentProcessor
         );
         $this->cityContentGenerator  = new CityContentGenerator(
             $apiKeyManager,
             $statesProvider,
             $keywordsProvider,
-            $schemaGenerator,
+            $this->schemaGenerator,
             $this->contentProcessor
         );
     }
@@ -633,11 +640,96 @@ class GenerateCommand {
      * @return void
      */
     public function handleIndexGeneration( array $args, array $assoc_args ): void {
-        WP_CLI::line( '📄 Generating index page for all locations...' );
+        WP_CLI::line( '📄 Generating index page for WordPress Development Services in USA...' );
 
-        // This would integrate with the index generation functionality
-        // For now, provide a placeholder
-        WP_CLI::warning( 'Index page generation functionality needs to be implemented.' );
+        $page_slug  = 'wordpress-development-services-usa';
+        $page_title = 'WordPress Development Services in USA | 84EM';
+
+        // Check if page already exists
+        $existing_page = get_page_by_path( $page_slug );
+
+        // Get all published state pages (not city pages) using WP_Query
+        $query = new \WP_Query( [
+            'post_type'      => 'local',
+            'post_status'    => 'publish',
+            'posts_per_page' => -1,
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+            'meta_query'     => [
+                [
+                    'key'     => '_local_page_state',
+                    'compare' => 'EXISTS',
+                ],
+                [
+                    'key'     => '_local_page_city',
+                    'compare' => 'NOT EXISTS',
+                ],
+            ],
+        ] );
+
+        if ( ! $query->have_posts() ) {
+            WP_CLI::warning( 'No published Local Pages found. Cannot generate index page.' );
+            return;
+        }
+
+        // Build content with alphabetized list of states
+        $content_data = $this->buildIndexPageContent( $query );
+        $content      = $content_data['content'];
+        $states_data  = $content_data['states_data'];
+
+        // Generate LD-JSON schema
+        $schema = $this->schemaGenerator->generate( [
+            'type'        => 'index',
+            'states_data' => $states_data,
+        ] );
+
+        // Reset post data
+        wp_reset_postdata();
+
+        if ( $existing_page ) {
+            // Update existing page
+            $post_data = [
+                'ID'                => $existing_page->ID,
+                'post_content'      => $content,
+                'post_modified'     => current_time( 'mysql' ),
+                'post_modified_gmt' => current_time( 'mysql', 1 ),
+            ];
+
+            $result = wp_update_post( $post_data );
+
+            if ( $result && ! is_wp_error( $result ) ) {
+                // Update meta fields including schema
+                update_post_meta( $existing_page->ID, '_genesis_description', 'Professional WordPress development services across all 50 states in the USA. Expert custom plugins, API integrations, and web solutions for businesses nationwide.' );
+                update_post_meta( $existing_page->ID, 'schema', $schema );
+
+                WP_CLI::success( "✅ Updated index page '{$page_title}' (ID: {$existing_page->ID})" );
+            } else {
+                WP_CLI::error( '❌ Failed to update index page.' );
+            }
+        } else {
+            // Create new page
+            $post_data = [
+                'post_title'   => $page_title,
+                'post_name'    => $page_slug,
+                'post_content' => $content,
+                'post_status'  => 'publish',
+                'post_type'    => 'page',
+                'post_author'  => 1,
+                'meta_input'   => [
+                    '_genesis_title'       => $page_title,
+                    '_genesis_description' => 'Professional WordPress development services across all 50 states in the USA. Expert custom plugins, API integrations, and web solutions for businesses nationwide.',
+                    'schema'               => $schema,
+                ],
+            ];
+
+            $post_id = wp_insert_post( $post_data );
+
+            if ( $post_id && ! is_wp_error( $post_id ) ) {
+                WP_CLI::success( "✅ Created index page '{$page_title}' (ID: {$post_id})" );
+            } else {
+                WP_CLI::error( '❌ Failed to create index page.' );
+            }
+        }
     }
 
     /**
@@ -957,5 +1049,89 @@ class GenerateCommand {
      */
     private function parseCityNames( string $cities_string ): array {
         return array_map( 'trim', explode( ',', $cities_string ) );
+    }
+
+    /**
+     * Builds the content for the index page with alphabetized state list
+     *
+     * @param  \WP_Query  $query  Query object containing local pages
+     *
+     * @return array Array with 'content' and 'states_data' keys
+     */
+    private function buildIndexPageContent( \WP_Query $query ): array {
+        $states_data = [];
+
+        // Extract state data from local pages
+        while ( $query->have_posts() ) {
+            $query->the_post();
+            $post_id   = get_the_ID();
+            $state     = get_post_meta( $post_id, '_local_page_state', true );
+            $permalink = get_permalink( $post_id );
+
+            if ( $state && $permalink ) {
+                $states_data[] = [
+                    'name' => $state,
+                    'url'  => $permalink,
+                ];
+            }
+        }
+
+        // Sort states alphabetically
+        usort( $states_data, function ( $a, $b ) {
+            return strcmp( $a['name'], $b['name'] );
+        } );
+
+        // Build the content using WordPress block editor syntax
+        $content = '<!-- wp:paragraph -->
+<p>84EM provides professional WordPress development services across all 50 states in the USA. Our remote-first approach enables us to deliver expert WordPress solutions, custom plugins, API integrations, and comprehensive web development services to businesses nationwide.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":2} -->
+<h2><strong>WordPress Development Services by State</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Click on your state below to learn more about our WordPress development services in your area:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul>';
+
+        // Add each state as a list item
+        foreach ( $states_data as $state ) {
+            $content .= '<li><a href="' . esc_url( $state['url'] ) . '">' . esc_html( $state['name'] ) . '</a></li>';
+        }
+
+        $content .= '</ul>
+<!-- /wp:list -->
+
+<!-- wp:heading {"level":2} -->
+<h2><strong>Why Choose 84EM for WordPress Development?</strong></h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>As a fully remote WordPress development company, 84EM serves clients across the United States with:</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:list -->
+<ul>
+<li>Custom WordPress development and plugin creation</li>
+<li>API integrations and third-party service connections</li>
+<li>WordPress security audits and hardening</li>
+<li>White-label development services for agencies</li>
+<li>WordPress maintenance and ongoing support</li>
+<li>Data migration and platform transfers</li>
+<li>WordPress troubleshooting and optimization</li>
+</ul>
+<!-- /wp:list -->
+
+<!-- wp:paragraph -->
+<p>Our experienced team delivers reliable, scalable WordPress solutions regardless of your location. <a href="/contact/">Contact us today</a> to discuss your WordPress development needs.</p>
+<!-- /wp:paragraph -->';
+
+        return [
+            'content'     => $content,
+            'states_data' => $states_data,
+        ];
     }
 }

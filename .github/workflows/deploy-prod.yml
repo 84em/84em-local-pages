@@ -1,0 +1,43 @@
+name: Deploy to Production
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment (skip checks)'
+        required: false
+        default: false
+        type: boolean
+      skip_backup:
+        description: 'Skip backup creation (use with caution)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  deploy:
+    name: Production Deployment
+    # Only run if the PR was merged (not just closed) OR manual trigger
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/deploy-reusable.yml
+    with:
+      environment: production
+      force_deploy: ${{ github.event.inputs.force_deploy || false }}
+      skip_backup: ${{ github.event.inputs.skip_backup || false }}
+    secrets:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+      DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+      BACKUP_PATH: ${{ secrets.BACKUP_PATH }}
+      HEALTH_CHECK_URL: ${{ secrets.HEALTH_CHECK_URL }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}

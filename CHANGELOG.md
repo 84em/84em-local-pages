@@ -5,6 +5,20 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 2025-08-16
+
+### Fixed
+- **GitHub Actions**: Fixed deprecated Composer flag causing deployment failures
+  - Removed `--no-suggest` flag from composer install commands (deprecated in Composer 2.0)
+  - Workflow now compatible with Composer v2 used in deployment environments
+
+### Improved
+- **Deployment Workflows**: Split deployment workflows for better environment separation
+  - Created separate workflows for dev, staging, and production environments
+  - Implemented reusable workflow pattern for DRY principles
+  - Added comprehensive backup and rollback mechanisms
+  - Enhanced validation and verification steps
+
 ## [3.1.0] - 2025-08-16
 
 ### Changed

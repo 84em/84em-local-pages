@@ -633,54 +633,232 @@ wp import /backups/local-pages/local-pages-export.xml
 
 ## Deployment
 
-The plugin uses GitHub Actions for automated deployment to production servers.
+The plugin uses GitHub Actions for automated multi-environment deployments with comprehensive validation, backup, and rollback capabilities.
 
-### GitHub Actions Workflow
+### Deployment Environments
 
-The deployment workflow (`deploy.yml`) provides:
-- Automatic deployment on push to main branch
-- Manual deployment via workflow dispatch
-- Pre-deployment validation (PHP syntax, security scanning)
-- Automatic backup before deployment
-- Rollback on failure
-- Multiple notification channels (Slack, email)
+#### Production
+- **Branch**: `main`
+- **Trigger**: PR merge to main or manual workflow dispatch
+- **Workflow**: `.github/workflows/deploy-prod.yml`
+- **URL**: `https://84em.com`
+
+#### Staging
+- **Branch**: `staging`
+- **Trigger**: PR merge to staging or manual workflow dispatch
+- **Workflow**: `.github/workflows/deploy-staging.yml`
+- **URL**: `https://staging.84em.com`
+
+#### Development
+- **Branch**: `dev`
+- **Trigger**: PR merge to dev or manual workflow dispatch
+- **Workflow**: `.github/workflows/deploy-dev.yml`
+- **URL**: `https://dev.84em.com`
+
+### GitHub Actions Workflows
+
+The deployment system uses a reusable workflow architecture:
+
+#### Core Features
+- ✅ **Pre-deployment validation**: PHP syntax check, security scanning, version verification
+- ✅ **Automatic backups**: Timestamped backups before each deployment
+- ✅ **Health checks**: REST API endpoint validation after deployment
+- ✅ **Automatic rollback**: Restores from backup on deployment failure
+- ✅ **Version validation**: Ensures correct plugin version is deployed
+- ✅ **Progress notifications**: Real-time status updates during deployment
+- ✅ **Deployment summary**: Comprehensive report after deployment
+
+#### Deployment Process
+1. **Validation Phase**
+   - PHP syntax validation
+   - Security vulnerability scanning
+   - Composer dependency check
+   - Version consistency check
+
+2. **Backup Phase** (Production/Staging only)
+   - Creates timestamped backup
+   - Verifies backup integrity
+   - Stores backup path for rollback
+
+3. **Deployment Phase**
+   - Syncs files via rsync
+   - Excludes development files (.git, tests, etc.)
+   - Preserves server-specific configurations
+
+4. **Verification Phase**
+   - Health check endpoint validation
+   - Version match verification
+   - Plugin activation check
+
+5. **Rollback Phase** (on failure)
+   - Automatic restoration from backup
+   - Notification of rollback status
 
 ### Required GitHub Secrets
 
-Configure these secrets in your repository settings:
+#### Core Secrets (Required)
 
-| Secret | Description |
-|--------|-------------|
-| `DEPLOY_SSH_KEY` | SSH private key for deployment |
-| `DEPLOY_HOST` | Server hostname or IP |
-| `DEPLOY_PORT` | SSH port (optional, defaults to 22) |
-| `DEPLOY_USER` | SSH username |
-| `DEPLOY_PATH` | Remote plugin directory path |
-| `BACKUP_PATH` | Remote backup directory path |
+| Secret | Description | Example |
+|--------|-------------|--------|
+| `DEPLOY_SSH_KEY` | SSH private key for server access | `-----BEGIN RSA PRIVATE KEY-----...` |
+| `DEPLOY_HOST` | Server hostname or IP address | `server.example.com` or `192.168.1.1` |
+| `DEPLOY_USER` | SSH username for deployment | `deploy` or `www-data` |
+| `DEPLOY_PATH` | Remote plugin directory path | `/var/www/html/wp-content/plugins/84em-local-pages` |
+
+#### Optional Secrets
+
+| Secret | Description | Default |
+|--------|-------------|--------|
+| `DEPLOY_PORT` | Custom SSH port | `22` |
+| `BACKUP_PATH` | Backup directory path | `~/backups` |
+| `HEALTH_CHECK_URL` | Health check endpoint | Auto-generated |
+| `SLACK_WEBHOOK_URL` | Slack notifications | None |
+| `SMTP_SERVER` | Email server for notifications | None |
+| `SMTP_PORT` | Email server port | `587` |
+| `SMTP_USERNAME` | Email username | None |
+| `SMTP_PASSWORD` | Email password | None |
+| `NOTIFICATION_EMAIL` | Recipient email address | None |
+
+#### Environment-Specific Secrets
+
+For multi-environment deployments, use prefixed secrets:
+
+**Production:**
+- `PROD_DEPLOY_HOST`
+- `PROD_DEPLOY_USER`
+- `PROD_DEPLOY_PATH`
+- `HEALTH_CHECK_URL`
+
+**Staging:**
+- `STAGING_DEPLOY_HOST`
+- `STAGING_DEPLOY_USER`
+- `STAGING_DEPLOY_PATH`
+- `STAGING_HEALTH_CHECK_URL`
+
+**Development:**
+- `DEV_DEPLOY_HOST`
+- `DEV_DEPLOY_USER`
+- `DEV_DEPLOY_PATH`
+- `DEV_HEALTH_CHECK_URL`
 
 ### Deployment Commands
 
+#### Automatic Deployment (Recommended)
+
 ```bash
-# Deploy to production (automatic on push to main)
+# Production deployment
+git checkout main
+git merge feature-branch
 git push origin main
+# Deployment triggers automatically on PR merge
 
-# Manual deployment via GitHub UI
-# Go to Actions → Deploy to Production → Run workflow
+# Staging deployment
+git checkout staging
+git merge feature-branch
+git push origin staging
+# Deployment triggers automatically on PR merge
 
-# Deploy with options
-# - Skip backup (for emergency fixes)
-# - Force deployment (skip validation checks)
-# - Select environment (production/staging)
+# Development deployment
+git checkout dev
+git merge feature-branch
+git push origin dev
+# Deployment triggers automatically on PR merge
+```
+
+#### Manual Deployment
+
+1. Navigate to repository's **Actions** tab
+2. Select the appropriate workflow:
+   - `Deploy to Production`
+   - `Deploy to Staging`
+   - `Deploy to Dev`
+3. Click **Run workflow**
+4. Configure options:
+   - **force_deploy**: Skip validation checks (use with caution)
+   - **skip_backup**: Skip backup creation (emergency fixes only)
+5. Click **Run workflow** button
+
+#### Monitoring Deployment
+
+```bash
+# Watch deployment progress
+gh run watch
+
+# View deployment logs
+gh run view --log
+
+# Check deployment status
+gh run list --workflow=deploy-prod.yml
 ```
 
 ### Security Features
 
-- All credentials stored as GitHub secrets
-- Enhanced security scanning for dangerous PHP functions
-- Credential pattern detection
-- File permission validation
-- Deployment hash verification
-- Automatic rollback on failure
+- **Encrypted secrets**: All credentials stored as GitHub secrets
+- **Security scanning**: Automated vulnerability detection before deployment
+- **Dangerous function detection**: Scans for eval(), exec(), system(), etc.
+- **Credential pattern detection**: Prevents hardcoded API keys and passwords
+- **File permission validation**: Ensures proper file/directory permissions
+- **Deployment hash verification**: Validates file integrity after deployment
+- **Automatic rollback**: Restores previous version on deployment failure
+- **SSH key authentication**: No password-based authentication
+- **Restricted rsync**: Excludes sensitive files (.env, .git, etc.)
+
+### Troubleshooting Deployments
+
+#### Common Issues
+
+**Deployment fails at validation phase:**
+- Check PHP syntax: `php -l src/**/*.php`
+- Run security scan locally
+- Verify composer.json is valid
+
+**Health check fails:**
+- Ensure plugin is activated
+- Check `HEALTH_CHECK_URL` secret is correct
+- Verify REST API is accessible
+- Test endpoint: `curl https://yourdomain.com/wp-json/84em-local-pages/v1/health`
+
+**Rollback triggered:**
+- Check deployment logs for specific error
+- Verify file permissions on server
+- Ensure sufficient disk space
+- Check WordPress error logs
+
+**SSH connection fails:**
+- Verify `DEPLOY_SSH_KEY` format
+- Check `DEPLOY_HOST` and `DEPLOY_PORT`
+- Ensure `DEPLOY_USER` has correct permissions
+- Test SSH connection manually
+
+#### Deployment Logs
+
+Access detailed logs through GitHub Actions:
+1. Go to **Actions** tab
+2. Click on the workflow run
+3. Select the job to view
+4. Expand steps for detailed output
+
+#### Emergency Recovery
+
+If automatic rollback fails:
+
+```bash
+# Manual SSH to server
+ssh user@server
+
+# Navigate to backup directory
+cd ~/backups
+
+# Find latest backup
+ls -la | grep 84em-local-pages
+
+# Restore manually
+rm -rf /path/to/wp-content/plugins/84em-local-pages
+cp -r 84em-local-pages-backup-TIMESTAMP /path/to/wp-content/plugins/84em-local-pages
+
+# Verify plugin works
+wp plugin list --status=active
+```
 
 ## Support
 
@@ -693,33 +871,78 @@ git push origin main
 
 ## Testing
 
-The plugin includes a comprehensive WP-CLI-based testing framework.
+The plugin includes a comprehensive WP-CLI-based testing framework with 10 test suites covering all major functionality.
 
-### Running Tests
+### Quick Start
 
 ```bash
-# Run all tests
+# Run all test suites
 wp 84em local-pages --test --all
 
-# Run specific test suite
-wp 84em local-pages --test --suite=encryption
-wp 84em local-pages --test --suite=data-structures
-wp 84em local-pages --test --suite=url-generation
-wp 84em local-pages --test --suite=content-processing
-wp 84em local-pages --test --suite=simple
-wp 84em local-pages --test --suite=basic
+# Run a specific test suite
+wp 84em local-pages --test --suite=api-client
 ```
 
 ### Available Test Suites
 
-- **encryption** - API key encryption and decryption tests
-- **data-structures** - Service keywords and US states data validation
-- **url-generation** - URL generation and permalink handling (disabled due to conflicts)
-- **content-processing** - Content processing and title case conversion
-- **simple** - Basic functionality tests
-- **basic** - WordPress environment tests
+- **encryption** - API key encryption and security
+- **data-structures** - Service keywords and states data
+- **content-processing** - Content processing and linking
+- **cli-args** - WP-CLI argument parsing
+- **ld-json** - Schema.org structured data
+- **container** - Dependency injection container
+- **api-client** - Claude API client with retry logic
+- **content-generators** - State and city content generation
+- **error-handling** - Error handling and recovery
+- **security** - Security and input sanitization
 
-For detailed testing documentation, see [TESTING.md](TESTING.md).
+For detailed testing documentation, test writing guidelines, and examples, see [TESTING.md](TESTING.md).
+
+## Health Check Endpoint
+
+The plugin provides a simple REST API health check endpoint for deployment verification.
+
+### Endpoint URL
+
+```
+GET /wp-json/84em-local-pages/v1/health
+```
+
+### Purpose
+
+- Verify plugin is active after deployment
+- Simple monitoring for uptime services
+- GitHub Actions deployment verification
+
+### Response
+
+Always returns HTTP 200 with minimal JSON response if the plugin is working:
+
+```json
+{
+    "status": "ok"
+}
+```
+
+### GitHub Actions Integration
+
+```yaml
+- name: Health Check
+  run: |
+    response=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.HEALTH_CHECK_URL }}")
+    if [[ "$response" == "200" ]]; then
+      echo "✅ Health check passed"
+    else
+      echo "❌ Health check failed"
+      exit 1
+    fi
+```
+
+### Required GitHub Secrets
+
+- `HEALTH_CHECK_URL`: Production health check URL
+- `STAGING_HEALTH_CHECK_URL`: Staging health check URL  
+- `DEV_HEALTH_CHECK_URL`: Development health check URL
 
 ## License
 

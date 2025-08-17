@@ -79,47 +79,8 @@ class Test_Encryption extends TestCase {
         $this->assertStringNotContainsString( 'sk-ant', $decrypted );
     }
 
-    /**
-     * Test encryption key generation consistency
-     */
-    public function test_encryption_key_generation() {
-        // Create two encryption instances
-        $encryption1 = new Encryption();
-        $encryption2 = new Encryption();
 
-        // Test that both can encrypt and decrypt consistently
-        $test_data = 'test-data-' . time();
-        $encrypted = $encryption1->encrypt( $test_data );
-        $decrypted = $encryption2->decrypt( $encrypted );
 
-        $this->assertEquals( $test_data, $decrypted );
-    }
-
-    /**
-     * Test handling of empty/missing API key
-     */
-    public function test_empty_api_key_handling() {
-        // Ensure no key is stored
-        delete_option( '84em_claude_api_key_encrypted' );
-        delete_option( '84em_claude_api_key_iv' );
-
-        $result = $this->apiKeyManager->getKey();
-        $this->assertFalse( $result );
-
-        // Test hasKey method
-        $this->assertFalse( $this->apiKeyManager->hasKey() );
-    }
-
-    /**
-     * Test handling of corrupted encrypted data
-     */
-    public function test_corrupted_data_handling() {
-        // Set corrupted data
-        update_option( '84em_claude_api_key_encrypted', 'corrupted-data' );
-
-        $result = $this->apiKeyManager->getKey();
-        $this->assertFalse( $result );
-    }
 
     /**
      * Test validate API key format

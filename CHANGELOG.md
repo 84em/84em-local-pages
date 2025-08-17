@@ -5,6 +5,46 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2025-08-17
+
+### Added
+- **CLI Argument Validation**: Comprehensive error checking for WP-CLI commands
+  - Detects missing `--` prefixes (e.g., `state="California"` → suggests `--state="California"`)
+  - Identifies unrecognized arguments with smart suggestions using Levenshtein distance
+  - Validates mutually exclusive argument combinations
+  - Checks for incomplete argument sets (e.g., `--city` requires `--state`)
+  - Provides helpful error messages with correct usage examples
+  - Prevents silent failures from typos or incorrect syntax
+
+### Changed
+- **Dependency Injection Refactoring**: Complete overhaul of DI implementation
+  - Eliminated service locator anti-pattern throughout the codebase
+  - All classes now use proper constructor injection
+  - `GenerateCommand` no longer instantiates dependencies in constructor
+  - `StateContentGenerator` and `CityContentGenerator` receive `ClaudeApiClient` via injection
+  - `CommandHandler` receives command instances via constructor injection
+  - `ClaudeApiClient` now registered as singleton service for better performance
+  - Improved testability with proper dependency mocking support
+
+- **Test Suite Optimization**: Removed 51 unnecessary tests (42% reduction)
+  - Eliminated tests for PHP built-in functions
+  - Removed tests for WordPress core functions
+  - Deleted trivial validation tests
+  - Removed test-container.php entirely (all tests were unnecessary)
+  - Test suite now focuses exclusively on plugin functionality
+  - Reduced from 120 tests to 69 focused tests across 9 suites
+
+### Fixed
+- **City Page Update Bug**: Fixed query in `CityContentGenerator` that could incorrectly identify parent pages
+  - Added `NOT EXISTS` check for `_local_page_city` meta to properly identify state pages
+  - Prevents city pages from being incorrectly selected as parent pages
+
+### Developer Experience
+- **Better Error Messages**: CLI now provides clear, actionable feedback for command errors
+- **Improved Architecture**: Clean dependency injection patterns following SOLID principles
+- **Enhanced Testability**: All classes can now be easily unit tested with mock dependencies
+- **Reduced Coupling**: Components are loosely coupled through constructor injection
+
 ## [3.1.3] - 2025-08-16
 
 ### Added

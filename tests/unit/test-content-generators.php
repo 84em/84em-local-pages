@@ -12,6 +12,7 @@ require_once dirname( __DIR__ ) . '/TestCase.php';
 use EightyFourEM\LocalPages\Content\StateContentGenerator;
 use EightyFourEM\LocalPages\Content\CityContentGenerator;
 use EightyFourEM\LocalPages\Api\ApiKeyManager;
+use EightyFourEM\LocalPages\Api\ClaudeApiClient;
 use EightyFourEM\LocalPages\Data\StatesProvider;
 use EightyFourEM\LocalPages\Data\KeywordsProvider;
 use EightyFourEM\LocalPages\Schema\SchemaGenerator;
@@ -37,12 +38,14 @@ class Test_Content_Generators extends TestCase {
         $this->schemaGenerator = new SchemaGenerator( $this->statesProvider );
         $this->contentProcessor = new ContentProcessor( $this->keywordsProvider );
         
-        // Create mock API key manager
+        // Create mock API key manager and API client
         $this->mockApiKeyManager = $this->createMockApiKeyManager();
+        $mockApiClient = $this->createMockApiClient();
         
-        // Initialize generators
+        // Initialize generators with all dependencies
         $this->stateGenerator = new StateContentGenerator(
             $this->mockApiKeyManager,
+            $mockApiClient,
             $this->statesProvider,
             $this->keywordsProvider,
             $this->schemaGenerator,
@@ -51,6 +54,7 @@ class Test_Content_Generators extends TestCase {
         
         $this->cityGenerator = new CityContentGenerator(
             $this->mockApiKeyManager,
+            $mockApiClient,
             $this->statesProvider,
             $this->keywordsProvider,
             $this->schemaGenerator,
@@ -254,6 +258,29 @@ class Test_Content_Generators extends TestCase {
             }
             
             public function validateApiKey(): bool {
+                return true;
+            }
+        };
+    }
+    
+    /**
+     * Create mock API client
+     */
+    private function createMockApiClient() {
+        return new class( null ) extends ClaudeApiClient {
+            public function __construct( $keyManager ) {
+                // Don't call parent constructor
+            }
+            
+            public function sendRequest( string $prompt ): string|false {
+                return 'mock-response';
+            }
+            
+            public function isConfigured(): bool {
+                return true;
+            }
+            
+            public function validateCredentials(): bool {
                 return true;
             }
         };

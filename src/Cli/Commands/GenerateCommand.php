@@ -78,34 +78,27 @@ class GenerateCommand {
      * @param  ApiKeyManager  $apiKeyManager
      * @param  StatesProvider  $statesProvider
      * @param  KeywordsProvider  $keywordsProvider
+     * @param  StateContentGenerator  $stateContentGenerator
+     * @param  CityContentGenerator  $cityContentGenerator
+     * @param  ContentProcessor  $contentProcessor
+     * @param  SchemaGenerator  $schemaGenerator
      */
     public function __construct(
         ApiKeyManager $apiKeyManager,
         StatesProvider $statesProvider,
-        KeywordsProvider $keywordsProvider
+        KeywordsProvider $keywordsProvider,
+        StateContentGenerator $stateContentGenerator,
+        CityContentGenerator $cityContentGenerator,
+        ContentProcessor $contentProcessor,
+        SchemaGenerator $schemaGenerator
     ) {
-        $this->apiKeyManager    = $apiKeyManager;
-        $this->statesProvider   = $statesProvider;
-        $this->keywordsProvider = $keywordsProvider;
-
-        // Initialize content processors and generators
-        $this->contentProcessor = new ContentProcessor( $keywordsProvider );
-        $this->schemaGenerator  = new SchemaGenerator( $statesProvider );
-
-        $this->stateContentGenerator = new StateContentGenerator(
-            $apiKeyManager,
-            $statesProvider,
-            $keywordsProvider,
-            $this->schemaGenerator,
-            $this->contentProcessor
-        );
-        $this->cityContentGenerator  = new CityContentGenerator(
-            $apiKeyManager,
-            $statesProvider,
-            $keywordsProvider,
-            $this->schemaGenerator,
-            $this->contentProcessor
-        );
+        $this->apiKeyManager         = $apiKeyManager;
+        $this->statesProvider        = $statesProvider;
+        $this->keywordsProvider      = $keywordsProvider;
+        $this->stateContentGenerator = $stateContentGenerator;
+        $this->cityContentGenerator  = $cityContentGenerator;
+        $this->contentProcessor      = $contentProcessor;
+        $this->schemaGenerator       = $schemaGenerator;
     }
 
     /**
@@ -795,8 +788,8 @@ class GenerateCommand {
         $success_count = 0;
         $error_count = 0;
 
-        // Get schema generator
-        $schemaGenerator = new SchemaGenerator( $this->statesProvider );
+        // Use injected schema generator
+        $schemaGenerator = $this->schemaGenerator;
 
         foreach ( $posts as $post ) {
             $state = get_post_meta( $post->ID, '_local_page_state', true );

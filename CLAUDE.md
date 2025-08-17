@@ -248,7 +248,7 @@ Clean hierarchical URLs without post type slug:
 
 ## API Configuration
 
-### Current Model Settings (v3.1.2+)
+### Current Model Settings (v3.2.0+)
 ```php
 // Located in src/Api/ClaudeApiClient.php
 private const MODEL = 'claude-sonnet-4-20250514';
@@ -504,7 +504,7 @@ wp 84em local-pages --test --all
 wp 84em local-pages --test --suite=api-client
 ```
 
-### Available Test Suites (v3.1.2)
+### Available Test Suites (v3.2.0)
 - **encryption** - API key encryption and security
 - **data-structures** - Service keywords and states data
 - **content-processing** - Content processing and linking
@@ -520,7 +520,28 @@ wp 84em local-pages --test --suite=api-client
 
 For detailed testing documentation, see [TESTING.md](TESTING.md).
 
-## Recent Updates (v3.1.2)
+## Recent Updates
+
+### Version 3.2.0 (2025-08-17)
+
+#### Dependency Injection Overhaul
+- **Eliminated Service Locator Anti-Pattern**: All classes now use proper constructor injection
+- **Singleton Services**: `ClaudeApiClient` registered as singleton for better performance
+- **Improved Testability**: All dependencies can be mocked for unit testing
+- **Clean Architecture**: Following SOLID principles throughout
+
+#### CLI Argument Validation
+- **Smart Error Detection**: Catches missing `--` prefixes and suggests corrections
+- **Typo Detection**: Uses Levenshtein distance for intelligent suggestions
+- **Argument Validation**: Ensures required arguments are present
+- **Helpful Error Messages**: Clear examples of correct usage
+
+#### Test Suite Optimization
+- **Reduced Test Count**: From 120 to 69 tests (42% reduction)
+- **Focused Testing**: Removed tests for PHP built-ins and WordPress core
+- **9 Test Suites**: Down from 10 (removed unnecessary container tests)
+
+### Version 3.1.2
 
 ### Enhanced Error Handling
 - **Retry Logic**: API calls now retry up to 3 times with exponential backoff
@@ -550,7 +571,7 @@ For a complete list of changes, bug fixes, and new features, see [CHANGELOG.md](
 **API Version**: 2023-06-01  
 **Content Strategy**: Hierarchical location pages with automatic interlinking  
 **Total Pages**: 350 (50 states + 300 cities)  
-**Plugin Version**: 3.1.2  
+**Plugin Version**: 3.2.0  
 **Architecture**: Modular PSR-4 autoloaded classes with dependency injection
 
 - Always ensure the CLAUDE.md is up to date.

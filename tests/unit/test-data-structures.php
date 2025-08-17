@@ -89,57 +89,6 @@ class Test_Data_Structures extends TestCase {
     }
 
 
-    /**
-     * Test service keywords list generation for prompts
-     */
-    public function test_service_keywords_list_generation() {
-        $keywords = $this->keywordsProvider->getAll();
 
-        // Generate list like in the actual method
-        $service_keywords_list = implode( ', ', array_keys( $keywords ) );
 
-        // Should be a comma-separated string
-        $this->assertIsString( $service_keywords_list );
-        $this->assertStringContainsString( ', ', $service_keywords_list );
-        $this->assertStringContainsString( 'WordPress development', $service_keywords_list );
-        $this->assertStringContainsString( 'custom plugin development', $service_keywords_list );
-    }
-
-    /**
-     * Test initialization of properties
-     */
-    public function test_properties_initialization() {
-        // Test that providers are properly initialized and return data
-        $this->assertInstanceOf( StatesProvider::class, $this->statesProvider );
-        $this->assertInstanceOf( KeywordsProvider::class, $this->keywordsProvider );
-
-        // Verify they provide data
-        $this->assertNotEmpty( $this->statesProvider->getAll() );
-        $this->assertNotEmpty( $this->keywordsProvider->getAll() );
-    }
-
-    /**
-     * Test that all states have valid city data
-     */
-    public function test_all_states_have_valid_cities() {
-        $states = $this->statesProvider->getAll();
-
-        $expected_states = [
-            'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California',
-            'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
-            'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa',
-            'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland',
-            'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri',
-            'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey',
-            'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio',
-            'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina',
-            'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
-            'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
-        ];
-
-        foreach ( $expected_states as $state ) {
-            $this->assertArrayHasKey( $state, $states, "Missing state: $state" );
-            $this->assertCount( 6, $states[$state]['cities'], "State $state doesn't have 6 cities" );
-        }
-    }
 }

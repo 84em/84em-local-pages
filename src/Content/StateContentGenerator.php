@@ -30,6 +30,13 @@ class StateContentGenerator implements ContentGeneratorInterface {
     private ApiKeyManager $apiKeyManager;
 
     /**
+     * Claude API client
+     *
+     * @var ClaudeApiClient
+     */
+    private ClaudeApiClient $apiClient;
+
+    /**
      * States data provider
      *
      * @var StatesProvider
@@ -61,6 +68,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
      * Constructor
      *
      * @param  ApiKeyManager  $apiKeyManager
+     * @param  ClaudeApiClient  $apiClient
      * @param  StatesProvider  $statesProvider
      * @param  KeywordsProvider  $keywordsProvider
      * @param  SchemaGenerator  $schemaGenerator
@@ -68,12 +76,14 @@ class StateContentGenerator implements ContentGeneratorInterface {
      */
     public function __construct(
         ApiKeyManager $apiKeyManager,
+        ClaudeApiClient $apiClient,
         StatesProvider $statesProvider,
         KeywordsProvider $keywordsProvider,
         SchemaGenerator $schemaGenerator,
         ContentProcessor $contentProcessor
     ) {
         $this->apiKeyManager    = $apiKeyManager;
+        $this->apiClient        = $apiClient;
         $this->statesProvider   = $statesProvider;
         $this->keywordsProvider = $keywordsProvider;
         $this->schemaGenerator  = $schemaGenerator;
@@ -101,7 +111,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
             throw new Exception( 'API key not available' );
         }
 
-        $apiClient   = new ClaudeApiClient( $this->apiKeyManager );
+        $apiClient   = $this->apiClient;
         $raw_content = $apiClient->sendRequest( $prompt );
 
         if ( ! $raw_content ) {

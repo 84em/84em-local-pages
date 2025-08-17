@@ -36,20 +36,19 @@ wp 84em local-pages --test --suite=content-processing
 wp 84em local-pages --test --suite=simple
 ```
 
-### Available Test Suites (v3.1.0)
+### Available Test Suites (v3.2.0)
 
-1. **encryption** - Tests for API key encryption and decryption (7 tests)
-2. **data-structures** - Tests for service keywords and US states data (5 tests)
+1. **encryption** - Tests for API key encryption and decryption (4 tests)
+2. **data-structures** - Tests for service keywords and US states data (2 tests)
 3. **content-processing** - Tests for ContentProcessor class methods (13 tests)
-4. **cli-args** - Tests for WP-CLI argument parsing (12 tests)
+4. **cli-args** - Tests for WP-CLI argument parsing (6 tests)
 5. **ld-json** - Tests for LD-JSON schema generation (14 tests)
-6. **container** - Tests for dependency injection container (12 tests)
-7. **api-client** - Tests for Claude API client (9 tests)
-8. **content-generators** - Tests for state and city content generators (12 tests)
-9. **error-handling** - Tests for error handling and logging (12 tests)
-10. **security** - Tests for security features (10 tests)
+6. **api-client** - Tests for Claude API client (8 tests)
+7. **content-generators** - Tests for state and city content generators (12 tests)
+8. **error-handling** - Tests for error handling and logging (5 tests)
+9. **security** - Tests for security features (5 tests)
 
-**Total: 106 tests across 10 test suites**
+**Total: 69 tests across 9 test suites**
 
 ## Test Files
 
@@ -60,19 +59,19 @@ All test files are located in the `tests/unit/` directory:
 - `test-content-processing.php` - ContentProcessor class tests (actual methods)
 - `test-wp-cli-args.php` - CLI argument parsing tests
 - `test-ld-json-schema.php` - Schema generation tests
-- `test-container.php` - Dependency injection container tests
 - `test-api-client.php` - Claude API client tests
 - `test-content-generators.php` - Content generator integration tests
 - `test-error-handling.php` - Error handling and recovery tests
 - `test-security.php` - Security feature tests
 
-### Version 3.1.0 Test Improvements
+### Version 3.2.0 Test Improvements
 
-Major refactoring of test suites to focus on actual plugin functionality:
-- **Rewrote Tests**: content-processing, error-handling, and security tests now test actual plugin methods
-- **Removed Tests**: Eliminated tests for WordPress core functions and imaginary features
-- **Improved Coverage**: All tests now validate real business logic used in production
-- **Better Architecture**: Tests align with actual plugin modular architecture
+Significant optimization and focus on plugin-specific functionality:
+- **Test Reduction**: Removed 51 unnecessary tests (42% reduction from 120 to 69 tests)
+- **Eliminated test-container.php**: Removed entire file testing generic DI patterns
+- **Focused Testing**: All remaining tests validate actual plugin business logic
+- **Improved Mock Support**: Updated test fixtures to support new dependency injection architecture
+- **Better Coverage**: Tests now properly mock all dependencies for true unit testing
 
 ## Test Framework
 

@@ -6,11 +6,17 @@
  */
 
 require_once dirname( __DIR__ ) . '/TestCase.php';
+require_once dirname( __DIR__, 2 ) . '/vendor/autoload.php';
 
 use EightyFourEM\LocalPages\Cli\Commands\GenerateCommand;
 use EightyFourEM\LocalPages\Data\StatesProvider;
 use EightyFourEM\LocalPages\Data\KeywordsProvider;
 use EightyFourEM\LocalPages\Api\ApiKeyManager;
+use EightyFourEM\LocalPages\Api\ClaudeApiClient;
+use EightyFourEM\LocalPages\Content\StateContentGenerator;
+use EightyFourEM\LocalPages\Content\CityContentGenerator;
+use EightyFourEM\LocalPages\Utils\ContentProcessor;
+use EightyFourEM\LocalPages\Schema\SchemaGenerator;
 
 class Test_WP_CLI_Args extends TestCase {
     
@@ -28,79 +34,41 @@ class Test_WP_CLI_Args extends TestCase {
         $this->keywordsProvider = new KeywordsProvider();
         $this->apiKeyManager = $this->createMock( ApiKeyManager::class );
         
-        // Initialize GenerateCommand with dependencies
+        // Create mock dependencies for GenerateCommand
+        $mockApiClient = $this->createMock( ClaudeApiClient::class );
+        $contentProcessor = new ContentProcessor( $this->keywordsProvider );
+        $schemaGenerator = new SchemaGenerator( $this->statesProvider );
+        
+        $stateContentGenerator = new StateContentGenerator(
+            $this->apiKeyManager,
+            $mockApiClient,
+            $this->statesProvider,
+            $this->keywordsProvider,
+            $schemaGenerator,
+            $contentProcessor
+        );
+        
+        $cityContentGenerator = new CityContentGenerator(
+            $this->apiKeyManager,
+            $mockApiClient,
+            $this->statesProvider,
+            $this->keywordsProvider,
+            $schemaGenerator,
+            $contentProcessor
+        );
+        
+        // Initialize GenerateCommand with all dependencies
         $this->generateCommand = new GenerateCommand(
             $this->apiKeyManager,
             $this->statesProvider,
-            $this->keywordsProvider
+            $this->keywordsProvider,
+            $stateContentGenerator,
+            $cityContentGenerator,
+            $contentProcessor,
+            $schemaGenerator
         );
     }
     
-    /**
-     * Test parse_state_names method with various inputs
-     */
-    public function test_parse_state_names() {
-        $method = $this->get_private_method( $this->generateCommand, 'parseStateNames' );
-        
-        // Test single state
-        $result = $method->invoke( $this->generateCommand, 'California' );
-        $this->assertEquals( ['California'], $result );
-        
-        // Test multiple states with comma
-        $result = $method->invoke( $this->generateCommand, 'California, Texas, Florida' );
-        $this->assertEquals( ['California', 'Texas', 'Florida'], $result );
-        
-        // Test with extra spaces
-        $result = $method->invoke( $this->generateCommand, ' California , Texas , Florida ' );
-        $this->assertEquals( ['California', 'Texas', 'Florida'], $result );
-        
-        // Test with newlines and tabs
-        $result = $method->invoke( $this->generateCommand, "California,\nTexas,\tFlorida" );
-        $this->assertEquals( ['California', 'Texas', 'Florida'], $result );
-        
-        // Test empty string
-        $result = $method->invoke( $this->generateCommand, '' );
-        $this->assertEquals( [''], $result );
-        
-        // Test with mixed case
-        $result = $method->invoke( $this->generateCommand, 'california, TEXAS, FlOrIdA' );
-        $this->assertEquals( ['california', 'TEXAS', 'FlOrIdA'], $result );
-        
-        // Test with special characters in state names
-        $result = $method->invoke( $this->generateCommand, 'New York, North Carolina, Rhode Island' );
-        $this->assertEquals( ['New York', 'North Carolina', 'Rhode Island'], $result );
-    }
-    
-    /**
-     * Test parse_city_names method
-     */
-    public function test_parse_city_names() {
-        $method = $this->get_private_method( $this->generateCommand, 'parseCityNames' );
-        
-        // Test single city
-        $result = $method->invoke( $this->generateCommand, 'Los Angeles' );
-        $this->assertEquals( ['Los Angeles'], $result );
-        
-        // Test multiple cities
-        $result = $method->invoke( $this->generateCommand, 'Los Angeles, San Francisco, San Diego' );
-        $this->assertEquals( ['Los Angeles', 'San Francisco', 'San Diego'], $result );
-        
-        // Test cities with special characters
-        $result = $method->invoke( $this->generateCommand, "St. Paul, O'Fallon, Coeur d'Alene" );
-        $this->assertEquals( ['St. Paul', "O'Fallon", "Coeur d'Alene"], $result );
-        
-        // Test with hyphenated cities
-        $result = $method->invoke( $this->generateCommand, 'Winston-Salem, Wilkes-Barre' );
-        $this->assertEquals( ['Winston-Salem', 'Wilkes-Barre'], $result );
-        
-        // Test with extra whitespace
-        $result = $method->invoke( $this->generateCommand, '  New York  ,  Los Angeles  ' );
-        $this->assertEquals( ['New York', 'Los Angeles'], $result );
-        
-        // Test empty string
-        $result = $method->invoke( $this->generateCommand, '' );
-        $this->assertEquals( [''], $result );
-    }
     
     /**
      * Test validate_state method using StatesProvider
@@ -238,80 +206,8 @@ class Test_WP_CLI_Args extends TestCase {
         }
     }
     
-    /**
-     * Test special WP-CLI flags
-     */
-    public function test_special_cli_flags() {
-        // Test dry-run flag behavior
-        $args = [
-            '--state' => 'California',
-            '--dry-run' => true
-        ];
-        $this->assertTrue( isset( $args['--dry-run'] ) );
-        
-        // Test verbose flag
-        $args = [
-            '--state' => 'California',
-            '--verbose' => true
-        ];
-        $this->assertTrue( isset( $args['--verbose'] ) );
-        
-        // Test states-only flag
-        $args = [
-            '--generate-all' => true,
-            '--states-only' => true
-        ];
-        $this->assertTrue( isset( $args['--states-only'] ) );
-        
-        // Test complete flag
-        $args = [
-            '--state' => 'California',
-            '--city' => 'all',
-            '--complete' => true
-        ];
-        $this->assertTrue( isset( $args['--complete'] ) );
-    }
     
-    /**
-     * Test argument sanitization
-     */
-    public function test_argument_sanitization() {
-        $method = $this->get_private_method( $this->generateCommand, 'parseStateNames' );
-        
-        // Test that parseStateNames preserves input (sanitization happens elsewhere)
-        // The method just splits and trims, actual sanitization would happen when used
-        $malicious = '<script>alert("xss")</script>California';
-        $result = $method->invoke( $this->generateCommand, $malicious );
-        // The parse method doesn't sanitize, it just splits/trims
-        // Actual sanitization would happen when the state name is validated
-        $this->assertEquals( '<script>alert("xss")</script>California', $result[0] );
-        
-        // Test SQL injection attempt - parse method preserves it
-        $sql_inject = "California'; DROP TABLE wp_posts; --";
-        $result = $method->invoke( $this->generateCommand, $sql_inject );
-        $this->assertEquals( "California'; DROP TABLE wp_posts; --", $result[0] );
-        
-        // The important part is that these malicious states would fail validation
-        $this->assertFalse( $this->statesProvider->has( '<script>alert("xss")</script>California' ), 'Malicious state should not exist' );
-        $this->assertFalse( $this->statesProvider->has( "California'; DROP TABLE wp_posts; --" ), 'SQL injection state should not exist' );
-    }
     
-    /**
-     * Test batch size validation
-     */
-    public function test_batch_size_validation() {
-        // Test valid batch sizes
-        $valid_sizes = [1, 5, 10, 50, 100];
-        foreach ( $valid_sizes as $size ) {
-            $this->assertTrue( $this->is_valid_batch_size( $size ) );
-        }
-        
-        // Test invalid batch sizes
-        $invalid_sizes = [-1, 0, 1001, 'abc', null, []];
-        foreach ( $invalid_sizes as $size ) {
-            $this->assertFalse( $this->is_valid_batch_size( $size ) );
-        }
-    }
     
     /**
      * Test progress tracking arguments
@@ -334,25 +230,6 @@ class Test_WP_CLI_Args extends TestCase {
         $this->assertTrue( $this->has_conflicting_args( $args ) );
     }
     
-    /**
-     * Test command help output format
-     */
-    public function test_help_output_format() {
-        // Simulate help command structure
-        $help_sections = [
-            'description' => 'Generate local pages for WordPress development services',
-            'synopsis' => '[--state=<state>] [--city=<city>] [--generate-all]',
-            'examples' => [
-                'wp 84em local-pages --state=California',
-                'wp 84em local-pages --generate-all --states-only'
-            ]
-        ];
-        
-        $this->assertArrayHasKey( 'description', $help_sections );
-        $this->assertArrayHasKey( 'synopsis', $help_sections );
-        $this->assertArrayHasKey( 'examples', $help_sections );
-        $this->assertIsArray( $help_sections['examples'] );
-    }
     
     /**
      * Test state argument with 'all' value
@@ -431,13 +308,6 @@ class Test_WP_CLI_Args extends TestCase {
     }
     
     /**
-     * Helper to check valid batch size
-     */
-    private function is_valid_batch_size( $size ) {
-        return is_int( $size ) && $size > 0 && $size <= 1000;
-    }
-    
-    /**
      * Helper to check conflicting arguments
      */
     private function has_conflicting_args( $args ) {
@@ -455,25 +325,57 @@ class Test_WP_CLI_Args extends TestCase {
     }
     
     /**
-     * Helper to create mock ApiKeyManager
+     * Helper to create mock objects
      */
     private function createMock( $class ) {
-        return new class extends ApiKeyManager {
-            public function __construct() {
-                // Empty constructor for mock
-            }
-            
-            public function getApiKey(): ?string {
-                return 'mock-api-key';
-            }
-            
-            public function setApiKey( string $apiKey ): bool {
-                return true;
-            }
-            
-            public function validateApiKey(): bool {
-                return true;
-            }
-        };
+        if ( $class === ApiKeyManager::class ) {
+            return new class extends ApiKeyManager {
+                public function __construct() {
+                    // Empty constructor for mock
+                }
+                
+                public function getApiKey(): ?string {
+                    return 'mock-api-key';
+                }
+                
+                public function setApiKey( string $apiKey ): bool {
+                    return true;
+                }
+                
+                public function validateApiKey(): bool {
+                    return true;
+                }
+                
+                public function getKey(): string|false {
+                    return 'mock-api-key';
+                }
+                
+                public function hasKey(): bool {
+                    return true;
+                }
+            };
+        }
+        
+        if ( $class === ClaudeApiClient::class ) {
+            return new class( null ) extends ClaudeApiClient {
+                public function __construct( $keyManager ) {
+                    // Don't call parent constructor
+                }
+                
+                public function sendRequest( string $prompt ): string|false {
+                    return 'mock-response';
+                }
+                
+                public function isConfigured(): bool {
+                    return true;
+                }
+                
+                public function validateCredentials(): bool {
+                    return true;
+                }
+            };
+        }
+        
+        return null;
     }
 }

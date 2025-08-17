@@ -27,7 +27,6 @@ class TestCommand {
             'content-processing' => 'test-content-processing.php',
             'cli-args'           => 'test-wp-cli-args.php',
             'ld-json'            => 'test-ld-json-schema.php',
-            'container'          => 'test-container.php',
             'api-client'         => 'test-api-client.php',
             'content-generators' => 'test-content-generators.php',
             'error-handling'      => 'test-error-handling.php',

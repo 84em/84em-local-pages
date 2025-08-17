@@ -29,6 +29,13 @@ class CityContentGenerator implements ContentGeneratorInterface {
     private ApiKeyManager $apiKeyManager;
 
     /**
+     * Claude API client
+     *
+     * @var ClaudeApiClient
+     */
+    private ClaudeApiClient $apiClient;
+
+    /**
      * States data provider
      *
      * @var StatesProvider
@@ -60,6 +67,7 @@ class CityContentGenerator implements ContentGeneratorInterface {
      * Constructor
      *
      * @param  ApiKeyManager  $apiKeyManager  API key manager
+     * @param  ClaudeApiClient  $apiClient  Claude API client
      * @param  StatesProvider  $statesProvider  States data provider
      * @param  KeywordsProvider  $keywordsProvider  Keywords provider
      * @param  SchemaGenerator  $schemaGenerator  Schema generator
@@ -67,12 +75,14 @@ class CityContentGenerator implements ContentGeneratorInterface {
      */
     public function __construct(
         ApiKeyManager $apiKeyManager,
+        ClaudeApiClient $apiClient,
         StatesProvider $statesProvider,
         KeywordsProvider $keywordsProvider,
         SchemaGenerator $schemaGenerator,
         ContentProcessor $contentProcessor
     ) {
         $this->apiKeyManager    = $apiKeyManager;
+        $this->apiClient        = $apiClient;
         $this->statesProvider   = $statesProvider;
         $this->keywordsProvider = $keywordsProvider;
         $this->schemaGenerator  = $schemaGenerator;
@@ -101,7 +111,7 @@ class CityContentGenerator implements ContentGeneratorInterface {
             throw new Exception( 'API key not available' );
         }
 
-        $apiClient   = new ClaudeApiClient( $this->apiKeyManager );
+        $apiClient   = $this->apiClient;
         $raw_content = $apiClient->sendRequest( $prompt );
 
         if ( ! $raw_content ) {
@@ -163,11 +173,21 @@ class CityContentGenerator implements ContentGeneratorInterface {
 
             // Find or get state parent page
             $state_posts = get_posts( [
-                'post_type'      => 'local',
-                'meta_key'       => '_local_page_state',
-                'meta_value'     => $state,
-                'meta_compare'   => '=',
-                'posts_per_page' => 1,
+                'post_type'   => 'local',
+                'meta_query'  => [
+                    'relation' => 'AND',
+                    [
+                        'key'     => '_local_page_state',
+                        'value'   => $state,
+                        'compare' => '='
+                    ],
+                    [
+                        'key'     => '_local_page_city',
+                        'compare' => 'NOT EXISTS'
+                    ]
+                ],
+                'numberposts' => 1,
+                'post_status' => 'any',
             ] );
 
             $parent_id = ! empty( $state_posts ) ? $state_posts[0]->ID : 0;

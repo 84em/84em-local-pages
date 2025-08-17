@@ -124,12 +124,4 @@ class LocalPostType {
 
         return $post_link;
     }
-
-    /**
-     * Flush rewrite rules
-     */
-    public function flushRewriteRules(): void {
-        $this->registerPostType();
-        flush_rewrite_rules();
-    }
 }

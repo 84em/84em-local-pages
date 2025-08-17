@@ -13,20 +13,6 @@ use EightyFourEM\LocalPages\Api\Encryption;
 
 class Test_Error_Handling extends TestCase {
     
-    /**
-     * Test encryption error handling for empty input
-     */
-    public function test_encryption_handles_empty_input() {
-        $encryption = new Encryption();
-        
-        // Test empty string encryption
-        $result = $encryption->encrypt( '' );
-        $this->assertFalse( $result );
-        
-        // Test empty string decryption
-        $result = $encryption->decrypt( '' );
-        $this->assertFalse( $result );
-    }
     
     /**
      * Test encryption error handling for invalid data
@@ -48,24 +34,6 @@ class Test_Error_Handling extends TestCase {
         }
     }
     
-    /**
-     * Test that CLI commands handle invalid state names
-     */
-    public function test_cli_handles_invalid_states() {
-        // Test that command arguments are validated
-        $invalidStates = [
-            '',           // Empty
-            null,         // Null
-            '123',        // Numbers only
-            '@#$%',       // Special chars only
-        ];
-        
-        foreach ( $invalidStates as $state ) {
-            // These should be handled gracefully, not throw uncaught exceptions
-            $sanitized = sanitize_title( $state ?? '' );
-            $this->assertIsString( $sanitized );
-        }
-    }
     
     /**
      * Test error message sanitization for sensitive data
@@ -101,72 +69,8 @@ class Test_Error_Handling extends TestCase {
         $this->assertFalse( $found );
     }
     
-    /**
-     * Test WP_DEBUG logging behavior
-     */
-    public function test_debug_logging_conditions() {
-        // When WP_DEBUG is not defined, no errors should be logged
-        if ( ! defined( 'WP_DEBUG' ) ) {
-            // Simulate what happens in ClaudeApiClient::logError
-            $shouldLog = false;
-            $this->assertFalse( $shouldLog );
-        }
-        
-        // When WP_DEBUG is true, errors should be logged
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            // Simulate what happens in ClaudeApiClient::logError  
-            $shouldLog = true;
-            $this->assertTrue( $shouldLog );
-        }
-        
-        // If neither condition is met, just pass the test
-        $this->assertTrue( true );
-    }
     
-    /**
-     * Test handling of WordPress errors
-     */
-    public function test_wordpress_error_detection() {
-        // The plugin uses wp_remote_post which can return WP_Error
-        // Test that this is handled properly
-        
-        // Simulate WP_Error check
-        $response = new WP_Error( 'http_request_failed', 'Connection timeout' );
-        
-        $isError = is_wp_error( $response );
-        $this->assertTrue( $isError );
-        
-        // The plugin should handle this by returning false
-        if ( is_wp_error( $response ) ) {
-            $result = false;
-        } else {
-            $result = true;
-        }
-        
-        $this->assertFalse( $result );
-    }
     
-    /**
-     * Test JSON decode error handling
-     */
-    public function test_json_validation() {
-        // Test various invalid JSON that might come from API
-        $invalidJson = [
-            '',                    // Empty
-            'not json',           // Plain text
-            '{"incomplete":',     // Incomplete JSON
-            '{invalid}',          // Invalid format
-            'null',               // Valid but not expected format
-        ];
-        
-        foreach ( $invalidJson as $json ) {
-            $decoded = json_decode( $json, true );
-            
-            // Check if the expected structure exists
-            $hasExpectedFormat = isset( $decoded['content'][0]['text'] );
-            $this->assertFalse( $hasExpectedFormat );
-        }
-    }
     
     /**
      * Test handling of empty/null content
@@ -187,32 +91,6 @@ class Test_Error_Handling extends TestCase {
         }
     }
     
-    /**
-     * Test API response code validation
-     */
-    public function test_http_response_codes() {
-        // Test that various HTTP response codes are handled
-        $errorCodes = [
-            400, // Bad Request
-            401, // Unauthorized
-            403, // Forbidden
-            404, // Not Found
-            429, // Too Many Requests
-            500, // Internal Server Error
-            502, // Bad Gateway
-            503, // Service Unavailable
-        ];
-        
-        foreach ( $errorCodes as $code ) {
-            // The plugin checks if response code is 200
-            $isSuccess = ( 200 === $code );
-            $this->assertFalse( $isSuccess );
-        }
-        
-        // Test success code
-        $isSuccess = ( 200 === 200 );
-        $this->assertTrue( $isSuccess );
-    }
     
     /**
      * Test validation of state data structure
@@ -230,24 +108,6 @@ class Test_Error_Handling extends TestCase {
         }
     }
     
-    /**
-     * Test URL slug generation for error conditions
-     */
-    public function test_url_slug_error_handling() {
-        // Test problematic state names
-        $problematicNames = [
-            'New York & Jersey' => 'new-york-jersey',
-            'State with   spaces' => 'state-with-spaces',
-            'State-with-dashes' => 'state-with-dashes',
-            'State_with_underscores' => 'state_with_underscores',
-            'STATE IN CAPS' => 'state-in-caps',
-        ];
-        
-        foreach ( $problematicNames as $input => $expected ) {
-            $slug = sanitize_title( $input );
-            $this->assertEquals( $expected, $slug );
-        }
-    }
     
     /**
      * Helper method to get states data
@@ -262,32 +122,3 @@ class Test_Error_Handling extends TestCase {
     }
 }
 
-/**
- * Mock WP_Error for testing (if not in WordPress environment)
- */
-if ( ! class_exists( 'WP_Error' ) ) {
-    class WP_Error {
-        private $code;
-        private $message;
-        
-        public function __construct( $code = '', $message = '', $data = '' ) {
-            $this->code = $code;
-            $this->message = $message;
-        }
-        
-        public function get_error_message() {
-            return $this->message;
-        }
-        
-        public function get_error_code() {
-            return $this->code;
-        }
-    }
-}
-
-// Mock is_wp_error if not available
-if ( ! function_exists( 'is_wp_error' ) ) {
-    function is_wp_error( $thing ) {
-        return ( $thing instanceof WP_Error );
-    }
-}

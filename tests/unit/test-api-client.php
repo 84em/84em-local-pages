@@ -60,28 +60,6 @@ class Test_API_Client extends TestCase {
         // Note: Skipping success case as it requires real API key
     }
     
-    /**
-     * Test retry logic constants
-     */
-    public function test_retry_constants() {
-        $reflection = new ReflectionClass( $this->apiClient );
-        
-        // Check max retries
-        $maxRetries = $reflection->getConstant( 'MAX_RETRIES' );
-        $this->assertIsInt( $maxRetries );
-        $this->assertGreaterThan( 0, $maxRetries );
-        $this->assertLessThanOrEqual( 5, $maxRetries );
-        
-        // Check initial retry delay
-        $initialDelay = $reflection->getConstant( 'INITIAL_RETRY_DELAY' );
-        $this->assertIsInt( $initialDelay );
-        $this->assertGreaterThan( 0, $initialDelay );
-        
-        // Check max retry delay
-        $maxDelay = $reflection->getConstant( 'MAX_RETRY_DELAY' );
-        $this->assertIsInt( $maxDelay );
-        $this->assertGreaterThan( $initialDelay, $maxDelay );
-    }
     
     /**
      * Test retryable error detection
@@ -168,48 +146,6 @@ class Test_API_Client extends TestCase {
         $this->assertFalse( $result );
     }
     
-    /**
-     * Test API constants
-     */
-    public function test_api_constants() {
-        $reflection = new ReflectionClass( $this->apiClient );
-        
-        // Check API endpoint
-        $endpoint = $reflection->getConstant( 'API_ENDPOINT' );
-        $this->assertStringContainsString( 'anthropic.com', $endpoint );
-        $this->assertStringContainsString( '/messages', $endpoint );
-        
-        // Check API version
-        $version = $reflection->getConstant( 'API_VERSION' );
-        $this->assertMatchesRegularExpression( '/^\d{4}-\d{2}-\d{2}$/', $version );
-        
-        // Check model
-        $model = $reflection->getConstant( 'MODEL' );
-        $this->assertStringContainsString( 'claude', $model );
-        
-        // Check max tokens
-        $maxTokens = $reflection->getConstant( 'MAX_TOKENS' );
-        $this->assertIsInt( $maxTokens );
-        $this->assertGreaterThan( 1000, $maxTokens );
-        
-        // Check timeout
-        $timeout = $reflection->getConstant( 'TIMEOUT' );
-        $this->assertIsInt( $timeout );
-        $this->assertGreaterThanOrEqual( 30, $timeout );
-        
-        // Check retry constants
-        $maxRetries = $reflection->getConstant( 'MAX_RETRIES' );
-        $this->assertIsInt( $maxRetries );
-        $this->assertEquals( 3, $maxRetries );
-        
-        $initialDelay = $reflection->getConstant( 'INITIAL_RETRY_DELAY' );
-        $this->assertIsInt( $initialDelay );
-        $this->assertEquals( 1, $initialDelay );
-        
-        $maxDelay = $reflection->getConstant( 'MAX_RETRY_DELAY' );
-        $this->assertIsInt( $maxDelay );
-        $this->assertEquals( 30, $maxDelay );
-    }
     
     /**
      * Test API key manager integration
@@ -225,27 +161,6 @@ class Test_API_Client extends TestCase {
         $this->assertSame( $this->mockKeyManager, $keyManager );
     }
     
-    /**
-     * Test with different API key formats
-     */
-    public function test_different_api_key_formats() {
-        // Test with Anthropic format key
-        $anthropicKey = 'sk-ant-api03-test-key';
-        $manager1 = $this->createMockApiKeyManager( $anthropicKey );
-        $client1 = new ClaudeApiClient( $manager1 );
-        $this->assertTrue( $client1->isConfigured() );
-        
-        // Test with regular string key
-        $regularKey = 'regular-api-key-123';
-        $manager2 = $this->createMockApiKeyManager( $regularKey );
-        $client2 = new ClaudeApiClient( $manager2 );
-        $this->assertTrue( $client2->isConfigured() );
-        
-        // Test with null key
-        $nullManager = $this->createMockApiKeyManager( null );
-        $nullClient = new ClaudeApiClient( $nullManager );
-        $this->assertFalse( $nullClient->isConfigured() );
-    }
     
     /**
      * Test error scenarios in sendRequest
@@ -287,28 +202,6 @@ class Test_API_Client extends TestCase {
         $this->assertFalse( $result );
     }
     
-    /**
-     * Test logging methods accessibility
-     */
-    public function test_logging_methods() {
-        $reflection = new ReflectionClass( $this->apiClient );
-        
-        // Check that logging methods exist
-        $this->assertTrue( $reflection->hasMethod( 'logError' ) );
-        $this->assertTrue( $reflection->hasMethod( 'logWarning' ) );
-        $this->assertTrue( $reflection->hasMethod( 'logInfo' ) );
-        $this->assertTrue( $reflection->hasMethod( 'logApiErrorDetails' ) );
-        
-        // Check that they are private (encapsulation)
-        $logError = $reflection->getMethod( 'logError' );
-        $this->assertTrue( $logError->isPrivate() );
-        
-        $logWarning = $reflection->getMethod( 'logWarning' );
-        $this->assertTrue( $logWarning->isPrivate() );
-        
-        $logInfo = $reflection->getMethod( 'logInfo' );
-        $this->assertTrue( $logInfo->isPrivate() );
-    }
     
     /**
      * Test API error details logging

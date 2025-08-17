@@ -158,6 +158,7 @@ class Plugin {
         $this->container->register( StateContentGenerator::class, function ( $container ) {
             return new StateContentGenerator(
                 $container->get( ApiKeyManager::class ),
+                $container->get( ClaudeApiClient::class ),
                 $container->get( StatesProvider::class ),
                 $container->get( KeywordsProvider::class ),
                 $container->get( SchemaGenerator::class ),
@@ -168,6 +169,7 @@ class Plugin {
         $this->container->register( CityContentGenerator::class, function ( $container ) {
             return new CityContentGenerator(
                 $container->get( ApiKeyManager::class ),
+                $container->get( ClaudeApiClient::class ),
                 $container->get( StatesProvider::class ),
                 $container->get( KeywordsProvider::class ),
                 $container->get( SchemaGenerator::class ),
@@ -191,7 +193,11 @@ class Plugin {
             return new GenerateCommand(
                 $container->get( ApiKeyManager::class ),
                 $container->get( StatesProvider::class ),
-                $container->get( KeywordsProvider::class )
+                $container->get( KeywordsProvider::class ),
+                $container->get( StateContentGenerator::class ),
+                $container->get( CityContentGenerator::class ),
+                $container->get( ContentProcessor::class ),
+                $container->get( SchemaGenerator::class )
             );
         } );
 
@@ -199,7 +205,9 @@ class Plugin {
             return new CommandHandler(
                 $container->get( ApiKeyManager::class ),
                 $container->get( StatesProvider::class ),
-                $container->get( KeywordsProvider::class )
+                $container->get( KeywordsProvider::class ),
+                $container->get( TestCommand::class ),
+                $container->get( GenerateCommand::class )
             );
         } );
 

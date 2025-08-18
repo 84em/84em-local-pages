@@ -76,16 +76,17 @@ class KeywordsProvider implements DataProviderInterface {
      * Load keywords data
      */
     private function loadData(): void {
-        $home_page     = site_url( '/' );
         $work_page     = site_url( '/work/' );
         $services_page = site_url( '/services/' );
+        $custom_plugin_development_page = site_url( '/services/custom-wordpress-plugin-development/' );
+        $white_label_development_page = site_url( '/services/white-label-wordpress-development-for-agencies/' );
 
         $this->data = [
             'WordPress development'                 => $work_page,
-            'custom plugin development'             => $work_page,
+            'custom plugin development'             => $custom_plugin_development_page,
             'API integrations'                      => $work_page,
             'security audits'                       => $work_page,
-            'white-label development'               => $services_page,
+            'white-label development'               => $white_label_development_page,
             'WordPress maintenance'                 => $services_page,
             'WordPress support'                     => $services_page,
             'data migration'                        => $services_page,
@@ -96,10 +97,11 @@ class KeywordsProvider implements DataProviderInterface {
             'web development'                       => $work_page,
             'WordPress migrations'                  => $services_page,
             'digital agency services'               => $services_page,
-            'WordPress plugin development'          => $services_page,
-            'Custom WordPress plugin development'   => $home_page,
-            'White label WordPress development'     => $services_page,
-            'WordPress plugin development services' => $services_page,
+            'WordPress plugin development'          => $custom_plugin_development_page,
+            'Custom WordPress plugin development'   => $custom_plugin_development_page,
+            'White label WordPress development'     => $white_label_development_page,
+            'White label web development'           => $white_label_development_page,
+            'WordPress plugin development services' => $custom_plugin_development_page,
         ];
     }
 }

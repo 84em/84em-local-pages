@@ -33,6 +33,7 @@ This plugin creates unique, locally-focused landing pages for WordPress developm
 - **XML Sitemap Generation**: Generate XML sitemaps for all local pages with WP-CLI
 - **Index Page Generation**: Create or update a master index page with alphabetized state list
 - **Schema Regeneration**: Fix LD-JSON schema issues without regenerating page content
+- **Keyword Link Updates**: Update service keyword links when URLs change without API calls
 
 ## Requirements
 
@@ -240,6 +241,15 @@ wp 84em local-pages --generate-index
 wp 84em local-pages --generate-sitemap
 ```
 
+**Update Keyword Links (Refresh service keyword links without API calls):**
+```bash
+# Update keyword links in all pages
+wp 84em local-pages --update-keyword-links
+
+# Update keyword links in state pages only
+wp 84em local-pages --update-keyword-links --states-only
+```
+
 **Regenerate LD-JSON Schemas (Fix schema issues without regenerating content):**
 ```bash
 # All pages
@@ -366,7 +376,7 @@ https://84em.com/wordpress-development-services-texas/dallas/
 ```php
 'model' => 'claude-sonnet-4-20250514'
 'max_tokens' => 4000
-'timeout' => 60 seconds
+'timeout' => 600 seconds
 'rate_limit' => 1 second delay between requests
 ```
 

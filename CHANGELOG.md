@@ -5,6 +5,24 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.1] - 2025-08-18
+
+### Added
+- **Keyword Link Update Command**: New `--update-keyword-links` command to refresh service keyword links without API calls
+  - Updates keyword links in all existing pages when `KeywordsProvider` URLs change
+  - Strips existing keyword links and reprocesses with current URLs
+  - Supports `--states-only` flag to update only state pages
+  - Shows progress bar with detailed statistics (updated/skipped/errors)
+  - Preserves all other content including city links and WordPress block structure
+  - No Claude API key required - works entirely with existing content
+
+### Changed
+- **KeywordsProvider URLs**: Updated service keyword mappings to use more specific URLs (Commit ae1f988)
+  - `custom plugin development` → `/services/custom-wordpress-plugin-development/`
+  - `white-label development` → `/services/white-label-wordpress-development-for-agencies/`
+  - Added new multi-word keywords with proper URL mappings
+  - All keywords now point to appropriate service-specific pages
+
 ## [3.2.0] - 2025-08-17
 
 ### Added

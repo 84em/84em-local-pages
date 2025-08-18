@@ -1127,4 +1127,189 @@ class GenerateCommand {
             'states_data' => $states_data,
         ];
     }
+
+    /**
+     * Handle updating keyword links in existing pages
+     *
+     * @param  array  $args  Positional arguments
+     * @param  array  $assoc_args  Associative arguments
+     *
+     * @return void
+     */
+    public function handleUpdateKeywordLinks( array $args, array $assoc_args ): void {
+        WP_CLI::line( '🔗 Updating Keyword Links in Existing Pages' );
+        WP_CLI::line( '============================================' );
+        WP_CLI::line( '' );
+
+        // Check if we should update only states or all
+        $states_only = isset( $assoc_args['states-only'] );
+        
+        // Get all local pages
+        $query_args = [
+            'post_type'      => 'local',
+            'posts_per_page' => -1,
+            'post_status'    => 'publish',
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+        ];
+
+        // If states-only, exclude city pages
+        if ( $states_only ) {
+            $query_args['meta_query'] = [
+                [
+                    'key'     => '_local_page_city',
+                    'compare' => 'NOT EXISTS',
+                ],
+            ];
+            WP_CLI::line( '📊 Processing state pages only...' );
+        } else {
+            WP_CLI::line( '📊 Processing all state and city pages...' );
+        }
+
+        $posts = get_posts( $query_args );
+        
+        if ( empty( $posts ) ) {
+            WP_CLI::warning( 'No local pages found to update.' );
+            return;
+        }
+
+        $total = count( $posts );
+        WP_CLI::line( "Found {$total} pages to update." );
+        WP_CLI::line( '' );
+
+        // Initialize progress bar
+        $progress = \WP_CLI\Utils\make_progress_bar( 'Updating keyword links', $total );
+
+        $updated_count = 0;
+        $skipped_count = 0;
+        $error_count = 0;
+
+        foreach ( $posts as $post ) {
+            try {
+                // Get the current content
+                $content = $post->post_content;
+                
+                if ( empty( $content ) ) {
+                    $skipped_count++;
+                    $progress->tick();
+                    continue;
+                }
+
+                // Determine the context (state or city page)
+                $state = get_post_meta( $post->ID, '_local_page_state', true );
+                $city = get_post_meta( $post->ID, '_local_page_city', true );
+                
+                $context = [
+                    'type' => ! empty( $city ) ? 'city' : 'state',
+                    'state' => $state,
+                ];
+                
+                if ( ! empty( $city ) ) {
+                    $context['city'] = $city;
+                }
+
+                // First, strip all existing links to keywords and locations
+                // This ensures we're starting fresh with the latest keyword URLs
+                $stripped_content = $this->stripExistingKeywordLinks( $content );
+
+                // Reprocess the content with current keywords
+                $processed_content = $this->contentProcessor->processContent( $stripped_content, $context );
+
+                // Check if content actually changed (compare with original, not stripped)
+                if ( $processed_content === $post->post_content ) {
+                    $skipped_count++;
+                    $progress->tick();
+                    continue;
+                }
+
+                // Update the post
+                $result = wp_update_post( [
+                    'ID'           => $post->ID,
+                    'post_content' => $processed_content,
+                ], true );
+
+                if ( is_wp_error( $result ) ) {
+                    $error_count++;
+                    WP_CLI::warning( "Failed to update {$post->post_title}: " . $result->get_error_message() );
+                } else {
+                    $updated_count++;
+                }
+
+            } catch ( \Exception $e ) {
+                $error_count++;
+                WP_CLI::warning( "Error processing {$post->post_title}: " . $e->getMessage() );
+            }
+
+            $progress->tick();
+        }
+
+        $progress->finish();
+
+        // Display summary
+        WP_CLI::line( '' );
+        WP_CLI::line( '📊 Update Summary' );
+        WP_CLI::line( '=================' );
+        WP_CLI::line( "Total pages processed: {$total}" );
+        WP_CLI::success( "Updated: {$updated_count}" );
+        
+        if ( $skipped_count > 0 ) {
+            WP_CLI::line( "Skipped (no changes): {$skipped_count}" );
+        }
+        
+        if ( $error_count > 0 ) {
+            WP_CLI::warning( "Errors: {$error_count}" );
+        }
+
+        WP_CLI::line( '' );
+        WP_CLI::success( 'Keyword link update complete!' );
+    }
+
+    /**
+     * Strip existing keyword and location links from content
+     *
+     * @param  string  $content  Content to strip links from
+     *
+     * @return string Content with links removed
+     */
+    private function stripExistingKeywordLinks( string $content ): string {
+        // Get all keywords
+        $keywords = $this->keywordsProvider->getAll();
+        
+        // Strip ANY links containing our keywords, regardless of URL
+        // This ensures we remove links with old URLs too
+        foreach ( $keywords as $keyword => $url ) {
+            // Escape special regex characters in the keyword
+            $escaped_keyword = preg_quote( $keyword, '/' );
+            
+            // Pattern to match: <a href="[any url]">[keyword]</a>
+            // This removes any link where the link text exactly matches our keyword
+            // Case-insensitive to catch variations
+            $pattern = '/<a\s+href=["\'][^"\']*["\']>(' . $escaped_keyword . ')<\/a>/i';
+            $content = preg_replace( $pattern, '$1', $content );
+        }
+        
+        // Also strip links to known service/work pages that might have old URLs
+        // This catches links to /services/, /work/, /contact/ etc with keyword text
+        $known_paths = [
+            '/work/',
+            '/services/',
+            '/services/custom-wordpress-plugin-development/',
+            '/services/white-label-wordpress-development-for-agencies/',
+            '/contact/',
+        ];
+        
+        foreach ( $known_paths as $path ) {
+            $escaped_path = preg_quote( $path, '/' );
+            // Remove any link to these paths, preserving the text content
+            $pattern = '/<a\s+href=["\'][^"\']*' . $escaped_path . '[^"\']*["\']>([^<]+)<\/a>/i';
+            $content = preg_replace( $pattern, '$1', $content );
+        }
+        
+        // Remove location links (state and city links)
+        // Pattern for local page links: /wordpress-development-services-[state]/[city]?/
+        $pattern = '/<a\s+href=["\']\/?wordpress-development-services-[^"\']+["\']>([^<]+)<\/a>/i';
+        $content = preg_replace( $pattern, '$1', $content );
+        
+        return $content;
+    }
 }

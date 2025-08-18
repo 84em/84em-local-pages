@@ -307,6 +307,10 @@ wp 84em local-pages --generate-index
 # Generate XML sitemap (no API key required)
 wp 84em local-pages --generate-sitemap
 
+# Update keyword links in existing pages (no API key required)
+wp 84em local-pages --update-keyword-links                    # All pages
+wp 84em local-pages --update-keyword-links --states-only      # States only
+
 # Regenerate LD-JSON schemas without touching content (no API key required)
 wp 84em local-pages --regenerate-schema                    # All pages
 wp 84em local-pages --regenerate-schema --states-only      # States only
@@ -412,6 +416,20 @@ The `--generate-sitemap` command creates XML sitemaps. This command:
 - **No API calls**: Generates XML using WordPress permalink data
 - **Includes All Pages**: Both state and city pages in sitemap
 - **Static output**: Creates `sitemap-local.xml` in WordPress root directory
+
+### Keyword Link Updates
+The `--update-keyword-links` command refreshes all keyword and location links in existing pages. This command:
+- **Does not require Claude API key**: Works with existing page content
+- **No API calls**: Reprocesses existing content with current keyword mappings
+- **Use Case**: Update links when KeywordsProvider URLs change
+- **Process**: 
+  1. Strips existing auto-generated keyword and location links
+  2. Reprocesses content with ContentProcessor using latest keywords
+  3. Preserves user-added links and content structure
+- **Options**:
+  - `--update-keyword-links`: Updates all state and city pages
+  - `--update-keyword-links --states-only`: Updates state pages only
+- **Performance**: Uses progress bar and batch processing for efficiency
 
 ## Health Check Endpoint
 

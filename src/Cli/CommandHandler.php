@@ -124,6 +124,11 @@ class CommandHandler {
                 return;
             }
 
+            if ( isset( $assoc_args['update-keyword-links'] ) ) {
+                $this->generateCommand->handleUpdateKeywordLinks( $args, $assoc_args );
+                return;
+            }
+
             // Handle delete operations (don't require API key)
             if ( isset( $assoc_args['delete'] ) ) {
                 $this->generateCommand->handleDelete( $args, $assoc_args );
@@ -481,7 +486,7 @@ class CommandHandler {
             'state', 'city', 'test', 'suite', 'generate-all', 'update-all',
             'states-only', 'complete', 'set-api-key', 'validate-api-key',
             'generate-sitemap', 'generate-index', 'regenerate-schema',
-            'delete', 'update', 'help', 'all'
+            'update-keyword-links', 'delete', 'update', 'help', 'all'
         ];
         
         $unrecognized = [];
@@ -661,7 +666,7 @@ class CommandHandler {
         
         // Check for states-only with inappropriate commands
         if ( isset( $assoc_args['states-only'] ) ) {
-            $valid_with_states_only = ['generate-all', 'update-all', 'regenerate-schema'];
+            $valid_with_states_only = ['generate-all', 'update-all', 'regenerate-schema', 'update-keyword-links'];
             $has_valid_command = false;
             
             foreach ( $valid_with_states_only as $valid_cmd ) {
@@ -673,10 +678,11 @@ class CommandHandler {
             
             if ( ! $has_valid_command ) {
                 throw new \Exception(
-                    "--states-only can only be used with --generate-all, --update-all, or --regenerate-schema\n" .
+                    "--states-only can only be used with --generate-all, --update-all, --regenerate-schema, or --update-keyword-links\n" .
                     "Examples:\n" .
                     "  wp 84em local-pages --generate-all --states-only\n" .
-                    "  wp 84em local-pages --update-all --states-only\n"
+                    "  wp 84em local-pages --update-all --states-only\n" .
+                    "  wp 84em local-pages --update-keyword-links --states-only\n"
                 );
             }
         }
@@ -729,6 +735,8 @@ class CommandHandler {
         WP_CLI::line( '  --delete --state="State" --city="City"  Delete specific city' );
         WP_CLI::line( '  --generate-sitemap         Generate XML sitemap for all local pages' );
         WP_CLI::line( '  --generate-index           Generate index page with all locations' );
+        WP_CLI::line( '  --update-keyword-links     Update keyword links in all existing pages' );
+        WP_CLI::line( '  --update-keyword-links --states-only  Update keyword links in state pages only' );
         WP_CLI::line( '  --regenerate-schema        Regenerate schema markup for all pages' );
         WP_CLI::line( '' );
         WP_CLI::line( 'EXAMPLES:' );

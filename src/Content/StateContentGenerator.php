@@ -286,7 +286,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
 
 IMPORTANT: Create unique, original content that is different from other state pages. Focus on local relevance through city mentions and state-specific benefits.
 
-84EM is a 100% FULLY REMOTE WordPress development company. Do NOT mention on-site visits, in-person consultations, local offices, or physical presence. All work is done remotely.
+84EM is a 100% FULLY REMOTE WordPress development company. Do NOT mention on-site visits, in-person consultations, local offices, or physical presence. All work is done remotely.  But DO mention that 84EM is headquartered in Cedar Rapids, Iowa.  No need to specifically use the phrase \"remote-first\"
 
 Include the following key elements:
 1. A professional opening paragraph mentioning {$state} and ALL of these cities: {$city_list} (you MUST mention all 6 cities)

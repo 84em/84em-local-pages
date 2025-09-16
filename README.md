@@ -331,10 +331,10 @@ https://84em.com/wordpress-development-services-texas/dallas/
 
 **State Pages:**
 - ✅ City names → Link to city pages
-- ✅ Service keywords → Link to https://84em.com/contact/
+- ✅ Service keywords → Link to service pages
 
 **City Pages:**
-- ✅ Service keywords → Link to https://84em.com/contact/
+- ✅ Service keywords → Link to service pages
 
 ### SEO Implementation
 

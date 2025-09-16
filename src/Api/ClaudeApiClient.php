@@ -41,7 +41,7 @@ class ClaudeApiClient implements ApiClientInterface {
     /**
      * Maximum retry attempts
      */
-    private const MAX_RETRIES = 3;
+    private const MAX_RETRIES = 5;
 
     /**
      * Initial retry delay in seconds
@@ -51,7 +51,7 @@ class ClaudeApiClient implements ApiClientInterface {
     /**
      * Maximum retry delay in seconds
      */
-    private const MAX_RETRY_DELAY = 30;
+    private const MAX_RETRY_DELAY = 60;
 
     /**
      * API key manager
@@ -129,14 +129,14 @@ class ClaudeApiClient implements ApiClientInterface {
             if ( is_wp_error( $response ) ) {
                 $error_message = $response->get_error_message();
                 $last_error = "Network error: {$error_message}";
-                
+
                 // Check if error is retryable
                 if ( $this->isRetryableError( $error_message ) ) {
                     $this->logWarning( "Retryable error on attempt {$attempt}: {$error_message}" );
                     $retry_delay = min( $retry_delay * 2, self::MAX_RETRY_DELAY );
                     continue;
                 }
-                
+
                 // Non-retryable error
                 $this->logError( "Non-retryable error: {$error_message}" );
                 return false;
@@ -262,6 +262,7 @@ class ClaudeApiClient implements ApiClientInterface {
             504, // Gateway Timeout
             507, // Insufficient Storage
             509, // Bandwidth Limit Exceeded
+            529, // Overloaded
         ];
 
         return in_array( $status_code, $retryable_codes, true );
@@ -276,10 +277,10 @@ class ClaudeApiClient implements ApiClientInterface {
     private function logApiErrorDetails( int $status_code, string $response_body ): void {
         // Try to parse error details from response
         $data = json_decode( $response_body, true );
-        
+
         if ( isset( $data['error'] ) ) {
             $error = $data['error'];
-            
+
             if ( is_array( $error ) ) {
                 $error_type = $error['type'] ?? 'unknown';
                 $error_message = $error['message'] ?? 'No error message';
@@ -367,7 +368,7 @@ class ClaudeApiClient implements ApiClientInterface {
         if ( defined( 'EIGHTYFOUREM_TESTING' ) && EIGHTYFOUREM_TESTING ) {
             return true;
         }
-        
+
         // Check if the current WP-CLI command is a test command
         if ( defined( 'WP_CLI' ) && WP_CLI ) {
             $args = $_SERVER['argv'] ?? [];
@@ -377,7 +378,7 @@ class ClaudeApiClient implements ApiClientInterface {
                 }
             }
         }
-        
+
         return false;
     }
 

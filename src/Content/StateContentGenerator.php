@@ -175,16 +175,16 @@ class StateContentGenerator implements ContentGeneratorInterface {
 
             // Create the WordPress post
             $post_data = [
-                'post_title' => $this->getPostTitle( $state ),
+                'post_title'   => $this->getPostTitle( $state ),
                 'post_content' => $sections['content'],
                 'post_excerpt' => $sections['excerpt'],
                 'post_status'  => 'publish',
                 'post_type'    => 'local',
                 'post_author'  => 1,
                 'meta_input'   => [
-                    '_local_page_state'      => $state,
+                    '_local_page_state'    => $state,
                     '_genesis_description' => $this->getMetaDescription( $state, implode( ', ', $cities ) ),
-                    '_genesis_title'     => $this->getPostTitle( $state ),
+                    '_genesis_title'       => $this->getPostTitle( $state ),
                 ],
             ];
 

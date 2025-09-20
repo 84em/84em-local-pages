@@ -209,8 +209,8 @@ class CityContentGenerator implements ContentGeneratorInterface {
                     '_local_page_state'     => $state,
                     '_local_page_city'      => $city,
                     '_local_page_generated' => current_time( 'mysql' ),
-                    '_genesis_description' => $this->getMetaDescription( "{$city}, {$state}" ),
-                    '_genesis_title'    => $this->getPostTitle( "{$city}, {$state}" ),
+                    '_genesis_description'  => $this->getMetaDescription( "{$city}, {$state}" ),
+                    '_genesis_title'        => $this->getPostTitle( "{$city}, {$state}" ),
                 ],
             ];
 

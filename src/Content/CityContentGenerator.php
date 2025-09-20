@@ -209,7 +209,7 @@ class CityContentGenerator implements ContentGeneratorInterface {
                     '_local_page_state'     => $state,
                     '_local_page_city'      => $city,
                     '_local_page_generated' => current_time( 'mysql' ),
-                    '_genesis_description' => "Professional WordPress development, custom plugins, and web solutions for businesses in {$city}, {$state}. White-label services and expert support.",
+                    '_genesis_description' => $this->getMetaDescription( "{$city}, {$state}" ),
                     '_genesis_title'    => $this->getPostTitle( "{$city}, {$state}" ),
                 ],
             ];
@@ -269,7 +269,7 @@ class CityContentGenerator implements ContentGeneratorInterface {
 
             // Update metadata
             update_post_meta( $post_id, '_local_page_generated', current_time( 'mysql' ) );
-            update_post_meta( $post_id, '_genesis_description', "Professional WordPress development, custom plugins, and web solutions for businesses in {$city}, {$state}. White-label services and expert support." );
+            update_post_meta( $post_id, '_genesis_description', $this->getMetaDescription( "{$city}, {$state}" ) );
             update_post_meta( $post_id, '_genesis_title', $this->getPostTitle( "$city, $state" ) );
 
             // Regenerate schema
@@ -295,6 +295,20 @@ class CityContentGenerator implements ContentGeneratorInterface {
     public function getPostTitle( $data ): string {
 
         return "WordPress consulting & engineering, including custom plugins, security, enterprise integrations, and white‑label agency work in {$data} | 84EM";
+    }
+
+    /**
+     * Generate the meta descirption based on the provided data.
+     *
+     * @param  string  $data
+     *
+     * @param  string|null  $cities
+     *
+     * @return string
+     */
+    public function getMetaDescription( string $data, string $cities = null ): string {
+
+        return "Professional WordPress development, custom plugins, and web solutions for businesses in {$data}. White-label services and expert support.";
     }
 
     /**

@@ -183,7 +183,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
                 'post_author'  => 1,
                 'meta_input'   => [
                     '_local_page_state'      => $state,
-                    '_genesis_description' => "Professional WordPress development, custom plugins, and web solutions for businesses in {$state}. White-label services for agencies in " . implode( ', ', $cities ) . ".",
+                    '_genesis_description' => $this->getMetaDescription( $state, implode( ', ', $cities ) ),
                     '_genesis_title'     => $this->getPostTitle( $state ),
                 ],
             ];
@@ -248,7 +248,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
             $cities     = $state_data['cities'] ?? [];
 
             // Update meta fields
-            update_post_meta( $post_id, '_genesis_description', "Professional WordPress development, custom plugins, and web solutions for businesses in {$state}. White-label services for agencies in " . implode( ', ', $cities ) . "." );
+            update_post_meta( $post_id, '_genesis_description', $this->getMetaDescription( $state, implode( ', ', $cities ) ) );
             update_post_meta( $post_id, '_genesis_title', $this->getPostTitle( $state) );
 
             // Regenerate and save schema
@@ -275,6 +275,19 @@ class StateContentGenerator implements ContentGeneratorInterface {
     public function getPostTitle( $data ): string {
 
         return "WordPress consulting & engineering, including custom plugins, security, enterprise integrations, and white‑label agency work in {$data} | 84EM";
+    }
+
+    /**
+     * Generate the meta descirption based on the provided data.
+     *
+     * @param string $data
+     * @param string|null $cities
+     *
+     * @return string
+     */
+    public function getMetaDescription( string $data, string $cities = null ): string {
+
+        return "Professional WordPress development, custom plugins, and web solutions for businesses in {$data}. White-label services and expert support in {$cities}";
     }
 
     /**

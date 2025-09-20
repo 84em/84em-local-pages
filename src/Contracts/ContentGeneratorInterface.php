@@ -37,4 +37,14 @@ interface ContentGeneratorInterface {
      * @return string The title of the post.
      */
     public function getPostTitle( string $data ): string;
+
+    /**
+     * Retrieves the meta description from the provided data.
+     *
+     * @param  string  $data  The input data from which the meta description is extracted.
+     * @param  string|null  $cities  Additional cities data for meta description generation.
+     *
+     * @return string The extracted meta description.
+     */
+    public function getMetaDescription( string $data, string $cities = null ): string;
 }

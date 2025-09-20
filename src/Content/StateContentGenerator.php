@@ -175,7 +175,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
 
             // Create the WordPress post
             $post_data = [
-                'post_title'   => "WordPress Development Services in {$state} | 84EM",
+                'post_title' => $this->getPostTitle( $state ),
                 'post_content' => $sections['content'],
                 'post_excerpt' => $sections['excerpt'],
                 'post_status'  => 'publish',
@@ -184,7 +184,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
                 'meta_input'   => [
                     '_local_page_state'      => $state,
                     '_genesis_description' => "Professional WordPress development, custom plugins, and web solutions for businesses in {$state}. White-label services for agencies in " . implode( ', ', $cities ) . ".",
-                    '_genesis_title'     => "Expert WordPress Development Services in {$state} | 84EM",
+                    '_genesis_title'     => $this->getPostTitle( $state ),
                 ],
             ];
 
@@ -231,7 +231,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
             // Update the post
             $post_data = [
                 'ID'            => $post_id,
-                'post_title'    => "WordPress Development Services in {$state} | 84EM",
+                'post_title'    => $this->getPostTitle( $state ),
                 'post_content'  => $sections['content'],
                 'post_excerpt'  => $sections['excerpt'],
                 'post_modified' => current_time( 'mysql' ),
@@ -249,7 +249,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
 
             // Update meta fields
             update_post_meta( $post_id, '_genesis_description', "Professional WordPress development, custom plugins, and web solutions for businesses in {$state}. White-label services for agencies in " . implode( ', ', $cities ) . "." );
-            update_post_meta( $post_id, '_genesis_title', "Expert WordPress Development Services in {$state} | 84EM" );
+            update_post_meta( $post_id, '_genesis_title', $this->getPostTitle( $state) );
 
             // Regenerate and save schema
             $schema = $this->schemaGenerator->generateStateSchema( $state );
@@ -263,6 +263,18 @@ class StateContentGenerator implements ContentGeneratorInterface {
             WP_CLI::error( "Failed to update state page for {$state}  (ID: {$post_id}): " . $e->getMessage() );
             return false;
         }
+    }
+
+    /**
+     * Generate the post title based on the provided data.
+     *
+     * @param  mixed  $data  Input data used to construct the post title.
+     *
+     * @return string Generated post title.
+     */
+    public function getPostTitle( $data ): string {
+
+        return "WordPress consulting & engineering, including custom plugins, security, enterprise integrations, and white‑label agency work in {$data} | 84EM";
     }
 
     /**

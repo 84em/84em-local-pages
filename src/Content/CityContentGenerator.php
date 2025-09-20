@@ -197,7 +197,7 @@ class CityContentGenerator implements ContentGeneratorInterface {
 
             // Create post
             $post_data = [
-                'post_title'   => "WordPress Development Services in {$city}, {$state} | 84EM",
+                'post_title'   => $this->getPostTitle( "$city, $state" ),
                 'post_name'    => $city_slug,
                 'post_content' => $content,
                 'post_excerpt' => $sections['excerpt'] ?? '',
@@ -210,7 +210,7 @@ class CityContentGenerator implements ContentGeneratorInterface {
                     '_local_page_city'      => $city,
                     '_local_page_generated' => current_time( 'mysql' ),
                     '_genesis_description' => "Professional WordPress development, custom plugins, and web solutions for businesses in {$city}, {$state}. White-label services and expert support.",
-                    '_genesis_title'    => "Expert WordPress Development Services in {$city}, {$state} | 84EM",
+                    '_genesis_title'    => $this->getPostTitle( "{$city}, {$state}" ),
                 ],
             ];
 
@@ -255,7 +255,7 @@ class CityContentGenerator implements ContentGeneratorInterface {
             // Update post
             $post_data = [
                 'ID'            => $post_id,
-                'post_title'    => "WordPress Development Services in {$city}, {$state} | 84EM",
+                'post_title'    => $this->getPostTitle( "$city, $state" ),
                 'post_content'  => $content,
                 'post_excerpt'  => $sections['excerpt'] ?? '',
                 'post_modified' => current_time( 'mysql' ),
@@ -270,7 +270,7 @@ class CityContentGenerator implements ContentGeneratorInterface {
             // Update metadata
             update_post_meta( $post_id, '_local_page_generated', current_time( 'mysql' ) );
             update_post_meta( $post_id, '_genesis_description', "Professional WordPress development, custom plugins, and web solutions for businesses in {$city}, {$state}. White-label services and expert support." );
-            update_post_meta( $post_id, '_genesis_title', "Expert WordPress Development Services in {$city}, {$state} | 84EM" );
+            update_post_meta( $post_id, '_genesis_title', $this->getPostTitle( "$city, $state" ) );
 
             // Regenerate schema
             $schema = $this->schemaGenerator->generateCitySchema( $state, $city );
@@ -282,6 +282,19 @@ class CityContentGenerator implements ContentGeneratorInterface {
             WP_CLI::error( "Failed to update city page for {$city}, {$state}  (ID: {$post_id}): " . $e->getMessage() );
             return false;
         }
+    }
+
+
+    /**
+     * Generate the post title based on the provided data.
+     *
+     * @param  mixed  $data  Input data used to construct the post title.
+     *
+     * @return string Generated post title.
+     */
+    public function getPostTitle( $data ): string {
+
+        return "WordPress consulting & engineering, including custom plugins, security, enterprise integrations, and white‑label agency work in {$data} | 84EM";
     }
 
     /**

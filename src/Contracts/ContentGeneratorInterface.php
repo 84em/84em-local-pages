@@ -28,4 +28,13 @@ interface ContentGeneratorInterface {
      * @return bool
      */
     public function validate( array $data ): bool;
+
+    /**
+     * Retrieves the title of a post from the given data string.
+     *
+     * @param  string  $data  City or state
+     *
+     * @return string The title of the post.
+     */
+    public function getPostTitle( string $data ): string;
 }

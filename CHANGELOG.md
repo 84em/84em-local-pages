@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.3.1] - 2025-10-19
 
+### Changed
+- **Plugin Metadata**: Updated plugin header information
+  - Updated version to 3.3.1
+  - Added Author URI: https://84em.com/
+  - Added Plugin URI: https://github.com/84em/84em-local-pages/
+  - Updated plugin constant `EIGHTYFOUREM_LOCAL_PAGES_VERSION` to 3.3.1
+
 ### Fixed
 - **Encryption Security**: Added IV length validation in `Encryption::decrypt()` method
   - Prevents OpenSSL warnings when attempting to decrypt corrupted data

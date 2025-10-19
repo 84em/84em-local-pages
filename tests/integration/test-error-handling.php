@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit tests for Error Handling actually used in the plugin
+ * Integration tests for Error Handling actually used in the plugin
  *
  * @package EightyFourEM\LocalPages
  * @license MIT License

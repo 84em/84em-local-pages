@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit tests for LD-JSON schema generation
+ * Integration tests for LD-JSON schema generation
  *
  * @package EightyFourEM\LocalPages
  * @license MIT License

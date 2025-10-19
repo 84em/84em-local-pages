@@ -916,9 +916,9 @@ wp plugin list --status=active
 
 ## Testing
 
-The plugin includes a comprehensive WP-CLI-based testing framework with 82 tests across 10 test suites. All tests use real WordPress functions and real API calls with complete test data isolation.
+The plugin includes a comprehensive WP-CLI-based integration testing framework with 82 integration tests across 10 test suites. All tests use real WordPress functions and real API calls with complete test data isolation.
 
-For complete testing documentation, including test suite details, configuration, and writing new tests, see **[TESTING.md](TESTING.md)**.
+For complete testing documentation, including test suite details, configuration, and writing new integration tests, see **[TESTING.md](TESTING.md)**.
 
 ## Health Check Endpoint
 

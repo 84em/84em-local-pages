@@ -1,10 +1,10 @@
-# 84EM Local Pages Generator - WP-CLI Testing
+# 84EM Local Pages Generator - WP-CLI Integration Testing
 
 ## Overview
 
 This plugin uses WP-CLI as its exclusive testing framework. All tests are executed through custom WP-CLI commands, providing a streamlined testing experience that integrates directly with WordPress.
 
-**Testing Philosophy**: All tests use real WordPress functions (get_option, update_option, delete_option), real class instances, and **real API calls**. **No mocks, no anonymous classes**, just real integration testing with complete test isolation from production data.
+**Testing Philosophy**: All tests are **integration tests** that use real WordPress functions (get_option, update_option, delete_option), real class instances, and **real API calls**. **No mocks, no anonymous classes**, just real integration testing with complete test isolation from production data.
 
 ## Requirements
 
@@ -78,18 +78,18 @@ wp 84em local-pages --test --suite=simple
 
 ## Test Files
 
-All test files are located in the `tests/unit` directory:
+All test files are located in the `tests/integration` directory:
 
-- `test-encryption.php` - API key encryption/decryption tests
-- `test-data-structures.php` - Data structure validation tests
-- `test-content-processing.php` - ContentProcessor class tests
-- `test-wp-cli-args.php` - CLI argument parsing tests (uses real instances)
-- `test-ld-json-schema.php` - Schema generation tests
-- `test-api-client.php` - Claude API client tests (uses real instances, no mocks)
-- `test-content-generators.php` - Content generator integration tests (uses real instances, no mocks)
-- `test-error-handling.php` - Error handling and recovery tests
-- `test-security.php` - Security feature tests
-- `test-model-management.php` - Model configuration and validation tests
+- `test-encryption.php` - API key encryption/decryption integration tests
+- `test-data-structures.php` - Data structure validation integration tests
+- `test-content-processing.php` - ContentProcessor class integration tests
+- `test-wp-cli-args.php` - CLI argument parsing integration tests
+- `test-ld-json-schema.php` - Schema generation integration tests
+- `test-api-client.php` - Claude API client integration tests (real API calls, no mocks)
+- `test-content-generators.php` - Content generator integration tests (real API calls, no mocks)
+- `test-error-handling.php` - Error handling and recovery integration tests
+- `test-security.php` - Security feature integration tests
+- `test-model-management.php` - Model configuration and validation integration tests
 
 ### Version 3.2.5 Test Improvements (October 2025)
 
@@ -130,11 +130,11 @@ The plugin includes a custom `TestCase` class (`tests/TestCase.php`) that provid
 - And many more...
 
 
-## Writing New Tests
+## Writing New Integration Tests
 
-To add new tests following the no-mocks philosophy with test data isolation:
+To add new integration tests following the no-mocks philosophy with test data isolation:
 
-1. Create a new file in `tests/unit` following the naming pattern `test-{feature}.php`
+1. Create a new file in `tests/integration` following the naming pattern `test-{feature}.php`
 2. Include the required files:
    ```php
    require_once dirname( __DIR__ ) . '/TestCase.php';
@@ -224,7 +224,7 @@ Full WP-CLI tests must be run in a proper WordPress environment where the plugin
 If you get a "Test directory not found" error, ensure:
 1. The plugin is activated
 2. You're running the command from your WordPress root directory
-3. The tests directory exists at `wp-content/plugins/84em-local-pages/tests/`
+3. The tests directory exists at `wp-content/plugins/84em-local-pages/tests/integration/`
 
 ### Class Not Found
 
@@ -244,17 +244,18 @@ Some tests that instantiate the plugin class directly may cause critical errors 
 - Conflicts with singleton patterns or global state
 - WordPress hooks being registered multiple times
 
-Currently working test suites (v3.2.5):
-- All 10 test suites are passing with 81 of 82 tests passing
+Currently working integration test suites (v3.2.5):
+- All 10 test suites are passing with 82 of 82 tests passing
 - Tests focus on actual plugin functionality using real WordPress integration
 - No mocks, no anonymous classes, just real instances and real database operations
 - Complete test data isolation using `test_` prefixed options
 
-**Total: 82 tests, 81 passing** (1 test requires valid Claude API key)
+**Total: 82 integration tests, 82 passing** (with valid Claude API key configured)
 
-Note: All tests follow these principles:
+Note: All integration tests follow these principles:
 - Use real WordPress functions (get_option, update_option, delete_option)
 - Create real class instances (ApiKeyManager, ClaudeApiClient, etc.)
+- Make real API calls to Claude (no mocking)
 - Store all test data in `test_` prefixed options
 - Production options never modified during tests
 - Automatic cleanup of test data in tearDown()

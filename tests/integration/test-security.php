@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit tests for Security features actually used in the plugin
+ * Integration tests for Security features actually used in the plugin
  *
  * @package EightyFourEM\LocalPages
  * @license MIT License

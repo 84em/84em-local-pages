@@ -338,7 +338,7 @@ class TestCommand {
      * @return string
      */
     private function getTestDirectory(): string {
-        return dirname( dirname( dirname( dirname( __FILE__ ) ) ) ) . '/tests/unit/';
+        return dirname( dirname( dirname( dirname( __FILE__ ) ) ) ) . '/tests/integration/';
     }
 
     /**

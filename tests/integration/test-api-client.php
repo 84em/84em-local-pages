@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit tests for Claude API Client
+ * Integration tests for Claude API Client
  *
  * @package EightyFourEM\LocalPages
  * @license MIT License

@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit tests for encryption and API key management
+ * Integration tests for encryption and API key management
  *
  * @package EightyFourEM_Local_Pages
  * @license MIT License

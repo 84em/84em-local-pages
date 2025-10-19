@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit tests for data structures
+ * Integration tests for data structures
  *
  * @package EightyFourEM_Local_Pages
  * @license MIT License

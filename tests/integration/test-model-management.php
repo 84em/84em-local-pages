@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit tests for API model management
+ * Integration tests for API model management
  *
  * @package EightyFourEM_Local_Pages
  * @license MIT License

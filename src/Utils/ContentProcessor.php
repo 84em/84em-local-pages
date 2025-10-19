@@ -68,6 +68,10 @@ class ContentProcessor {
      * @return string Cleaned content
      */
     private function cleanContent( string $content ): string {
+        // Remove markdown code fences (```html, ```, etc.)
+        $content = preg_replace( '/^```[a-z]*\s*/i', '', $content );
+        $content = preg_replace( '/\s*```\s*$/i', '', $content );
+
         // Remove excessive whitespace
         $content = preg_replace( '/\s+/', ' ', $content );
 

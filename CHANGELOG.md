@@ -5,6 +5,16 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.2] - 2025-10-19
+
+### Fixed
+- **Update Command**: Fixed `--states-only` flag support in `--update-all` command
+  - Added proper filtering to skip city pages when `--states-only` is specified
+  - Added skipped count to summary output
+  - Prevents unnecessary API calls and delays when updating only state pages
+  - Now consistent with `--generate-all --states-only` behavior
+  - Improves performance when only state pages need updating
+
 ## [3.3.1] - 2025-10-19
 
 ### Changed

@@ -265,14 +265,33 @@ class GenerateCommand {
      * @return void
      */
     public function handleUpdateAll( array $args, array $assoc_args ): void {
+        $states_only = isset( $assoc_args['states-only'] );
+
         WP_CLI::line( '🔄 Starting update of all existing local pages...' );
         WP_CLI::line( '' );
 
-        $all_local_posts = get_posts( [
+        if ( $states_only ) {
+            WP_CLI::line( '📊 Updating state pages only (--states-only flag set)' );
+            WP_CLI::line( '' );
+        }
+
+        $query_args = [
             'post_type'   => 'local',
             'numberposts' => - 1,
             'post_status' => 'any',
-        ] );
+        ];
+
+        // If states-only flag is set, exclude city pages from the query
+        if ( $states_only ) {
+            $query_args['meta_query'] = [
+                [
+                    'key'     => '_local_page_city',
+                    'compare' => 'NOT EXISTS',
+                ],
+            ];
+        }
+
+        $all_local_posts = get_posts( $query_args );
 
         if ( empty( $all_local_posts ) ) {
             WP_CLI::warning( 'No local pages found to update.' );

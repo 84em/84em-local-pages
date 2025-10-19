@@ -87,9 +87,6 @@ error_log
 /temp/
 sitemap-local.xml
 
-# Keep test fixtures
-!tests/fixtures/mock-api-responses.php
-
 # legacy deployment
 deploy.sh
 

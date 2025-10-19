@@ -69,8 +69,27 @@ class Encryption {
         }
 
         $iv_length = openssl_cipher_iv_length( self::CIPHER_METHOD );
+
+        // Validate that we have enough data for IV + encrypted content
+        if ( strlen( $data ) < $iv_length ) {
+            // Data is corrupted or invalid - not enough bytes for IV
+            if ( defined( 'WP_CLI' ) && WP_CLI ) {
+                \WP_CLI::debug( "Encryption: Invalid data length - expected at least {$iv_length} bytes for IV" );
+            }
+            return false;
+        }
+
         $iv        = substr( $data, 0, $iv_length );
         $encrypted = substr( $data, $iv_length );
+
+        // Validate IV length before attempting decryption
+        if ( strlen( $iv ) !== $iv_length ) {
+            // IV is not the correct length - data is corrupted
+            if ( defined( 'WP_CLI' ) && WP_CLI ) {
+                \WP_CLI::debug( "Encryption: Invalid IV length - expected {$iv_length} bytes, got " . strlen( $iv ) );
+            }
+            return false;
+        }
 
         $decrypted = openssl_decrypt(
             $encrypted,

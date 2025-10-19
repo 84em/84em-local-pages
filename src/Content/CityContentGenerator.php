@@ -330,14 +330,43 @@ class CityContentGenerator implements ContentGeneratorInterface {
 
 IMPORTANT: Create unique, original content that is different from other city pages. Focus on local relevance through city-specific benefits and geographic context.
 
-84EM is a 100% FULLY REMOTE WordPress development company. Do NOT mention on-site visits, in-person consultations, local offices, or physical presence. All work is done remotely.  But DO mention that 84EM is headquartered in Cedar Rapids, Iowa.  No need to specifically use the phrase \"remote-first\"
+84EM is a 100% FULLY REMOTE WordPress development company. Do NOT mention on-site visits, in-person consultations, local offices, or physical presence. All work is done remotely. But DO mention that 84EM is headquartered in Cedar Rapids, Iowa. No need to specifically use the phrase \"remote-first\".
 
-Include the following key elements:
-1. A professional opening paragraph mentioning {$city}, {$state} and local business benefits
-2. WordPress development services including: {$service_keywords_list}
-3. Why businesses in {$city} choose 84EM (remote expertise, proven track record, reliable delivery)
-4. Call-to-action for {$city} businesses
-5. Include naturally-placed keywords: 'WordPress development in {$city}', 'custom plugins for {$city}', 'web development in {$state}'
+CONTENT STRUCTURE (REQUIRED):
+
+**Opening Section (1-2 short paragraphs)**
+- Professional introduction mentioning {$city}, {$state} and local business context
+- Brief overview of 84EM's WordPress expertise
+- Keep paragraphs to 2-3 sentences maximum
+- Include ONE contextual call-to-action link in the opening
+
+**Core Services Section (H2: \"WordPress Development Services in {$city}\")**
+Present services in an UNORDERED LIST using WordPress block syntax:
+<!-- wp:list -->
+<ul>
+<li>Service name with brief 5-8 word benefit-focused description</li>
+<li>Service name with brief 5-8 word benefit-focused description</li>
+</ul>
+<!-- /wp:list -->
+
+Include these services from the list: {$service_keywords_list}
+Select 6-8 most relevant services and present as list items. Keep descriptions concise and focused on business benefits, NOT keyword-stuffed.
+
+**Why Choose 84EM Section (H2: \"Why {$city} Businesses Choose 84EM\")**
+Present 3-4 key benefits as an UNORDERED LIST:
+<!-- wp:list -->
+<ul>
+<li>Fully remote team serving clients nationwide with proven processes</li>
+<li>30 years of combined WordPress development experience</li>
+<li>Proven track record across diverse industries</li>
+<li>Scalable solutions designed to grow with your business</li>
+</ul>
+<!-- /wp:list -->
+
+**Closing Paragraph**
+- 2-3 sentences emphasizing local relevance and 84EM's headquarters in Cedar Rapids, Iowa
+- Strong call-to-action with contact link
+- Mention web development in {$state}
 
 IMPORTANT GRAMMAR RULES:
 - Use proper prepositions (in, for, near) when mentioning locations
@@ -345,18 +374,26 @@ IMPORTANT GRAMMAR RULES:
 - Correct: \"businesses in {$city}\", \"services for {$city} companies\", \"development in {$city}\"
 - Incorrect: \"{$city} businesses seeking {$city} solutions\"
 
-Write approximately 250-350 words in a professional, factual tone. Avoid hyperbole and superlatives. Focus on concrete services, technical expertise, and actual capabilities. Make it locally relevant through geographic references while emphasizing 84EM's remote-first approach serves clients nationwide.
+TARGET METRICS:
+- Total word count: 250-350 words
+- Opening: 1-2 paragraphs (2-3 sentences each)
+- Services: 6-8 list items with brief descriptions
+- Benefits: 3-4 list items
+- Closing: 1 paragraph (2-3 sentences)
+- Call-to-action links: 2-3 total (contextual, not in lists)
+
+TONE: Professional and factual. Avoid hyperbole and superlatives. Focus on concrete services, technical expertise, and actual capabilities. Make it locally relevant through geographic references.
 
 CRITICAL: Format the content using WordPress block editor syntax (Gutenberg blocks). Use the following format:
 - Paragraphs: <!-- wp:paragraph --><p>Your paragraph text here.</p><!-- /wp:paragraph -->
 - Headings: <!-- wp:heading {\"level\":2} --><h2><strong>Your Heading</strong></h2><!-- /wp:heading -->
-- Sub-headings: <!-- wp:heading {\"level\":3} --><h3><strong>Your Sub-heading</strong></h3><!-- /wp:heading -->
+- Lists: <!-- wp:list --><ul><li>Item text here</li><li>Item text here</li></ul><!-- /wp:list -->
 - Call-to-action links: <a href=\"/contact/\">contact us today</a> or <a href=\"/contact/\">get started</a>
 
 IMPORTANT:
 - All headings (h2, h3) must be wrapped in <strong> tags to ensure they appear bold.
 - Include 2-3 call-to-action links throughout the content that link to /contact/ using phrases like \"contact us today\", \"get started\", \"reach out\", \"discuss your project\", etc.
-- Make the call-to-action links natural and contextual within the content.
+- Make the call-to-action links natural and contextual within PARAGRAPH content (not within list items).
 - Insert this exact CTA block BEFORE every H2 heading:
 
 <!-- wp:group {\"className\":\"get-started-local\",\"style\":{\"spacing\":{\"margin\":{\"top\":\"0\"},\"padding\":{\"bottom\":\"var:preset|spacing|40\",\"top\":\"var:preset|spacing|40\",\"right\":\"0\"}}},\"layout\":{\"type\":\"constrained\",\"contentSize\":\"1280px\"}} -->

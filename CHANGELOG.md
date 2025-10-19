@@ -5,6 +5,43 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1] - 2025-10-19
+
+### Fixed
+- **Encryption Security**: Added IV length validation in `Encryption::decrypt()` method
+  - Prevents OpenSSL warnings when attempting to decrypt corrupted data
+  - Validates IV is exactly 16 bytes before calling `openssl_decrypt()`
+  - Returns `false` gracefully when data is corrupted instead of generating PHP warnings
+  - Adds debug logging when WP-CLI is available to help diagnose encryption issues
+  - Fixes Sentry issues #6806189599 and #6814063379 (52 total events)
+
+## [3.3.0] - 2025-10-19
+
+### Changed
+- **Content Readability**: Enhanced content structure with list-based formatting for improved scannability
+  - Updated `StateContentGenerator.php` prompt to use unordered lists for services and benefits
+  - Updated `CityContentGenerator.php` prompt to use unordered lists for services and benefits
+  - State pages: 8-10 service list items, 4-5 benefit list items
+  - City pages: 6-8 service list items, 3-4 benefit list items
+  - Short paragraphs (2-3 sentences maximum) for better readability
+  - Lists use proper WordPress `<!-- wp:list -->` block syntax
+  - Updated `CLAUDE.md` to document new list-based prompt templates
+  - Benefits: Improved mobile experience, reduced cognitive load, better scannability, maintained SEO value
+- **Test Classification**: Renamed test suite from "unit tests" to "integration tests"
+  - Renamed `tests/unit/` directory to `tests/integration/`
+  - Updated all test file docblocks to reflect integration testing terminology
+  - Updated `TestCommand.php` to reference new directory path
+  - Updated `TESTING.md` and `README.md` documentation with correct terminology
+  - Tests are integration tests because they use real WordPress database, real API calls, and real class instances
+
+### Removed
+- **Obsolete Mock Files**: Removed unused mock files from test suite
+  - Deleted `tests/fixtures/mock-api-responses.php` (completely unused)
+  - Deleted `tests/wp-mocks.php` (completely unused)
+  - Removed `tests/fixtures/` directory
+  - Updated `.gitignore` to remove mock file references
+  - All tests use real WordPress functions and real API calls (no mocks)
+
 ## [3.2.5] - 2025-10-19
 
 ### Added

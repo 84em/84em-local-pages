@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit tests for ContentProcessor class - actual plugin functionality
+ * Integration tests for ContentProcessor class - actual plugin functionality
  *
  * @package EightyFourEM\LocalPages
  * @license MIT License

@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit tests for Content Generators
+ * Integration tests for Content Generators
  *
  * @package EightyFourEM\LocalPages
  * @license MIT License

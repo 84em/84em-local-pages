@@ -1,6 +1,6 @@
 <?php
 /**
- * Unit tests for WP-CLI argument parsing and validation
+ * Integration tests for WP-CLI argument parsing and validation
  *
  * @package EightyFourEM\LocalPages
  * @license MIT License

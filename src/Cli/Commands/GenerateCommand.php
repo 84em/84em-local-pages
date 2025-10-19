@@ -144,31 +144,15 @@ class GenerateCommand {
             WP_CLI::log( "🏛️ Processing {$state}..." );
 
             // Generate/update state page first
-            $existing_state_posts = get_posts( [
-                'post_type'   => 'local',
-                'meta_query'  => [
-                    'relation' => 'AND',
-                    [
-                        'key'     => '_local_page_state',
-                        'value'   => $state,
-                        'compare' => '='
-                    ],
-                    [
-                        'key'     => '_local_page_city',
-                        'compare' => 'NOT EXISTS'
-                    ]
-                ],
-                'numberposts' => 1,
-                'post_status' => 'any',
-            ] );
+            $existing_state_post = $this->findStatePage( $state );
 
-            if ( ! empty( $existing_state_posts ) ) {
-                if ( $this->stateContentGenerator->updateStatePage( $existing_state_posts[0]->ID, $state ) ) {
+            if ( $existing_state_post ) {
+                if ( $this->stateContentGenerator->updateStatePage( $existing_state_post->ID, $state ) ) {
                     $state_updated_count ++;
-                    WP_CLI::log( "  ✅ Updated state page: {$state} (ID: {$existing_state_posts[0]->ID})" );
+                    WP_CLI::log( "  ✅ Updated state page: {$state} (ID: {$existing_state_post->ID})" );
                 }
                 else {
-                    WP_CLI::warning( "  ❌ Failed to update state page: {$state} (ID: {$existing_state_posts[0]->ID})" );
+                    WP_CLI::warning( "  ❌ Failed to update state page: {$state} (ID: {$existing_state_post->ID})" );
                 }
             }
             else {
@@ -187,30 +171,15 @@ class GenerateCommand {
                 $cities = $data['cities'] ?? [];
                 foreach ( $cities as $city ) {
                     // Check if city page exists
-                    $existing_city_posts = get_posts( [
-                        'post_type'   => 'local',
-                        'meta_query'  => [
-                            'relation' => 'AND',
-                            [
-                                'key'   => '_local_page_state',
-                                'value' => $state,
-                            ],
-                            [
-                                'key'   => '_local_page_city',
-                                'value' => $city,
-                            ],
-                        ],
-                        'numberposts' => 1,
-                        'post_status' => 'any',
-                    ] );
+                    $existing_city_post = $this->findCityPage( $state, $city );
 
-                    if ( ! empty( $existing_city_posts ) ) {
-                        if ( $this->cityContentGenerator->updateCityPage( $existing_city_posts[0]->ID, $state, $city ) ) {
+                    if ( $existing_city_post ) {
+                        if ( $this->cityContentGenerator->updateCityPage( $existing_city_post->ID, $state, $city ) ) {
                             $city_updated_count ++;
-                            WP_CLI::log( "    ✅ Updated city page: {$city}, {$state} (ID: {$existing_city_posts[0]->ID})" );;
+                            WP_CLI::log( "    ✅ Updated city page: {$city}, {$state} (ID: {$existing_city_post->ID})" );;
                         }
                         else {
-                            WP_CLI::warning( "    ❌ Failed to update city page: {$city}, {$state} (ID: {$existing_city_posts[0]->ID})" );
+                            WP_CLI::warning( "    ❌ Failed to update city page: {$city}, {$state} (ID: {$existing_city_post->ID})" );
                         }
                     }
                     else {
@@ -275,11 +244,7 @@ class GenerateCommand {
             WP_CLI::line( '' );
         }
 
-        $query_args = [
-            'post_type'   => 'local',
-            'numberposts' => - 1,
-            'post_status' => 'any',
-        ];
+        $query_args = [];
 
         // If states-only flag is set, exclude city pages from the query
         if ( $states_only ) {
@@ -291,7 +256,7 @@ class GenerateCommand {
             ];
         }
 
-        $all_local_posts = get_posts( $query_args );
+        $all_local_posts = $this->findLocalPages( $query_args );
 
         if ( empty( $all_local_posts ) ) {
             WP_CLI::warning( 'No local pages found to update.' );
@@ -389,31 +354,15 @@ class GenerateCommand {
             }
 
             // Check if page already exists (state page, not city)
-            $existing_posts = get_posts( [
-                'post_type'   => 'local',
-                'meta_query'  => [
-                    'relation' => 'AND',
-                    [
-                        'key'     => '_local_page_state',
-                        'value'   => $state_name,
-                        'compare' => '='
-                    ],
-                    [
-                        'key'     => '_local_page_city',
-                        'compare' => 'NOT EXISTS'
-                    ]
-                ],
-                'numberposts' => 1,
-                'post_status' => 'any',
-            ] );
+            $existing_post = $this->findStatePage( $state_name );
 
-            if ( ! empty( $existing_posts ) ) {
-                if ( $this->stateContentGenerator->updateStatePage( $existing_posts[0]->ID, $state_name ) ) {
+            if ( $existing_post ) {
+                if ( $this->stateContentGenerator->updateStatePage( $existing_post->ID, $state_name ) ) {
                     $updated_count ++;
-                    WP_CLI::success( "Updated state page: {$state_name} (ID: {$existing_posts[0]->ID})" );;
+                    WP_CLI::success( "Updated state page: {$state_name} (ID: {$existing_post->ID})" );;
                 }
                 else {
-                    WP_CLI::error( "Failed to update state page: {$state_name} (ID: {$existing_posts[0]->ID})" );
+                    WP_CLI::error( "Failed to update state page: {$state_name} (ID: {$existing_post->ID})" );
                 }
             }
             else {
@@ -487,30 +436,15 @@ class GenerateCommand {
             }
 
             // Check if city page exists
-            $existing_posts = get_posts( [
-                'post_type'   => 'local',
-                'meta_query'  => [
-                    'relation' => 'AND',
-                    [
-                        'key'   => '_local_page_state',
-                        'value' => $state_arg,
-                    ],
-                    [
-                        'key'   => '_local_page_city',
-                        'value' => $city_name,
-                    ],
-                ],
-                'numberposts' => 1,
-                'post_status' => 'any',
-            ] );
+            $existing_post = $this->findCityPage( $state_arg, $city_name );
 
-            if ( ! empty( $existing_posts ) ) {
-                if ( $this->cityContentGenerator->updateCityPage( $existing_posts[0]->ID, $state_arg, $city_name ) ) {
+            if ( $existing_post ) {
+                if ( $this->cityContentGenerator->updateCityPage( $existing_post->ID, $state_arg, $city_name ) ) {
                     $updated_count ++;
-                    WP_CLI::success( "Updated city page: {$city_name}, {$state_arg} (ID: {$existing_posts[0]->ID})" );
+                    WP_CLI::success( "Updated city page: {$city_name}, {$state_arg} (ID: {$existing_post->ID})" );
                 }
                 else {
-                    WP_CLI::error( "Failed to update city page: {$city_name}, {$state_arg} (ID: {$existing_posts[0]->ID})" );
+                    WP_CLI::error( "Failed to update city page: {$city_name}, {$state_arg} (ID: {$existing_post->ID})" );
                 }
             }
             else {
@@ -590,18 +524,13 @@ class GenerateCommand {
             WP_Filesystem();
         }
 
-        // Get all published local pages using WP_Query
-        $query = new \WP_Query( [
-            'post_type'      => 'local',
-            'post_status'    => 'publish',
-            'posts_per_page' => - 1,
-            'orderby'        => 'title',
-            'order'          => 'ASC',
+        // Get all published local pages
+        $posts = $this->findLocalPages( [
+            'post_status' => 'publish',
         ] );
 
-        if ( ! $query->have_posts() ) {
+        if ( empty( $posts ) ) {
             WP_CLI::warning( 'No published Local Pages found. Nothing to add to sitemap.' );
-
             return;
         }
 
@@ -610,11 +539,9 @@ class GenerateCommand {
         $xml_content .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
 
         $page_count = 0;
-        while ( $query->have_posts() ) {
-            $query->the_post();
-            $post_id       = get_the_ID();
-            $permalink     = get_permalink( $post_id );
-            $modified_date = get_the_modified_date( 'c', $post_id ); // ISO 8601 format
+        foreach ( $posts as $post ) {
+            $permalink     = get_permalink( $post->ID );
+            $modified_date = get_the_modified_date( 'c', $post->ID ); // ISO 8601 format
 
             $xml_content .= '  <url>' . "\n";
             $xml_content .= '    <loc>' . esc_url( $permalink ) . '</loc>' . "\n";
@@ -627,9 +554,6 @@ class GenerateCommand {
         }
 
         $xml_content .= '</urlset>' . "\n";
-
-        // Reset post data
-        wp_reset_postdata();
 
         // Define sitemap file path (root directory)
         $sitemap_file = ABSPATH . 'sitemap-local.xml';
@@ -662,14 +586,10 @@ class GenerateCommand {
         // Check if page already exists
         $existing_page = get_page_by_path( $page_slug );
 
-        // Get all published state pages (not city pages) using WP_Query
-        $query = new \WP_Query( [
-            'post_type'      => 'local',
-            'post_status'    => 'publish',
-            'posts_per_page' => -1,
-            'orderby'        => 'title',
-            'order'          => 'ASC',
-            'meta_query'     => [
+        // Get all published state pages (not city pages)
+        $posts = $this->findLocalPages( [
+            'post_status' => 'publish',
+            'meta_query'  => [
                 [
                     'key'     => '_local_page_state',
                     'compare' => 'EXISTS',
@@ -681,13 +601,13 @@ class GenerateCommand {
             ],
         ] );
 
-        if ( ! $query->have_posts() ) {
+        if ( empty( $posts ) ) {
             WP_CLI::warning( 'No published Local Pages found. Cannot generate index page.' );
             return;
         }
 
         // Build content with alphabetized list of states
-        $content_data = $this->buildIndexPageContent( $query );
+        $content_data = $this->buildIndexPageContent( $posts );
         $content      = $content_data['content'];
         $states_data  = $content_data['states_data'];
 
@@ -696,9 +616,6 @@ class GenerateCommand {
             'type'        => 'index',
             'states_data' => $states_data,
         ] );
-
-        // Reset post data
-        wp_reset_postdata();
 
         if ( $existing_page ) {
             // Update existing page
@@ -761,9 +678,6 @@ class GenerateCommand {
 
         // Build query args
         $query_args = [
-            'post_type'   => 'local',
-            'post_status' => 'any',
-            'numberposts' => -1,
             'meta_query'  => [
                 [
                     'key'     => '_local_page_state',
@@ -795,7 +709,7 @@ class GenerateCommand {
             ];
         }
 
-        $posts = get_posts( $query_args );
+        $posts = $this->findLocalPages( $query_args );
 
         if ( empty( $posts ) ) {
             WP_CLI::warning( 'No local pages found to regenerate schema for.' );
@@ -854,6 +768,94 @@ class GenerateCommand {
     }
 
     /**
+     * Find a state page by state name
+     *
+     * @param  string  $state  State name
+     *
+     * @return \WP_Post|null The state page post object or null if not found
+     */
+    private function findStatePage( string $state ): ?\WP_Post {
+        $query = new \WP_Query( [
+            'post_type'      => 'local',
+            'posts_per_page' => 1,
+            'post_status'    => 'any',
+            'meta_query'     => [
+                'relation' => 'AND',
+                [
+                    'key'     => '_local_page_state',
+                    'value'   => $state,
+                    'compare' => '=',
+                ],
+                [
+                    'key'     => '_local_page_city',
+                    'compare' => 'NOT EXISTS',
+                ],
+            ],
+        ] );
+
+        $post = $query->have_posts() ? $query->posts[0] : null;
+        wp_reset_postdata();
+
+        return $post;
+    }
+
+    /**
+     * Find a city page by state and city name
+     *
+     * @param  string  $state  State name
+     * @param  string  $city  City name
+     *
+     * @return \WP_Post|null The city page post object or null if not found
+     */
+    private function findCityPage( string $state, string $city ): ?\WP_Post {
+        $query = new \WP_Query( [
+            'post_type'      => 'local',
+            'posts_per_page' => 1,
+            'post_status'    => 'any',
+            'meta_query'     => [
+                'relation' => 'AND',
+                [
+                    'key'   => '_local_page_state',
+                    'value' => $state,
+                ],
+                [
+                    'key'   => '_local_page_city',
+                    'value' => $city,
+                ],
+            ],
+        ] );
+
+        $post = $query->have_posts() ? $query->posts[0] : null;
+        wp_reset_postdata();
+
+        return $post;
+    }
+
+    /**
+     * Find all local pages with optional filtering
+     *
+     * @param  array  $args  Query arguments
+     *
+     * @return array Array of WP_Post objects
+     */
+    private function findLocalPages( array $args = [] ): array {
+        $defaults = [
+            'post_type'      => 'local',
+            'posts_per_page' => -1,
+            'post_status'    => 'any',
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+        ];
+
+        $query_args = wp_parse_args( $args, $defaults );
+        $query      = new \WP_Query( $query_args );
+        $posts      = $query->posts;
+        wp_reset_postdata();
+
+        return $posts;
+    }
+
+    /**
      * Generate all cities for a specific state
      *
      * @param  string  $state  State name
@@ -882,25 +884,10 @@ class GenerateCommand {
 
         foreach ( $cities as $city ) {
             // Check if city page exists
-            $existing_posts = get_posts( [
-                'post_type'   => 'local',
-                'meta_query'  => [
-                    'relation' => 'AND',
-                    [
-                        'key'   => '_local_page_state',
-                        'value' => $state,
-                    ],
-                    [
-                        'key'   => '_local_page_city',
-                        'value' => $city,
-                    ],
-                ],
-                'numberposts' => 1,
-                'post_status' => 'any',
-            ] );
+            $existing_post = $this->findCityPage( $state, $city );
 
-            if ( ! empty( $existing_posts ) ) {
-                if ( $this->cityContentGenerator->updateCityPage( $existing_posts[0]->ID, $state, $city ) ) {
+            if ( $existing_post ) {
+                if ( $this->cityContentGenerator->updateCityPage( $existing_post->ID, $state, $city ) ) {
                     $updated_count ++;
                 }
                 else {
@@ -932,30 +919,14 @@ class GenerateCommand {
             WP_CLI::line( "🏛️ Now updating {$state} state page..." );
 
             // Check if state page exists
-            $existing_state_posts = get_posts( [
-                'post_type'   => 'local',
-                'meta_query'  => [
-                    'relation' => 'AND',
-                    [
-                        'key'     => '_local_page_state',
-                        'value'   => $state,
-                        'compare' => '='
-                    ],
-                    [
-                        'key'     => '_local_page_city',
-                        'compare' => 'NOT EXISTS'
-                    ]
-                ],
-                'numberposts' => 1,
-                'post_status' => 'any',
-            ] );
+            $existing_state_post = $this->findStatePage( $state );
 
-            if ( ! empty( $existing_state_posts ) ) {
-                if ( $this->stateContentGenerator->updateStatePage( $existing_state_posts[0]->ID, $state ) ) {
-                    WP_CLI::success( "Updated state page: {$state} (ID: {$existing_state_posts[0]->ID})" );;
+            if ( $existing_state_post ) {
+                if ( $this->stateContentGenerator->updateStatePage( $existing_state_post->ID, $state ) ) {
+                    WP_CLI::success( "Updated state page: {$state} (ID: {$existing_state_post->ID})" );;
                 }
                 else {
-                    WP_CLI::error( "Failed to update state page: {$state} (ID: {$existing_state_posts[0]->ID})" );;
+                    WP_CLI::error( "Failed to update state page: {$state} (ID: {$existing_state_post->ID})" );;
                 }
             }
             else {
@@ -981,29 +952,14 @@ class GenerateCommand {
      * @return void
      */
     private function deleteCityPage( string $state, string $city ): void {
-        $posts = get_posts( [
-            'post_type'   => 'local',
-            'meta_query'  => [
-                'relation' => 'AND',
-                [
-                    'key'   => '_local_page_state',
-                    'value' => $state,
-                ],
-                [
-                    'key'   => '_local_page_city',
-                    'value' => $city,
-                ],
-            ],
-            'numberposts' => 1,
-            'post_status' => 'any',
-        ] );
+        $post = $this->findCityPage( $state, $city );
 
-        if ( empty( $posts ) ) {
+        if ( ! $post ) {
             WP_CLI::warning( "City page not found: {$city}, {$state}" );
             return;
         }
 
-        if ( wp_delete_post( $posts[0]->ID, true ) ) {
+        if ( wp_delete_post( $post->ID, true ) ) {
             WP_CLI::success( "Deleted city page: {$city}, {$state}" );
         }
         else {
@@ -1020,12 +976,13 @@ class GenerateCommand {
      */
     private function deleteStatePage( string $state ): void {
         // Find all pages for this state (state page + city pages)
-        $posts = get_posts( [
-            'post_type'   => 'local',
-            'meta_key'    => '_local_page_state',
-            'meta_value'  => $state,
-            'numberposts' => - 1,
-            'post_status' => 'any',
+        $posts = $this->findLocalPages( [
+            'meta_query' => [
+                [
+                    'key'   => '_local_page_state',
+                    'value' => $state,
+                ],
+            ],
         ] );
 
         if ( empty( $posts ) ) {
@@ -1068,19 +1025,17 @@ class GenerateCommand {
     /**
      * Builds the content for the index page with alphabetized state list
      *
-     * @param  \WP_Query  $query  Query object containing local pages
+     * @param  array  $posts  Array of WP_Post objects
      *
      * @return array Array with 'content' and 'states_data' keys
      */
-    private function buildIndexPageContent( \WP_Query $query ): array {
+    private function buildIndexPageContent( array $posts ): array {
         $states_data = [];
 
         // Extract state data from local pages
-        while ( $query->have_posts() ) {
-            $query->the_post();
-            $post_id   = get_the_ID();
-            $state     = get_post_meta( $post_id, '_local_page_state', true );
-            $permalink = get_permalink( $post_id );
+        foreach ( $posts as $post ) {
+            $state     = get_post_meta( $post->ID, '_local_page_state', true );
+            $permalink = get_permalink( $post->ID );
 
             if ( $state && $permalink ) {
                 $states_data[] = [
@@ -1164,14 +1119,10 @@ class GenerateCommand {
 
         // Check if we should update only states or all
         $states_only = isset( $assoc_args['states-only'] );
-        
+
         // Get all local pages
         $query_args = [
-            'post_type'      => 'local',
-            'posts_per_page' => -1,
-            'post_status'    => 'publish',
-            'orderby'        => 'title',
-            'order'          => 'ASC',
+            'post_status' => 'publish',
         ];
 
         // If states-only, exclude city pages
@@ -1187,7 +1138,7 @@ class GenerateCommand {
             WP_CLI::line( '📊 Processing all state and city pages...' );
         }
 
-        $posts = get_posts( $query_args );
+        $posts = $this->findLocalPages( $query_args );
         
         if ( empty( $posts ) ) {
             WP_CLI::warning( 'No local pages found to update.' );

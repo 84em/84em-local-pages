@@ -978,7 +978,9 @@ class CommandHandler {
         WP_CLI::line( 'TESTING:' );
         WP_CLI::line( '  --test --all               Run all test suites' );
         WP_CLI::line( '  --test --suite=<name>      Run specific test suite' );
-        WP_CLI::line( '                             Available: encryption, data-structures, content-processing' );
+        WP_CLI::line( '                             Available: encryption, data-structures, content-processing,' );
+        WP_CLI::line( '                             cli-args, ld-json, api-client, content-generators,' );
+        WP_CLI::line( '                             error-handling, security, model-management' );
         WP_CLI::line( '' );
         WP_CLI::line( 'CONTENT GENERATION:' );
         WP_CLI::line( '  --generate-all             Generate/update all 350 pages (50 states + 300 cities)' );

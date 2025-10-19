@@ -3,6 +3,8 @@
  * Content Processor Utility
  *
  * @package EightyFourEM\LocalPages\Utils
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\Utils;

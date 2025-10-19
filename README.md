@@ -916,32 +916,9 @@ wp plugin list --status=active
 
 ## Testing
 
-The plugin includes a comprehensive WP-CLI-based testing framework with 10 test suites covering all major functionality.
+The plugin includes a comprehensive WP-CLI-based testing framework with 82 tests across 10 test suites. All tests use real WordPress functions and real API calls with complete test data isolation.
 
-### Quick Start
-
-```bash
-# Run all test suites
-wp 84em local-pages --test --all
-
-# Run a specific test suite
-wp 84em local-pages --test --suite=api-client
-```
-
-### Available Test Suites
-
-- **encryption** - API key encryption and security
-- **data-structures** - Service keywords and states data
-- **content-processing** - Content processing and linking
-- **cli-args** - WP-CLI argument parsing
-- **ld-json** - Schema.org structured data
-- **container** - Dependency injection container
-- **api-client** - Claude API client with retry logic
-- **content-generators** - State and city content generation
-- **error-handling** - Error handling and recovery
-- **security** - Security and input sanitization
-
-For detailed testing documentation, test writing guidelines, and examples, see [TESTING.md](TESTING.md).
+For complete testing documentation, including test suite details, configuration, and writing new tests, see **[TESTING.md](TESTING.md)**.
 
 ## Health Check Endpoint
 
@@ -991,4 +968,12 @@ Always returns HTTP 200 with minimal JSON response if the plugin is working:
 
 ## License
 
-Proprietary software developed for 84EM. All rights reserved.
+MIT License
+
+Copyright (c) 2025 84EM
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

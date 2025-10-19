@@ -295,7 +295,7 @@ All model changes are validated with a test API call before being saved. This en
 If validation fails, the model will NOT be saved and you'll see a clear error message.
 
 #### Model Storage
-- Models are stored in WordPress option: `84em_claude_api_model`
+- Models are stored in WordPress option: `84em_local_pages_claude_api_model`
 - **No default model** - users must select a model before generating content
 - Model configuration is separate from API key storage
 - Models can be changed at any time via WP-CLI
@@ -553,7 +553,7 @@ namespace EightyFourEM\LocalPages\Content;
 
 ## Testing Framework
 
-The plugin includes a comprehensive WP-CLI-based testing framework:
+The plugin includes a comprehensive WP-CLI-based testing framework that uses **real WordPress functions and API calls** instead of mocks, following WordPress best practices.
 
 ### Running Tests
 ```bash
@@ -564,30 +564,60 @@ wp 84em local-pages --test --all
 wp 84em local-pages --test --suite=api-client
 ```
 
-### Available Test Suites (v3.2.0)
+### Test Configuration
+
+**Tests always use real WordPress functions, real database operations, and real API calls.** There are no mocks.
+
+The test suite will use the production Claude API key that's already configured in the plugin. If you want to use a different API key for testing (to keep test API usage separate from production), you can set:
+
+```bash
+# Optional: Use a different API key for testing
+export EIGHTYFOUREM_TEST_API_KEY="your-test-api-key-here"
+```
+
+If not set, tests will use the production API key configured in the plugin (stored encrypted in `84em_local_pages_claude_api_key_encrypted`).
+
+### Available Test Suites (v3.2.5)
 - **encryption** - API key encryption and security
 - **data-structures** - Service keywords and states data
 - **content-processing** - Content processing and linking
 - **cli-args** - WP-CLI argument parsing
 - **ld-json** - Schema.org structured data
-- **container** - Dependency injection container
-- **api-client** - Claude API client with retry logic
-- **content-generators** - State and city content generation
+- **api-client** - Claude API client with retry logic (no mocks)
+- **content-generators** - State and city content generation (no mocks)
 - **error-handling** - Error handling and recovery
 - **security** - Security and input sanitization
+- **model-management** - Model configuration and validation
 
-**Total**: 10 test suites with 100+ tests
+**Total**: 10 test suites with 82 tests
+
+**Testing Philosophy**: All tests use real WordPress functions (get_option, update_option, delete_option) and real class instances. No mocks, no anonymous classes, just real integration testing. Tests properly clean up after themselves by restoring original database values.
 
 For detailed testing documentation, see [TESTING.md](TESTING.md).
 
 ## Recent Updates
+
+### Version 3.2.5 (2025-10-19)
+
+#### Test Suite Refactor: Consistent ApiKeyManager Usage
+- **ApiKeyManager Methods**: All tests now use `ApiKeyManager` methods exclusively
+  - Replaced all direct `get_option()`, `update_option()`, `delete_option()` calls
+  - Tests use `getKey()`, `setKey()`, `deleteKey()`, `getModel()`, `setModel()`, `deleteModel()`
+  - Properly respects `getOptionName()` method which handles test prefix logic
+- **Real WordPress Integration**: All tests use real WordPress functions, no mocks
+- **Real API Calls**: Tests make real API calls to Claude using production API key
+- **Test Data Isolation**: Complete separation via `test_` prefixed options
+- **Proper Cleanup**: All tests restore original database values in tearDown()
+- **All 82 Tests Pass**: 100% success rate with valid API key configured
+
+This refactor ensures all tests follow the global CLAUDE.md guideline: "don't use mocks, always use real wordpress functions, api calls, etc." while maintaining proper encapsulation through the ApiKeyManager interface.
 
 ### Version 3.2.0 (2025-08-17)
 
 #### Dependency Injection Overhaul
 - **Eliminated Service Locator Anti-Pattern**: All classes now use proper constructor injection
 - **Singleton Services**: `ClaudeApiClient` registered as singleton for better performance
-- **Improved Testability**: All dependencies can be mocked for unit testing
+- **Real WordPress Integration**: Tests use real WordPress functions and API calls, not mocks
 - **Clean Architecture**: Following SOLID principles throughout
 
 #### CLI Argument Validation
@@ -625,15 +655,16 @@ For a complete list of changes, bug fixes, and new features, see [CHANGELOG.md](
 
 ---
 
-**Last Updated**: August 16, 2025  
-**Claude Model**: claude-sonnet-4-20250514  
-**Content Format**: WordPress Block Editor (Gutenberg)  
-**API Version**: 2023-06-01  
-**Content Strategy**: Hierarchical location pages with automatic interlinking  
+**Last Updated**: October 19, 2025
+**Claude Model**: claude-sonnet-4-20250514
+**Content Format**: WordPress Block Editor (Gutenberg)
+**API Version**: 2023-06-01
+**Content Strategy**: Hierarchical location pages with automatic interlinking
 **Total Pages**: 350 (50 states + 300 cities)
-**Plugin Version**: 3.2.4
+**Plugin Version**: 3.2.5
 **Architecture**: Modular PSR-4 autoloaded classes with dependency injection
 **Model Selection**: Dynamic fetching from Claude Models API with interactive selection
+**Testing**: Real WordPress integration, no mocks, 82 tests (100% passing with valid API key)
 
 - Always ensure the CLAUDE.md is up to date.
 - Always ensure the README.md is up to date.

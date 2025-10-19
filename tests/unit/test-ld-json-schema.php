@@ -3,6 +3,8 @@
  * Unit tests for LD-JSON schema generation
  *
  * @package EightyFourEM\LocalPages
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 // Load autoloader for namespaced classes

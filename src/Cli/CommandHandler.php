@@ -3,6 +3,8 @@
  * Main WP-CLI Command Handler
  *
  * @package EightyFourEM\LocalPages\Cli
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\Cli;
@@ -377,7 +379,13 @@ class CommandHandler {
         // Show current model
         $current_model = $this->apiKeyManager->getModel();
         $is_custom = $this->apiKeyManager->hasCustomModel();
-        $model_status = $is_custom ? 'custom' : 'default';
+        if ( empty( $current_model ) ) {
+            $current_model = 'NOT DEFINED';
+            $model_status = 'NOT CONFIGURED';
+        }
+        else {
+            $model_status = $is_custom ? 'custom' : 'default';
+        }
 
         WP_CLI::line( "Current model: {$current_model} ({$model_status})" );
         WP_CLI::line( '' );
@@ -577,13 +585,13 @@ class CommandHandler {
     private function validateArguments( array $args, array $assoc_args ): void {
         // Check for positional arguments that look like they should be named arguments
         $this->checkForMissingDashes( $args );
-        
+
         // Check for unrecognized named arguments
         $this->checkForUnrecognizedArguments( $assoc_args );
-        
+
         // Check for mutually exclusive arguments
         $this->checkForMutuallyExclusiveArguments( $assoc_args );
-        
+
         // Check for incomplete argument combinations
         $this->checkForIncompleteArguments( $assoc_args );
     }
@@ -609,7 +617,7 @@ class CommandHandler {
             if ( preg_match( '/^([a-zA-Z-]+)=(.*)$/', $arg, $matches ) ) {
                 $key = $matches[1];
                 $value = $matches[2];
-                
+
                 // Check if this looks like a valid argument name
                 if ( $this->isValidArgumentName( $key ) ) {
                     $problematic_args[] = $arg;
@@ -633,20 +641,20 @@ class CommandHandler {
 
         if ( ! empty( $problematic_args ) ) {
             $error_msg = "Invalid positional arguments detected:\n";
-            
+
             foreach ( $problematic_args as $i => $arg ) {
                 $error_msg .= "  \"$arg\"\n";
                 if ( isset( $suggestions[$i] ) ) {
                     $error_msg .= "    Did you mean: {$suggestions[$i]}\n";
                 }
             }
-            
+
             $error_msg .= "\nRemember: All options must start with '--' (two dashes).\n";
             $error_msg .= "Examples:\n";
             $error_msg .= "  wp 84em local-pages --state=\"California\"\n";
             $error_msg .= "  wp 84em local-pages --state=\"California\" --city=\"Los Angeles\"\n";
             $error_msg .= "  wp 84em local-pages --generate-all --states-only\n";
-            
+
             throw new \Exception( $error_msg );
         }
     }
@@ -683,7 +691,7 @@ class CommandHandler {
             'generateall', 'generate_all', 'updateall', 'update_all',
             'statesonly', 'states_only', 'setapikey', 'set_api_key'
         ];
-        
+
         return in_array( $arg, $common_typos, true );
     }
 
@@ -711,7 +719,7 @@ class CommandHandler {
             'setapikey' => '--set-api-key',
             'set_api_key' => '--set-api-key'
         ];
-        
+
         return $typo_map[$typo] ?? null;
     }
 
@@ -731,14 +739,14 @@ class CommandHandler {
             'generate-sitemap', 'generate-index', 'regenerate-schema',
             'update-keyword-links', 'delete', 'update', 'help', 'all'
         ];
-        
+
         $unrecognized = [];
         $suggestions = [];
-        
+
         foreach ( array_keys( $assoc_args ) as $arg ) {
             if ( ! in_array( $arg, $valid_args, true ) ) {
                 $unrecognized[] = $arg;
-                
+
                 // Try to find a close match
                 $suggestion = $this->findClosestArgument( $arg, $valid_args );
                 if ( $suggestion ) {
@@ -746,19 +754,19 @@ class CommandHandler {
                 }
             }
         }
-        
+
         if ( ! empty( $unrecognized ) ) {
             $error_msg = "Unrecognized arguments:\n";
-            
+
             foreach ( $unrecognized as $arg ) {
                 $error_msg .= "  --$arg\n";
                 if ( isset( $suggestions[$arg] ) ) {
                     $error_msg .= "    Did you mean: --{$suggestions[$arg]}?\n";
                 }
             }
-            
+
             $error_msg .= "\nUse 'wp 84em local-pages --help' to see all available options.\n";
-            
+
             throw new \Exception( $error_msg );
         }
     }
@@ -774,17 +782,17 @@ class CommandHandler {
     private function findClosestArgument( string $input, array $valid_args ): ?string {
         $min_distance = PHP_INT_MAX;
         $closest = null;
-        
+
         foreach ( $valid_args as $valid_arg ) {
             $distance = levenshtein( strtolower( $input ), strtolower( $valid_arg ) );
-            
+
             // Only suggest if it's reasonably close (within 3 character changes)
             if ( $distance < $min_distance && $distance <= 3 ) {
                 $min_distance = $distance;
                 $closest = $valid_arg;
             }
         }
-        
+
         return $closest;
     }
 
@@ -810,18 +818,18 @@ class CommandHandler {
             // Test command is exclusive with generation
             ['test']
         ];
-        
+
         $conflicts = [];
-        
+
         foreach ( $exclusive_groups as $group ) {
             $found_in_group = [];
-            
+
             foreach ( $group as $arg ) {
                 if ( isset( $assoc_args[$arg] ) ) {
                     $found_in_group[] = $arg;
                 }
             }
-            
+
             // Check if this group conflicts with other groups
             if ( count( $found_in_group ) > 0 ) {
                 // Check against other groups
@@ -838,7 +846,7 @@ class CommandHandler {
                                 $found_in_other[] = $arg;
                             }
                         }
-                        
+
                         if ( ! empty( $found_in_other ) ) {
                             $conflicts[] = array_merge( $found_in_group, $found_in_other );
                         }
@@ -846,17 +854,17 @@ class CommandHandler {
                 }
             }
         }
-        
+
         if ( ! empty( $conflicts ) ) {
             $unique_conflicts = array_unique( $conflicts, SORT_REGULAR );
             $error_msg = "Conflicting arguments detected:\n";
-            
+
             foreach ( $unique_conflicts as $conflict_group ) {
                 $error_msg .= "  Cannot use together: --" . implode( ', --', $conflict_group ) . "\n";
             }
-            
+
             $error_msg .= "\nPlease use only one command at a time.\n";
-            
+
             throw new \Exception( $error_msg );
         }
     }
@@ -879,7 +887,7 @@ class CommandHandler {
                 "  wp 84em local-pages --test --suite=encryption\n"
             );
         }
-        
+
         // Check for city without state
         if ( isset( $assoc_args['city'] ) && ! isset( $assoc_args['state'] ) ) {
             throw new \Exception(
@@ -889,7 +897,7 @@ class CommandHandler {
                 "  wp 84em local-pages --state=\"California\" --city=all\n"
             );
         }
-        
+
         // Check for delete without target
         if ( isset( $assoc_args['delete'] ) && ! isset( $assoc_args['state'] ) ) {
             throw new \Exception(
@@ -899,7 +907,7 @@ class CommandHandler {
                 "  wp 84em local-pages --delete --state=\"California\" --city=\"Los Angeles\"\n"
             );
         }
-        
+
         // Check for suite without test
         if ( isset( $assoc_args['suite'] ) && ! isset( $assoc_args['test'] ) ) {
             throw new \Exception(
@@ -908,19 +916,19 @@ class CommandHandler {
                 "  wp 84em local-pages --test --suite=encryption\n"
             );
         }
-        
+
         // Check for states-only with inappropriate commands
         if ( isset( $assoc_args['states-only'] ) ) {
             $valid_with_states_only = ['generate-all', 'update-all', 'regenerate-schema', 'update-keyword-links'];
             $has_valid_command = false;
-            
+
             foreach ( $valid_with_states_only as $valid_cmd ) {
                 if ( isset( $assoc_args[$valid_cmd] ) ) {
                     $has_valid_command = true;
                     break;
                 }
             }
-            
+
             if ( ! $has_valid_command ) {
                 throw new \Exception(
                     "--states-only can only be used with --generate-all, --update-all, --regenerate-schema, or --update-keyword-links\n" .
@@ -931,7 +939,7 @@ class CommandHandler {
                 );
             }
         }
-        
+
         // Check for complete without city=all
         if ( isset( $assoc_args['complete'] ) ) {
             if ( ! isset( $assoc_args['city'] ) || $assoc_args['city'] !== 'all' ) {

@@ -3,6 +3,8 @@
  * City Content Generator
  *
  * @package EightyFourEM\LocalPages\Content
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\Content;

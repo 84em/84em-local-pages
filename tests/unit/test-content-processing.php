@@ -3,6 +3,8 @@
  * Unit tests for ContentProcessor class - actual plugin functionality
  *
  * @package EightyFourEM\LocalPages
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 require_once dirname( __DIR__ ) . '/TestCase.php';

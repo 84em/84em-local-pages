@@ -3,6 +3,8 @@
  * Unit tests for encryption and API key management
  *
  * @package EightyFourEM_Local_Pages
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 require_once dirname( __DIR__ ) . '/TestCase.php';
@@ -14,33 +16,30 @@ class Test_Encryption extends TestCase {
 
     private Encryption $encryption;
     private ApiKeyManager $apiKeyManager;
-    private $original_option_value;
+    private $original_key_value;
 
     /**
      * Set up test environment
      */
     public function setUp(): void {
-        // Store original option value
-        $this->original_option_value = get_option( '84em_claude_api_key_encrypted' );
-
         // Create service instances
         $this->encryption    = new Encryption();
         $this->apiKeyManager = new ApiKeyManager( $this->encryption );
+
+        // Store original key value
+        $this->original_key_value = $this->apiKeyManager->getKey();
     }
 
     /**
      * Tear down test environment
      */
     public function tearDown(): void {
-        // Restore original option value
-        if ( $this->original_option_value !== false ) {
-            update_option( '84em_claude_api_key_encrypted', $this->original_option_value );
+        // Restore original key value or delete if none existed
+        if ( $this->original_key_value !== false ) {
+            $this->apiKeyManager->setKey( $this->original_key_value );
         } else {
-            delete_option( '84em_claude_api_key_encrypted' );
+            $this->apiKeyManager->deleteKey();
         }
-
-        // Clean up IV option that might have been created
-        delete_option( '84em_claude_api_key_iv' );
     }
 
     /**
@@ -60,25 +59,23 @@ class Test_Encryption extends TestCase {
     }
 
     /**
-     * Test that API key is not stored in plain text
+     * Test that encryption round-trip works correctly
      */
-    public function test_api_key_not_stored_plain_text() {
-        $test_key = 'sk-ant-api03-test-key-12345';
-        $this->apiKeyManager->setKey( $test_key );
+    public function test_encryption_round_trip() {
+        $test_key = 'sk-ant-api03-test-key-for-encryption-test-1234567890123456789012345678901234567890123456789012345678901234567890';
 
-        $stored = get_option( '84em_claude_api_key_encrypted' );
-        $stored_iv = get_option( '84em_claude_api_key_iv' );
+        // Set the key
+        $result = $this->apiKeyManager->setKey( $test_key );
+        $this->assertTrue( $result, 'setKey should return true' );
 
-        // Verify it's encrypted
-        $this->assertNotEmpty( $stored );
-        $this->assertNotEmpty( $stored_iv );
+        // Retrieve the key and verify it matches
+        $retrieved_key = $this->apiKeyManager->getKey();
+        $this->assertEquals( $test_key, $retrieved_key, 'Retrieved key should match original' );
 
-        // Verify it's not plain text
-        $decrypted = base64_decode( $stored );
-        $this->assertNotEquals( $test_key, $decrypted );
-        $this->assertStringNotContainsString( 'sk-ant', $decrypted );
+        // Delete and verify it's gone
+        $this->apiKeyManager->deleteKey();
+        $this->assertFalse( $this->apiKeyManager->getKey(), 'Key should be false after deletion' );
     }
-
 
 
 

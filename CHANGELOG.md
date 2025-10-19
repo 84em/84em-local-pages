@@ -5,6 +5,67 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.5] - 2025-10-19
+
+### Added
+- **License**: Changed from proprietary to MIT License
+  - Created LICENSE file with MIT License text
+  - Updated all PHP file headers with MIT License docblock tags
+  - Updated composer.json license field
+  - Updated README.md with full MIT License text
+- **Test Configuration Prompting**: Added API configuration check before running tests
+  - TestCommand now checks for API key and model before executing tests
+  - Displays clear error message with setup instructions if configuration is missing
+  - Shows step-by-step commands for configuring missing API key or model
+  - Prevents test failures due to missing API configuration
+
+### Changed
+- **Option Names**: Updated all WordPress option names to be plugin-specific
+  - Changed prefix from `84em_` to `84em_local_pages_` for better namespacing
+  - API key: `84em_claude_api_key_encrypted` → `84em_local_pages_claude_api_key_encrypted`
+  - API key IV: `84em_claude_api_key_iv` → `84em_local_pages_claude_api_key_iv`
+  - Model: `84em_claude_api_model` → `84em_local_pages_claude_api_model`
+  - Test options also updated: `test_84em_local_pages_*`
+  - **Note**: Existing installations will need to reconfigure API key and model after update
+- **Test Data Isolation**: Complete isolation between test and production data
+  - All test data now stored in `test_` prefixed WordPress options
+  - `ApiKeyManager` uses `getOptionName()` helper to prepend `test_` when `RUNNING_TESTS` constant is defined
+  - Production options (`84em_local_pages_claude_api_key_encrypted`, `84em_local_pages_claude_api_model`) never modified during tests
+  - Tests read production API key for authentication but store test data separately
+  - `TestCase::setUp()` automatically defines `RUNNING_TESTS` constant
+  - All test tearDown() methods delete `test_` prefixed options for cleanup
+- **TestConfig Updates**: Simplified test configuration
+  - `TestConfig::getTestApiKey()` reads production API key directly (not through ApiKeyManager)
+  - Removed environment variable support (always use database options)
+  - Tests always use real WordPress options for configuration
+- **Test Suite**: Complete refactor to use ApiKeyManager methods consistently
+  - All tests now use `ApiKeyManager` methods (`getKey()`, `setKey()`, `deleteKey()`, `getModel()`, `setModel()`, `deleteModel()`) instead of calling `update_option()` and `delete_option()` directly
+  - Removed all direct `get_option()`, `update_option()`, and `delete_option()` calls from test files
+  - Tests properly respect `ApiKeyManager::getOptionName()` method which handles test prefix logic
+  - All test setUp() methods now unconditionally set test data
+  - Tests always execute (no skipping based on API key availability)
+  - **All 82 tests now pass** (100% success rate with valid API key)
+
+### Fixed
+- **Production Safety**: Tests can no longer accidentally modify production data
+  - Previously tests could delete production options during cleanup
+  - Now all test operations use isolated `test_` prefixed options
+  - Production WordPress installation remains completely unaffected by test runs
+- **Model Validation**: Fixed model validation workflow in ClaudeApiClient
+  - `validateModel()` now checks `hasKey()` instead of `isConfigured()`
+  - Allows model validation when setting up a new model (before it's saved)
+  - Fixes error "API client is not properly configured" during model setup
+  - Model validation only requires API key, not full configuration
+- **Test Data Isolation**: Fixed test state contamination issues
+  - `test_send_request_invalid_config` and `test_send_request_error_scenarios` now properly delete keys before testing empty state
+  - `test_is_configured` now properly cleans state before testing unconfigured client
+  - `test_validate_credentials` creates fresh manager instance to avoid state pollution
+  - `test_validate_model_without_api_key` now deletes both key and model for proper isolation
+- **Test Path Bug**: Fixed TestCommand test file path construction
+  - Added missing trailing slash to test directory path in `getTestDirectory()`
+  - Prevented incorrect paths like `/tests/unittest-encryption.php`
+  - Now correctly constructs paths like `/tests/unit/test-encryption.php`
+
 ## [3.2.4] - 2025-10-19
 
 ### Added

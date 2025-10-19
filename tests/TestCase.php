@@ -3,6 +3,8 @@
  * Base test case for WP-CLI testing
  *
  * @package EightyFourEM_Local_Pages
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 /**
@@ -14,6 +16,11 @@ class TestCase {
      * Set up before each test
      */
     public function setUp(): void {
+        // Enable test mode - uses test_ prefixed options for complete isolation
+        if ( ! defined( 'RUNNING_TESTS' ) ) {
+            define( 'RUNNING_TESTS', true );
+        }
+
         // Override in child classes
     }
 
@@ -334,4 +341,14 @@ class TestCase {
             $callback();
         }
     }
+
+    /**
+     * Assert that a value is a boolean
+     */
+    protected function assertIsBool( $value, $message = '' ) {
+        if ( ! is_bool( $value ) ) {
+            throw new Exception( $message ?: "Expected boolean but got " . gettype( $value ) );
+        }
+    }
+
 }

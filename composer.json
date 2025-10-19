@@ -2,7 +2,7 @@
   "name": "84em/local-pages-generator",
   "description": "WordPress plugin for generating SEO-optimized local pages using Claude AI",
   "type": "wordpress-plugin",
-  "license": "proprietary",
+  "license": "MIT",
   "authors": [
     {
       "name": "84EM",

@@ -3,6 +3,8 @@
  * Claude API Client
  *
  * @package EightyFourEM\LocalPages\Api
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\Api;
@@ -347,10 +349,11 @@ class ClaudeApiClient implements ApiClientInterface {
      * @return array{success: bool, message: string} Validation result with success status and message
      */
     public function validateModel( string $model ): array {
-        if ( ! $this->isConfigured() ) {
+        // Only require API key for model validation (model is being validated, so it won't exist yet)
+        if ( ! $this->keyManager->hasKey() ) {
             return [
                 'success' => false,
-                'message' => 'API client is not properly configured. Please set API key first.',
+                'message' => 'API key is not configured. Please set API key first.',
             ];
         }
 

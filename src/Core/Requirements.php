@@ -3,6 +3,8 @@
  * Plugin Requirements Checker
  *
  * @package EightyFourEM\LocalPages\Core
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\Core;

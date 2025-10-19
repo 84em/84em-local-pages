@@ -3,6 +3,8 @@
  * Content Generator Interface
  *
  * @package EightyFourEM\LocalPages\Contracts
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\Contracts;

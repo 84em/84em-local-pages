@@ -3,6 +3,8 @@
  * Unit tests for Error Handling actually used in the plugin
  *
  * @package EightyFourEM\LocalPages
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 // Load autoloader for namespaced classes

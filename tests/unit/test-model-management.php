@@ -3,6 +3,8 @@
  * Unit tests for API model management
  *
  * @package EightyFourEM_Local_Pages
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 require_once dirname( __DIR__ ) . '/TestCase.php';
@@ -15,18 +17,15 @@ class Test_Model_Management extends TestCase {
 
 	private Encryption $encryption;
 	private ApiKeyManager $apiKeyManager;
-	private $original_model_value;
-	private $original_key_value;
 
 	/**
 	 * Set up test environment
 	 */
 	public function setUp(): void {
-		// Store original option values
-		$this->original_model_value = get_option( '84em_claude_api_model' );
-		$this->original_key_value = get_option( '84em_claude_api_key_encrypted' );
+		parent::setUp(); // Enables test mode (RUNNING_TESTS constant)
 
 		// Create service instances
+		// These will automatically use test_ prefixed options due to RUNNING_TESTS
 		$this->encryption    = new Encryption();
 		$this->apiKeyManager = new ApiKeyManager( $this->encryption );
 	}
@@ -35,19 +34,9 @@ class Test_Model_Management extends TestCase {
 	 * Tear down test environment
 	 */
 	public function tearDown(): void {
-		// Restore original option values
-		if ( $this->original_model_value !== false ) {
-			update_option( '84em_claude_api_model', $this->original_model_value );
-		} else {
-			delete_option( '84em_claude_api_model' );
-		}
-
-		if ( $this->original_key_value !== false ) {
-			update_option( '84em_claude_api_key_encrypted', $this->original_key_value );
-		} else {
-			delete_option( '84em_claude_api_key_encrypted' );
-			delete_option( '84em_claude_api_key_iv' );
-		}
+		// Clean up test options using ApiKeyManager methods
+		$this->apiKeyManager->deleteModel();
+		$this->apiKeyManager->deleteKey();
 	}
 
 	/**
@@ -55,7 +44,7 @@ class Test_Model_Management extends TestCase {
 	 */
 	public function test_get_model_returns_false_when_not_set() {
 		// Ensure no custom model is set
-		delete_option( '84em_claude_api_model' );
+		$this->apiKeyManager->deleteModel();
 
 		$model = $this->apiKeyManager->getModel();
 		$this->assertFalse( $model );
@@ -97,7 +86,7 @@ class Test_Model_Management extends TestCase {
 	 */
 	public function test_has_custom_model_detection() {
 		// Ensure no custom model
-		delete_option( '84em_claude_api_model' );
+		$this->apiKeyManager->deleteModel();
 
 		$this->assertFalse( $this->apiKeyManager->hasCustomModel() );
 
@@ -112,8 +101,7 @@ class Test_Model_Management extends TestCase {
 	 */
 	public function test_has_key_integration() {
 		// Ensure no API key
-		delete_option( '84em_claude_api_key_encrypted' );
-		delete_option( '84em_claude_api_key_iv' );
+		$this->apiKeyManager->deleteKey();
 
 		$this->assertFalse( $this->apiKeyManager->hasKey() );
 
@@ -135,15 +123,15 @@ class Test_Model_Management extends TestCase {
 	 * Test validateModel without API key configured
 	 */
 	public function test_validate_model_without_api_key() {
-		// Ensure no API key is set
-		delete_option( '84em_claude_api_key_encrypted' );
-		delete_option( '84em_claude_api_key_iv' );
+		// Ensure no API key and no model are set
+		$this->apiKeyManager->deleteKey();
+		$this->apiKeyManager->deleteModel();
 
 		$apiClient = new ClaudeApiClient( $this->apiKeyManager );
 		$validation = $apiClient->validateModel( 'claude-sonnet-4-20250514' );
 
 		$this->assertFalse( $validation['success'] );
-		$this->assertStringContainsString( 'not properly configured', $validation['message'] );
+		$this->assertStringContainsString( 'API key is not configured', $validation['message'] );
 	}
 
 	/**
@@ -201,8 +189,7 @@ class Test_Model_Management extends TestCase {
 	 */
 	public function test_get_available_models_without_api_key() {
 		// Ensure no API key is set
-		delete_option( '84em_claude_api_key_encrypted' );
-		delete_option( '84em_claude_api_key_iv' );
+		$this->apiKeyManager->deleteKey();
 
 		$apiClient = new ClaudeApiClient( $this->apiKeyManager );
 		$result = $apiClient->getAvailableModels();
@@ -239,9 +226,8 @@ class Test_Model_Management extends TestCase {
 	 */
 	public function test_is_configured_requires_both_key_and_model() {
 		// Clear everything
-		delete_option( '84em_claude_api_key_encrypted' );
-		delete_option( '84em_claude_api_key_iv' );
-		delete_option( '84em_claude_api_model' );
+		$this->apiKeyManager->deleteKey();
+		$this->apiKeyManager->deleteModel();
 
 		$apiClient = new ClaudeApiClient( $this->apiKeyManager );
 
@@ -253,8 +239,7 @@ class Test_Model_Management extends TestCase {
 		$this->assertFalse( $apiClient->isConfigured() );
 
 		// Only model (no key) - not configured
-		delete_option( '84em_claude_api_key_encrypted' );
-		delete_option( '84em_claude_api_key_iv' );
+		$this->apiKeyManager->deleteKey();
 		$this->apiKeyManager->setModel( 'claude-sonnet-4-20250514' );
 		$this->assertFalse( $apiClient->isConfigured() );
 

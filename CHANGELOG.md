@@ -5,6 +5,124 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.5] - 2025-10-19
+
+### Added
+- **License**: Changed from proprietary to MIT License
+  - Created LICENSE file with MIT License text
+  - Updated all PHP file headers with MIT License docblock tags
+  - Updated composer.json license field
+  - Updated README.md with full MIT License text
+- **Test Configuration Prompting**: Added API configuration check before running tests
+  - TestCommand now checks for API key and model before executing tests
+  - Displays clear error message with setup instructions if configuration is missing
+  - Shows step-by-step commands for configuring missing API key or model
+  - Prevents test failures due to missing API configuration
+
+### Changed
+- **Option Names**: Updated all WordPress option names to be plugin-specific
+  - Changed prefix from `84em_` to `84em_local_pages_` for better namespacing
+  - API key: `84em_claude_api_key_encrypted` → `84em_local_pages_claude_api_key_encrypted`
+  - API key IV: `84em_claude_api_key_iv` → `84em_local_pages_claude_api_key_iv`
+  - Model: `84em_claude_api_model` → `84em_local_pages_claude_api_model`
+  - Test options also updated: `test_84em_local_pages_*`
+  - **Note**: Existing installations will need to reconfigure API key and model after update
+- **Test Data Isolation**: Complete isolation between test and production data
+  - All test data now stored in `test_` prefixed WordPress options
+  - `ApiKeyManager` uses `getOptionName()` helper to prepend `test_` when `RUNNING_TESTS` constant is defined
+  - Production options (`84em_local_pages_claude_api_key_encrypted`, `84em_local_pages_claude_api_model`) never modified during tests
+  - Tests read production API key for authentication but store test data separately
+  - `TestCase::setUp()` automatically defines `RUNNING_TESTS` constant
+  - All test tearDown() methods delete `test_` prefixed options for cleanup
+- **TestConfig Updates**: Simplified test configuration
+  - `TestConfig::getTestApiKey()` reads production API key directly (not through ApiKeyManager)
+  - Removed environment variable support (always use database options)
+  - Tests always use real WordPress options for configuration
+- **Test Suite**: Complete refactor to use ApiKeyManager methods consistently
+  - All tests now use `ApiKeyManager` methods (`getKey()`, `setKey()`, `deleteKey()`, `getModel()`, `setModel()`, `deleteModel()`) instead of calling `update_option()` and `delete_option()` directly
+  - Removed all direct `get_option()`, `update_option()`, and `delete_option()` calls from test files
+  - Tests properly respect `ApiKeyManager::getOptionName()` method which handles test prefix logic
+  - All test setUp() methods now unconditionally set test data
+  - Tests always execute (no skipping based on API key availability)
+  - **All 82 tests now pass** (100% success rate with valid API key)
+
+### Fixed
+- **Production Safety**: Tests can no longer accidentally modify production data
+  - Previously tests could delete production options during cleanup
+  - Now all test operations use isolated `test_` prefixed options
+  - Production WordPress installation remains completely unaffected by test runs
+- **Model Validation**: Fixed model validation workflow in ClaudeApiClient
+  - `validateModel()` now checks `hasKey()` instead of `isConfigured()`
+  - Allows model validation when setting up a new model (before it's saved)
+  - Fixes error "API client is not properly configured" during model setup
+  - Model validation only requires API key, not full configuration
+- **Test Data Isolation**: Fixed test state contamination issues
+  - `test_send_request_invalid_config` and `test_send_request_error_scenarios` now properly delete keys before testing empty state
+  - `test_is_configured` now properly cleans state before testing unconfigured client
+  - `test_validate_credentials` creates fresh manager instance to avoid state pollution
+  - `test_validate_model_without_api_key` now deletes both key and model for proper isolation
+- **Test Path Bug**: Fixed TestCommand test file path construction
+  - Added missing trailing slash to test directory path in `getTestDirectory()`
+  - Prevented incorrect paths like `/tests/unittest-encryption.php`
+  - Now correctly constructs paths like `/tests/unit/test-encryption.php`
+
+## [3.2.4] - 2025-10-19
+
+### Added
+- **Dynamic Model Selection**: Model fetching from Claude Models API
+  - New `getAvailableModels()` method in `ClaudeApiClient`
+  - Fetches model list from `https://api.anthropic.com/v1/models`
+  - Returns structured data with model ID, display name, created date, and type
+  - Interactive numbered selection menu for choosing models
+  - Model selection highlights current model if already configured
+
+### Changed
+- **Model Configuration**: Removed all hardcoded model defaults
+  - Removed `DEFAULT_MODEL` constant from `ClaudeApiClient` and `ApiKeyManager`
+  - `ApiKeyManager::getModel()` now returns `string|false` instead of defaulting to hardcoded model
+  - Removed `ApiKeyManager::getDefaultModel()` method
+  - Users must explicitly select a model before generating content
+- **API Client Configuration**: Enhanced `isConfigured()` validation
+  - Now requires both API key AND model to be configured
+  - Returns `false` if either is missing
+  - Prevents content generation attempts without proper configuration
+- **Model Management Commands**: Updated all model-related WP-CLI commands
+  - `--set-api-model`: Fetches models from API and presents interactive selection
+  - `--get-api-model`: Shows current model or prompts to set one if not configured
+  - `--validate-api-model`: Requires model to be configured before validation
+  - `--reset-api-model`: Clears current model (no longer resets to "default")
+- **Help Text**: Updated CLI help to reflect new model fetching behavior
+  - Changed description from "Set/update Claude API model (interactive prompt)"
+  - To "Set/update Claude API model (fetches list from API)"
+  - Updated reset command description to "Clear current model configuration"
+
+### Fixed
+- **Model Validation**: Improved validation workflow
+  - Better error messages when model not configured
+  - Clear prompts directing users to `--set-api-model` command
+  - Validation only proceeds if both API key and model are set
+
+### Testing
+- **Test Suite Updates**: Updated all model management tests for new behavior
+  - Renamed `test_get_default_model` → `test_get_model_returns_false_when_not_set`
+  - Renamed `test_delete_model_reverts_to_default` → `test_delete_model_returns_false`
+  - Replaced `test_get_default_model_constant` with `test_has_key_integration`
+  - Added `test_is_configured_requires_both_key_and_model`
+  - Added `test_get_available_models_without_api_key`
+  - Added `test_get_available_models_structure`
+  - All 13 model management tests passing
+
+### Documentation
+- **CLAUDE.md**: Updated for v3.2.4
+  - Documented new Model Selection Process
+  - Removed references to default models
+  - Added Models API endpoint documentation
+  - Clarified that no default model exists
+- **README.md**: Updated API Model Configuration section
+  - Updated command descriptions and examples
+  - Added "How It Works" section explaining dynamic model fetching
+  - Removed hardcoded model list
+
 ## [3.2.3] - 2025-09-16
 
 ### Changed

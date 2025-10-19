@@ -3,6 +3,8 @@
  * Schema.org JSON-LD Generator
  *
  * @package EightyFourEM\LocalPages\Schema
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\Schema;

@@ -3,6 +3,8 @@
  * Local Post Type Registration
  *
  * @package EightyFourEM\LocalPages\PostTypes
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\PostTypes;

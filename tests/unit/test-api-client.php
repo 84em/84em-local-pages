@@ -3,6 +3,8 @@
  * Unit tests for Claude API Client
  *
  * @package EightyFourEM\LocalPages
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 // Suppress expected warnings during API client tests
@@ -13,51 +15,85 @@ if ( ! defined( 'SUPPRESS_TEST_WARNINGS' ) ) {
 // Load autoloader for namespaced classes
 require_once dirname( __DIR__, 2 ) . '/vendor/autoload.php';
 require_once dirname( __DIR__ ) . '/TestCase.php';
+require_once dirname( __DIR__ ) . '/test-config.php';
 
 use EightyFourEM\LocalPages\Api\ClaudeApiClient;
 use EightyFourEM\LocalPages\Api\ApiKeyManager;
+use EightyFourEM\LocalPages\Api\Encryption;
 
 class Test_API_Client extends TestCase {
-    
-    private $apiClient;
-    private $mockKeyManager;
-    
+
+    private ClaudeApiClient $apiClient;
+    private ApiKeyManager $apiKeyManager;
+    private Encryption $encryption;
+
     /**
      * Set up test environment
      */
     public function setUp(): void {
-        // Create mock API key manager
-        $this->mockKeyManager = $this->createMockApiKeyManager();
-        $this->apiClient = new ClaudeApiClient( $this->mockKeyManager );
+        parent::setUp(); // Enables test mode (RUNNING_TESTS constant)
+
+        // Create real service instances
+        // These will automatically use test_ prefixed options due to RUNNING_TESTS
+        $this->encryption = new Encryption();
+        $this->apiKeyManager = new ApiKeyManager( $this->encryption );
+
+        // Set test API key and model (will be stored in test_ prefixed options)
+        $this->apiKeyManager->setKey( TestConfig::getTestApiKey() );
+        $this->apiKeyManager->setModel( TestConfig::getTestModel() );
+
+        $this->apiClient = new ClaudeApiClient( $this->apiKeyManager );
+    }
+
+    /**
+     * Tear down test environment
+     */
+    public function tearDown(): void {
+        // Clean up test options using ApiKeyManager methods
+        $this->apiKeyManager->deleteKey();
+        $this->apiKeyManager->deleteModel();
     }
     
     /**
      * Test API client configuration check
      */
     public function test_is_configured() {
-        // Test with valid API key
+        // Test with valid API key and model (set in setUp)
         $this->assertTrue( $this->apiClient->isConfigured() );
-        
-        // Test with empty API key
-        $emptyManager = $this->createMockApiKeyManager( '' );
+
+        // Test with empty API key - delete keys first, then create new manager
+        $this->apiKeyManager->deleteKey();
+        $this->apiKeyManager->deleteModel();
+
+        $emptyManager = new ApiKeyManager( $this->encryption );
         $emptyClient = new ClaudeApiClient( $emptyManager );
         $this->assertFalse( $emptyClient->isConfigured() );
     }
     
     /**
-     * Test credential validation
+     * Test credential validation with real API calls
      */
     public function test_validate_credentials() {
-        // Note: validateCredentials makes a real API call, so we can only test the failure case
-        
-        // With invalid key (empty)
-        $invalidManager = $this->createMockApiKeyManager( '' );
+        // Test with invalid key (empty) - delete keys first to ensure clean state
+        $this->apiKeyManager->deleteKey();
+        $this->apiKeyManager->deleteModel();
+
+        $invalidManager = new ApiKeyManager( $this->encryption );
         $invalidClient = new ClaudeApiClient( $invalidManager );
         $this->assertFalse( $invalidClient->validateCredentials() );
-        
-        // The success case would require a real API key and actual API call,
-        // which we can't test in unit tests
-        // Note: Skipping success case as it requires real API key
+
+        // Test with real production API key (makes real API call)
+        // This test requires a valid API key to be configured in production
+        $apiKey = TestConfig::getTestApiKey();
+        if ( !empty( $apiKey ) ) {
+            // Create a fresh manager with the API key
+            $testManager = new ApiKeyManager( $this->encryption );
+            $testManager->setKey( $apiKey );
+            $testManager->setModel( TestConfig::getTestModel() );
+
+            $validClient = new ClaudeApiClient( $testManager );
+            $this->assertTrue( $validClient->validateCredentials() );
+        }
     }
     
     
@@ -133,16 +169,20 @@ class Test_API_Client extends TestCase {
     
     /**
      * Test sendRequest with invalid configuration
-     * 
+     *
      * NOTE: This test will output a warning "API client is not properly configured"
      * which is expected behavior when testing error conditions.
      */
     public function test_send_request_invalid_config() {
-        $invalidManager = $this->createMockApiKeyManager( '' );
+        // Delete keys first to ensure clean state, then create new manager without any keys
+        $this->apiKeyManager->deleteKey();
+        $this->apiKeyManager->deleteModel();
+
+        $invalidManager = new ApiKeyManager( $this->encryption );
         $invalidClient = new ClaudeApiClient( $invalidManager );
-        
+
         $result = $invalidClient->sendRequest( 'Test prompt' );
-        
+
         $this->assertFalse( $result );
     }
     
@@ -155,50 +195,28 @@ class Test_API_Client extends TestCase {
         $reflection = new ReflectionClass( $this->apiClient );
         $property = $reflection->getProperty( 'keyManager' );
         $property->setAccessible( true );
-        
+
         $keyManager = $property->getValue( $this->apiClient );
         $this->assertInstanceOf( ApiKeyManager::class, $keyManager );
-        $this->assertSame( $this->mockKeyManager, $keyManager );
+        $this->assertSame( $this->apiKeyManager, $keyManager );
     }
     
     
     /**
      * Test error scenarios in sendRequest
-     * 
+     *
      * NOTE: This test will output a warning "API client is not properly configured"
      * which is expected behavior when testing error conditions.
      */
     public function test_send_request_error_scenarios() {
-        // Test with failed key retrieval
-        $failingManager = new class extends ApiKeyManager {
-            public function __construct() {
-                // Don't call parent to avoid database dependencies
-            }
-            
-            public function getKey(): string|false {
-                return false; // Simulate key retrieval failure
-            }
-            
-            public function hasKey(): bool {
-                return false; // Key retrieval fails, so no key
-            }
-            
-            public function getApiKey(): ?string {
-                return 'test-key';
-            }
-            
-            public function setApiKey( string $apiKey ): bool {
-                return true;
-            }
-            
-            public function validateApiKey(): bool {
-                return true;
-            }
-        };
-        
+        // Delete keys first to ensure clean state, then test with failed key retrieval (no key set)
+        $this->apiKeyManager->deleteKey();
+        $this->apiKeyManager->deleteModel();
+
+        $failingManager = new ApiKeyManager( $this->encryption );
         $failingClient = new ClaudeApiClient( $failingManager );
         $result = $failingClient->sendRequest( 'Test prompt' );
-        
+
         $this->assertFalse( $result );
     }
     
@@ -235,40 +253,5 @@ class Test_API_Client extends TestCase {
         
         // If we get here without exceptions, the test passes
         $this->assertTrue( true );
-    }
-    
-    /**
-     * Helper to create mock API key manager
-     */
-    private function createMockApiKeyManager( $apiKey = 'test-api-key' ) {
-        return new class( $apiKey ) extends ApiKeyManager {
-            private $key;
-            
-            public function __construct( $key ) {
-                $this->key = $key;
-                // Don't call parent constructor to avoid database dependencies
-            }
-            
-            public function getKey(): string|false {
-                return $this->key ?: false;
-            }
-            
-            public function hasKey(): bool {
-                return !empty( $this->key );
-            }
-            
-            public function getApiKey(): ?string {
-                return $this->key;
-            }
-            
-            public function setApiKey( string $apiKey ): bool {
-                $this->key = $apiKey;
-                return true;
-            }
-            
-            public function validateApiKey(): bool {
-                return !empty( $this->key );
-            }
-        };
     }
 }

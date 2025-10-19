@@ -3,6 +3,8 @@
  * Encryption Service
  *
  * @package EightyFourEM\LocalPages\Api
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\Api;

@@ -3,6 +3,8 @@
  * Generate Command Handler
  *
  * @package EightyFourEM\LocalPages\Cli\Commands
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\Cli\Commands;

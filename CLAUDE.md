@@ -248,22 +248,64 @@ Clean hierarchical URLs without post type slug:
 
 ## API Configuration
 
-### Current Model Settings (v3.2.0+)
+### Current Model Settings (v3.2.4+)
 ```php
 // Located in src/Api/ClaudeApiClient.php
-private const MODEL = 'claude-sonnet-4-20250514';
 private const MAX_TOKENS = 4000;
 private const TIMEOUT = 600;  // 10 minutes
 private const API_VERSION = '2023-06-01';
-private const MAX_RETRIES = 3;  // Retry failed requests with exponential backoff
+private const MAX_RETRIES = 5;  // Retry failed requests with exponential backoff
 private const INITIAL_RETRY_DELAY = 1;  // Initial delay between retries
+private const MODELS_ENDPOINT = 'https://api.anthropic.com/v1/models';
 ```
+
+### Model Configuration (v3.2.4+)
+
+The plugin uses dynamic model selection fetched directly from the Claude API:
+
+#### Model Selection Process
+1. User runs `--set-api-model` command
+2. Plugin fetches available models from Claude API
+3. User selects model from interactive numbered list
+4. Model is validated with test API call
+5. If validation succeeds, model is saved
+
+#### Model Management Commands
+
+```bash
+# Set/update model (fetches list from Claude API)
+wp 84em local-pages --set-api-model
+
+# View current model configuration
+wp 84em local-pages --get-api-model
+
+# Validate current model
+wp 84em local-pages --validate-api-model
+
+# Clear current model configuration
+wp 84em local-pages --reset-api-model
+```
+
+#### Model Validation
+All model changes are validated with a test API call before being saved. This ensures:
+- The model exists and is accessible
+- Your API key has permission to use the model
+- The model is functioning correctly
+
+If validation fails, the model will NOT be saved and you'll see a clear error message.
+
+#### Model Storage
+- Models are stored in WordPress option: `84em_local_pages_claude_api_model`
+- **No default model** - users must select a model before generating content
+- Model configuration is separate from API key storage
+- Models can be changed at any time via WP-CLI
+- Available models are fetched dynamically from Claude's Models API
 
 ### Rate Limiting and Error Handling
 - **Delay Between Requests**: 1 second minimum
 - **Timeout**: 600 seconds (10 minutes) per request
-- **Retry Logic**: Up to 3 attempts with exponential backoff for transient errors
-- **Retryable Errors**: Network issues, rate limits, server errors (500-503)
+- **Retry Logic**: Up to 5 attempts with exponential backoff for transient errors
+- **Retryable Errors**: Network issues, rate limits, server errors (500-503, 529)
 - **Progress Tracking**: Real-time duration monitoring
 - **Bulk Operations**: Progress bars with comprehensive statistics
 
@@ -511,7 +553,7 @@ namespace EightyFourEM\LocalPages\Content;
 
 ## Testing Framework
 
-The plugin includes a comprehensive WP-CLI-based testing framework:
+The plugin includes a comprehensive WP-CLI-based testing framework that uses **real WordPress functions and API calls** instead of mocks, following WordPress best practices.
 
 ### Running Tests
 ```bash
@@ -522,30 +564,60 @@ wp 84em local-pages --test --all
 wp 84em local-pages --test --suite=api-client
 ```
 
-### Available Test Suites (v3.2.0)
+### Test Configuration
+
+**Tests always use real WordPress functions, real database operations, and real API calls.** There are no mocks.
+
+The test suite will use the production Claude API key that's already configured in the plugin. If you want to use a different API key for testing (to keep test API usage separate from production), you can set:
+
+```bash
+# Optional: Use a different API key for testing
+export EIGHTYFOUREM_TEST_API_KEY="your-test-api-key-here"
+```
+
+If not set, tests will use the production API key configured in the plugin (stored encrypted in `84em_local_pages_claude_api_key_encrypted`).
+
+### Available Test Suites (v3.2.5)
 - **encryption** - API key encryption and security
 - **data-structures** - Service keywords and states data
 - **content-processing** - Content processing and linking
 - **cli-args** - WP-CLI argument parsing
 - **ld-json** - Schema.org structured data
-- **container** - Dependency injection container
-- **api-client** - Claude API client with retry logic
-- **content-generators** - State and city content generation
+- **api-client** - Claude API client with retry logic (no mocks)
+- **content-generators** - State and city content generation (no mocks)
 - **error-handling** - Error handling and recovery
 - **security** - Security and input sanitization
+- **model-management** - Model configuration and validation
 
-**Total**: 10 test suites with 100+ tests
+**Total**: 10 test suites with 82 tests
+
+**Testing Philosophy**: All tests use real WordPress functions (get_option, update_option, delete_option) and real class instances. No mocks, no anonymous classes, just real integration testing. Tests properly clean up after themselves by restoring original database values.
 
 For detailed testing documentation, see [TESTING.md](TESTING.md).
 
 ## Recent Updates
+
+### Version 3.2.5 (2025-10-19)
+
+#### Test Suite Refactor: Consistent ApiKeyManager Usage
+- **ApiKeyManager Methods**: All tests now use `ApiKeyManager` methods exclusively
+  - Replaced all direct `get_option()`, `update_option()`, `delete_option()` calls
+  - Tests use `getKey()`, `setKey()`, `deleteKey()`, `getModel()`, `setModel()`, `deleteModel()`
+  - Properly respects `getOptionName()` method which handles test prefix logic
+- **Real WordPress Integration**: All tests use real WordPress functions, no mocks
+- **Real API Calls**: Tests make real API calls to Claude using production API key
+- **Test Data Isolation**: Complete separation via `test_` prefixed options
+- **Proper Cleanup**: All tests restore original database values in tearDown()
+- **All 82 Tests Pass**: 100% success rate with valid API key configured
+
+This refactor ensures all tests follow the global CLAUDE.md guideline: "don't use mocks, always use real wordpress functions, api calls, etc." while maintaining proper encapsulation through the ApiKeyManager interface.
 
 ### Version 3.2.0 (2025-08-17)
 
 #### Dependency Injection Overhaul
 - **Eliminated Service Locator Anti-Pattern**: All classes now use proper constructor injection
 - **Singleton Services**: `ClaudeApiClient` registered as singleton for better performance
-- **Improved Testability**: All dependencies can be mocked for unit testing
+- **Real WordPress Integration**: Tests use real WordPress functions and API calls, not mocks
 - **Clean Architecture**: Following SOLID principles throughout
 
 #### CLI Argument Validation
@@ -583,14 +655,16 @@ For a complete list of changes, bug fixes, and new features, see [CHANGELOG.md](
 
 ---
 
-**Last Updated**: August 16, 2025  
-**Claude Model**: claude-sonnet-4-20250514  
-**Content Format**: WordPress Block Editor (Gutenberg)  
-**API Version**: 2023-06-01  
-**Content Strategy**: Hierarchical location pages with automatic interlinking  
-**Total Pages**: 350 (50 states + 300 cities)  
-**Plugin Version**: 3.2.0  
+**Last Updated**: October 19, 2025
+**Claude Model**: claude-sonnet-4-20250514
+**Content Format**: WordPress Block Editor (Gutenberg)
+**API Version**: 2023-06-01
+**Content Strategy**: Hierarchical location pages with automatic interlinking
+**Total Pages**: 350 (50 states + 300 cities)
+**Plugin Version**: 3.2.5
 **Architecture**: Modular PSR-4 autoloaded classes with dependency injection
+**Model Selection**: Dynamic fetching from Claude Models API with interactive selection
+**Testing**: Real WordPress integration, no mocks, 82 tests (100% passing with valid API key)
 
 - Always ensure the CLAUDE.md is up to date.
 - Always ensure the README.md is up to date.

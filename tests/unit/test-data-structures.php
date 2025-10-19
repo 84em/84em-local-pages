@@ -3,6 +3,8 @@
  * Unit tests for data structures
  *
  * @package EightyFourEM_Local_Pages
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 require_once dirname( __DIR__ ) . '/TestCase.php';

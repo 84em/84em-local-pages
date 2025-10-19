@@ -21,7 +21,8 @@ This plugin creates unique, locally-focused landing pages for WordPress developm
 - **Hierarchical Post Type**: Creates "Local Pages" with parent-child relationships (states → cities)
 - **Comprehensive Coverage**: 50 state pages + 300 city pages (6 cities per state) = 350 total pages
 - **WP-CLI Integration**: Complete command-line management interface with progress bars
-- **Claude AI Content**: Generates unique content using Claude Sonnet 4
+- **Claude AI Content**: Generates unique content using Claude AI
+- **Dynamic Model Selection**: Fetches available models from Claude API for interactive selection
 - **Automatic Interlinking**: City names link to city pages, service keywords link to contact page
 - **SEO Optimization**: Built-in SEO meta data and structured LD-JSON schema
 - **Geographic Relevance**: Each page focuses on local cities and geographic context
@@ -172,6 +173,40 @@ wp 84em local-pages --set-api-key
 ```bash
 wp 84em local-pages --validate-api-key
 ```
+
+### API Model Configuration
+
+**Set/Update API Model:**
+```bash
+wp 84em local-pages --set-api-model
+# Fetches available models from Claude API
+# Interactive selection from numbered list
+# Model is validated before being saved
+```
+
+**View Current Model:**
+```bash
+wp 84em local-pages --get-api-model
+```
+
+**Validate Current Model:**
+```bash
+wp 84em local-pages --validate-api-model
+```
+
+**Clear Current Model:**
+```bash
+wp 84em local-pages --reset-api-model
+# Clears current model configuration
+# You'll need to set a new model before generating content
+```
+
+**How It Works:**
+- Available models are fetched directly from Claude's Models API
+- No hardcoded model list - always up-to-date with latest offerings
+- Interactive numbered selection for ease of use
+- Every model selection is validated before saving
+- Must have both API key and model configured to generate content
 
 ### State Operations
 
@@ -881,32 +916,9 @@ wp plugin list --status=active
 
 ## Testing
 
-The plugin includes a comprehensive WP-CLI-based testing framework with 10 test suites covering all major functionality.
+The plugin includes a comprehensive WP-CLI-based testing framework with 82 tests across 10 test suites. All tests use real WordPress functions and real API calls with complete test data isolation.
 
-### Quick Start
-
-```bash
-# Run all test suites
-wp 84em local-pages --test --all
-
-# Run a specific test suite
-wp 84em local-pages --test --suite=api-client
-```
-
-### Available Test Suites
-
-- **encryption** - API key encryption and security
-- **data-structures** - Service keywords and states data
-- **content-processing** - Content processing and linking
-- **cli-args** - WP-CLI argument parsing
-- **ld-json** - Schema.org structured data
-- **container** - Dependency injection container
-- **api-client** - Claude API client with retry logic
-- **content-generators** - State and city content generation
-- **error-handling** - Error handling and recovery
-- **security** - Security and input sanitization
-
-For detailed testing documentation, test writing guidelines, and examples, see [TESTING.md](TESTING.md).
+For complete testing documentation, including test suite details, configuration, and writing new tests, see **[TESTING.md](TESTING.md)**.
 
 ## Health Check Endpoint
 
@@ -956,4 +968,12 @@ Always returns HTTP 200 with minimal JSON response if the plugin is working:
 
 ## License
 
-Proprietary software developed for 84EM. All rights reserved.
+MIT License
+
+Copyright (c) 2025 84EM
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

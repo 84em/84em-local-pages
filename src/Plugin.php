@@ -3,6 +3,8 @@
  * Main Plugin Class
  *
  * @package EightyFourEM\LocalPages
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages;

@@ -3,6 +3,8 @@
  * State Content Generator
  *
  * @package EightyFourEM\LocalPages\Content
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\Content;
@@ -175,16 +177,16 @@ class StateContentGenerator implements ContentGeneratorInterface {
 
             // Create the WordPress post
             $post_data = [
-                'post_title'   => "WordPress Development Services in {$state} | 84EM",
+                'post_title'   => $this->getPostTitle( $state ),
                 'post_content' => $sections['content'],
                 'post_excerpt' => $sections['excerpt'],
                 'post_status'  => 'publish',
                 'post_type'    => 'local',
                 'post_author'  => 1,
                 'meta_input'   => [
-                    '_local_page_state'      => $state,
-                    '_genesis_description' => "Professional WordPress development, custom plugins, and web solutions for businesses in {$state}. White-label services for agencies in " . implode( ', ', $cities ) . ".",
-                    '_genesis_title'     => "Expert WordPress Development Services in {$state} | 84EM",
+                    '_local_page_state'    => $state,
+                    '_genesis_description' => $this->getMetaDescription( $state, implode( ', ', $cities ) ),
+                    '_genesis_title'       => $this->getPostTitle( $state ),
                 ],
             ];
 
@@ -231,7 +233,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
             // Update the post
             $post_data = [
                 'ID'            => $post_id,
-                'post_title'    => "WordPress Development Services in {$state} | 84EM",
+                'post_title'    => $this->getPostTitle( $state ),
                 'post_content'  => $sections['content'],
                 'post_excerpt'  => $sections['excerpt'],
                 'post_modified' => current_time( 'mysql' ),
@@ -248,8 +250,8 @@ class StateContentGenerator implements ContentGeneratorInterface {
             $cities     = $state_data['cities'] ?? [];
 
             // Update meta fields
-            update_post_meta( $post_id, '_genesis_description', "Professional WordPress development, custom plugins, and web solutions for businesses in {$state}. White-label services for agencies in " . implode( ', ', $cities ) . "." );
-            update_post_meta( $post_id, '_genesis_title', "Expert WordPress Development Services in {$state} | 84EM" );
+            update_post_meta( $post_id, '_genesis_description', $this->getMetaDescription( $state, implode( ', ', $cities ) ) );
+            update_post_meta( $post_id, '_genesis_title', $this->getPostTitle( $state) );
 
             // Regenerate and save schema
             $schema = $this->schemaGenerator->generateStateSchema( $state );
@@ -263,6 +265,31 @@ class StateContentGenerator implements ContentGeneratorInterface {
             WP_CLI::error( "Failed to update state page for {$state}  (ID: {$post_id}): " . $e->getMessage() );
             return false;
         }
+    }
+
+    /**
+     * Generate the post title based on the provided data.
+     *
+     * @param  mixed  $data  Input data used to construct the post title.
+     *
+     * @return string Generated post title.
+     */
+    public function getPostTitle( $data ): string {
+
+        return "WordPress consulting & engineering, including custom plugins, security, enterprise integrations, and white‑label agency work in {$data} | 84EM";
+    }
+
+    /**
+     * Generate the meta descirption based on the provided data.
+     *
+     * @param string $data
+     * @param string|null $cities
+     *
+     * @return string
+     */
+    public function getMetaDescription( string $data, string $cities = null ): string {
+
+        return "Professional WordPress development, custom plugins, and web solutions for businesses in {$data}. White-label services and expert support in {$cities}";
     }
 
     /**

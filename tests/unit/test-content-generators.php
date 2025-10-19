@@ -3,63 +3,87 @@
  * Unit tests for Content Generators
  *
  * @package EightyFourEM\LocalPages
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 // Load autoloader for namespaced classes
 require_once dirname( __DIR__, 2 ) . '/vendor/autoload.php';
 require_once dirname( __DIR__ ) . '/TestCase.php';
+require_once dirname( __DIR__ ) . '/test-config.php';
 
 use EightyFourEM\LocalPages\Content\StateContentGenerator;
 use EightyFourEM\LocalPages\Content\CityContentGenerator;
 use EightyFourEM\LocalPages\Api\ApiKeyManager;
 use EightyFourEM\LocalPages\Api\ClaudeApiClient;
+use EightyFourEM\LocalPages\Api\Encryption;
 use EightyFourEM\LocalPages\Data\StatesProvider;
 use EightyFourEM\LocalPages\Data\KeywordsProvider;
 use EightyFourEM\LocalPages\Schema\SchemaGenerator;
 use EightyFourEM\LocalPages\Utils\ContentProcessor;
 
 class Test_Content_Generators extends TestCase {
-    
-    private $stateGenerator;
-    private $cityGenerator;
-    private $mockApiKeyManager;
-    private $statesProvider;
-    private $keywordsProvider;
-    private $schemaGenerator;
-    private $contentProcessor;
-    
+
+    private StateContentGenerator $stateGenerator;
+    private CityContentGenerator $cityGenerator;
+    private ApiKeyManager $apiKeyManager;
+    private ClaudeApiClient $apiClient;
+    private Encryption $encryption;
+    private StatesProvider $statesProvider;
+    private KeywordsProvider $keywordsProvider;
+    private SchemaGenerator $schemaGenerator;
+    private ContentProcessor $contentProcessor;
+
     /**
      * Set up test environment
      */
     public function setUp(): void {
+        parent::setUp(); // Enables test mode (RUNNING_TESTS constant)
+
         // Initialize real providers
         $this->statesProvider = new StatesProvider();
         $this->keywordsProvider = new KeywordsProvider();
         $this->schemaGenerator = new SchemaGenerator( $this->statesProvider );
         $this->contentProcessor = new ContentProcessor( $this->keywordsProvider );
-        
-        // Create mock API key manager and API client
-        $this->mockApiKeyManager = $this->createMockApiKeyManager();
-        $mockApiClient = $this->createMockApiClient();
-        
+
+        // Create real API key manager and API client
+        // These will automatically use test_ prefixed options due to RUNNING_TESTS
+        $this->encryption = new Encryption();
+        $this->apiKeyManager = new ApiKeyManager( $this->encryption );
+
+        // Set test API key and model (will be stored in test_ prefixed options)
+        $this->apiKeyManager->setKey( TestConfig::getTestApiKey() );
+        $this->apiKeyManager->setModel( TestConfig::getTestModel() );
+
+        $this->apiClient = new ClaudeApiClient( $this->apiKeyManager );
+
         // Initialize generators with all dependencies
         $this->stateGenerator = new StateContentGenerator(
-            $this->mockApiKeyManager,
-            $mockApiClient,
+            $this->apiKeyManager,
+            $this->apiClient,
             $this->statesProvider,
             $this->keywordsProvider,
             $this->schemaGenerator,
             $this->contentProcessor
         );
-        
+
         $this->cityGenerator = new CityContentGenerator(
-            $this->mockApiKeyManager,
-            $mockApiClient,
+            $this->apiKeyManager,
+            $this->apiClient,
             $this->statesProvider,
             $this->keywordsProvider,
             $this->schemaGenerator,
             $this->contentProcessor
         );
+    }
+
+    /**
+     * Tear down test environment
+     */
+    public function tearDown(): void {
+        // Clean up test options using ApiKeyManager methods
+        $this->apiKeyManager->deleteKey();
+        $this->apiKeyManager->deleteModel();
     }
     
     /**
@@ -234,56 +258,6 @@ class Test_Content_Generators extends TestCase {
             static $tested = 0;
             if ( ++$tested >= 3 ) break;
         }
-    }
-    
-    /**
-     * Helper to create mock API key manager
-     */
-    private function createMockApiKeyManager() {
-        return new class extends ApiKeyManager {
-            public function __construct() {
-                // Empty constructor for mock
-            }
-            
-            public function getKey(): string|false {
-                return 'mock-api-key';
-            }
-            
-            public function getApiKey(): ?string {
-                return 'mock-api-key';
-            }
-            
-            public function setApiKey( string $apiKey ): bool {
-                return true;
-            }
-            
-            public function validateApiKey(): bool {
-                return true;
-            }
-        };
-    }
-    
-    /**
-     * Create mock API client
-     */
-    private function createMockApiClient() {
-        return new class( null ) extends ClaudeApiClient {
-            public function __construct( $keyManager ) {
-                // Don't call parent constructor
-            }
-            
-            public function sendRequest( string $prompt ): string|false {
-                return 'mock-response';
-            }
-            
-            public function isConfigured(): bool {
-                return true;
-            }
-            
-            public function validateCredentials(): bool {
-                return true;
-            }
-        };
     }
     
 }

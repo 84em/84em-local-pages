@@ -3,6 +3,8 @@
  * Claude API Client
  *
  * @package EightyFourEM\LocalPages\Api
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\Api;
@@ -24,9 +26,9 @@ class ClaudeApiClient implements ApiClientInterface {
     private const API_VERSION = '2023-06-01';
 
     /**
-     * Model to use
+     * Models API endpoint
      */
-    private const MODEL = 'claude-sonnet-4-20250514';
+    private const MODELS_ENDPOINT = 'https://api.anthropic.com/v1/models';
 
     /**
      * Max tokens for response
@@ -88,8 +90,15 @@ class ClaudeApiClient implements ApiClientInterface {
             return false;
         }
 
+        // Get the model from ApiKeyManager
+        $model = $this->keyManager->getModel();
+        if ( false === $model ) {
+            $this->logError( 'No model configured. Please set a model first using --set-api-model' );
+            return false;
+        }
+
         $body = [
-            'model'      => self::MODEL,
+            'model'      => $model,
             'max_tokens' => self::MAX_TOKENS,
             'messages'   => [
                 [
@@ -197,23 +206,276 @@ class ClaudeApiClient implements ApiClientInterface {
      * @return bool
      */
     public function isConfigured(): bool {
-        return $this->keyManager->hasKey();
+        // Must have both API key and a model selected
+        return $this->keyManager->hasKey() && $this->keyManager->hasCustomModel();
     }
 
     /**
      * Validate API credentials
      *
+     * @param bool $skip_model_check Skip checking for model (useful when setting API key before model)
      * @return bool
      */
-    public function validateCredentials(): bool {
-        if ( ! $this->isConfigured() ) {
+    public function validateCredentials( bool $skip_model_check = false ): bool {
+        // At minimum, we need an API key
+        if ( ! $this->keyManager->hasKey() ) {
             return false;
         }
 
-        // Send a simple test request
+        // If not skipping model check, verify we have a model configured
+        if ( ! $skip_model_check && ! $this->keyManager->hasCustomModel() ) {
+            return false;
+        }
+
+        // If we're skipping model check, we need to use getAvailableModels() instead of sendRequest()
+        // because sendRequest() requires a model
+        if ( $skip_model_check ) {
+            // Try to fetch available models - this validates the API key without needing a model
+            $result = $this->getAvailableModels();
+            return $result['success'];
+        }
+
+        // Send a simple test request (requires both API key and model)
         $response = $this->sendRequest( 'Reply with just the word "OK" if you receive this message.' );
 
         return false !== $response && str_contains( strtoupper( $response ), 'OK' );
+    }
+
+    /**
+     * Get available models from Claude API
+     *
+     * @return array{success: bool, models: array, message: string} Models list or error
+     */
+    public function getAvailableModels(): array {
+        // Only need API key to fetch models, not a configured model
+        if ( ! $this->keyManager->hasKey() ) {
+            return [
+                'success' => false,
+                'models'  => [],
+                'message' => 'API client is not properly configured. Please set API key first.',
+            ];
+        }
+
+        $api_key = $this->keyManager->getKey();
+        if ( false === $api_key ) {
+            return [
+                'success' => false,
+                'models'  => [],
+                'message' => 'Failed to retrieve API key.',
+            ];
+        }
+
+        $args = [
+            'method'  => 'GET',
+            'timeout' => 30,
+            'headers' => [
+                'x-api-key'         => $api_key,
+                'anthropic-version' => self::API_VERSION,
+            ],
+        ];
+
+        $response = wp_remote_get( self::MODELS_ENDPOINT, $args );
+
+        // Handle WordPress errors
+        if ( is_wp_error( $response ) ) {
+            $error_message = $response->get_error_message();
+            return [
+                'success' => false,
+                'models'  => [],
+                'message' => "Network error: {$error_message}",
+            ];
+        }
+
+        $response_code = wp_remote_retrieve_response_code( $response );
+        $response_body = wp_remote_retrieve_body( $response );
+
+        // Success
+        if ( 200 === $response_code ) {
+            $data = json_decode( $response_body, true );
+
+            if ( ! isset( $data['data'] ) || ! is_array( $data['data'] ) ) {
+                return [
+                    'success' => false,
+                    'models'  => [],
+                    'message' => 'Unexpected API response format.',
+                ];
+            }
+
+            // Extract and format model information
+            $models = [];
+            foreach ( $data['data'] as $model_data ) {
+                if ( isset( $model_data['id'] ) ) {
+                    $models[] = [
+                        'id'           => $model_data['id'],
+                        'display_name' => $model_data['display_name'] ?? $model_data['id'],
+                        'created_at'   => $model_data['created_at'] ?? null,
+                        'type'         => $model_data['type'] ?? 'model',
+                    ];
+                }
+            }
+
+            return [
+                'success' => true,
+                'models'  => $models,
+                'message' => 'Successfully retrieved models.',
+            ];
+        }
+
+        // Handle errors
+        $data = json_decode( $response_body, true );
+        $error_message = 'Unknown error';
+
+        if ( isset( $data['error'] ) ) {
+            $error = $data['error'];
+            if ( is_array( $error ) ) {
+                $error_message = $error['message'] ?? 'No error message';
+            } else {
+                $error_message = $error;
+            }
+        }
+
+        return [
+            'success' => false,
+            'models'  => [],
+            'message' => "HTTP {$response_code}: {$error_message}",
+        ];
+    }
+
+    /**
+     * Validate a specific API model
+     *
+     * @param  string  $model  Model name to validate
+     *
+     * @return array{success: bool, message: string} Validation result with success status and message
+     */
+    public function validateModel( string $model ): array {
+        // Only require API key for model validation (model is being validated, so it won't exist yet)
+        if ( ! $this->keyManager->hasKey() ) {
+            return [
+                'success' => false,
+                'message' => 'API key is not configured. Please set API key first.',
+            ];
+        }
+
+        if ( empty( $model ) ) {
+            return [
+                'success' => false,
+                'message' => 'Model name cannot be empty.',
+            ];
+        }
+
+        $api_key = $this->keyManager->getKey();
+        if ( false === $api_key ) {
+            return [
+                'success' => false,
+                'message' => 'Failed to retrieve API key.',
+            ];
+        }
+
+        // Prepare test request with the specified model
+        $body = [
+            'model'      => $model,
+            'max_tokens' => 50, // Minimal tokens for test
+            'messages'   => [
+                [
+                    'role'    => 'user',
+                    'content' => 'Reply with just the word "OK" if you receive this message.',
+                ],
+            ],
+        ];
+
+        $args = [
+            'method'  => 'POST',
+            'timeout' => 30, // Shorter timeout for validation
+            'headers' => [
+                'Content-Type'      => 'application/json',
+                'x-api-key'         => $api_key,
+                'anthropic-version' => self::API_VERSION,
+            ],
+            'body'    => wp_json_encode( $body ),
+        ];
+
+        $response = wp_remote_post( self::API_ENDPOINT, $args );
+
+        // Handle WordPress errors
+        if ( is_wp_error( $response ) ) {
+            $error_message = $response->get_error_message();
+            return [
+                'success' => false,
+                'message' => "Network error: {$error_message}",
+            ];
+        }
+
+        $response_code = wp_remote_retrieve_response_code( $response );
+        $response_body = wp_remote_retrieve_body( $response );
+
+        // Success
+        if ( 200 === $response_code ) {
+            $data = json_decode( $response_body, true );
+
+            if ( ! isset( $data['content'][0]['text'] ) ) {
+                return [
+                    'success' => false,
+                    'message' => 'Unexpected API response format.',
+                ];
+            }
+
+            return [
+                'success' => true,
+                'message' => "Model '{$model}' is valid and working!",
+            ];
+        }
+
+        // Parse error details
+        $data = json_decode( $response_body, true );
+        $error_message = 'Unknown error';
+
+        if ( isset( $data['error'] ) ) {
+            $error = $data['error'];
+
+            if ( is_array( $error ) ) {
+                $error_type = $error['type'] ?? 'unknown';
+                $error_msg = $error['message'] ?? 'No error message';
+
+                // Provide helpful messages based on error type
+                if ( 'invalid_request_error' === $error_type && str_contains( $error_msg, 'model' ) ) {
+                    $error_message = "Invalid model '{$model}'. The model may not exist or your account may not have access to it.";
+                } else {
+                    $error_message = "{$error_type}: {$error_msg}";
+                }
+            } else {
+                $error_message = $error;
+            }
+        }
+
+        // Provide specific guidance based on status code
+        switch ( $response_code ) {
+            case 400:
+                return [
+                    'success' => false,
+                    'message' => "Bad Request: {$error_message}",
+                ];
+            case 401:
+                return [
+                    'success' => false,
+                    'message' => 'Unauthorized: Check your API key.',
+                ];
+            case 403:
+                return [
+                    'success' => false,
+                    'message' => "Forbidden: Your account may not have access to model '{$model}'.",
+                ];
+            case 404:
+                return [
+                    'success' => false,
+                    'message' => "Model '{$model}' not found.",
+                ];
+            default:
+                return [
+                    'success' => false,
+                    'message' => "HTTP {$response_code}: {$error_message}",
+                ];
+        }
     }
 
     /**

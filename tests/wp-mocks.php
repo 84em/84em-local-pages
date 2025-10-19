@@ -3,6 +3,8 @@
  * WordPress function mocks for testing
  *
  * @package EightyFourEM_Local_Pages
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 // Define WordPress constants if not already defined

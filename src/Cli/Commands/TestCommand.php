@@ -3,6 +3,8 @@
  * Test Command Handler
  *
  * @package EightyFourEM\LocalPages\Cli\Commands
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\Cli\Commands;
@@ -29,8 +31,9 @@ class TestCommand {
             'ld-json'            => 'test-ld-json-schema.php',
             'api-client'         => 'test-api-client.php',
             'content-generators' => 'test-content-generators.php',
-            'error-handling'      => 'test-error-handling.php',
-            'security'            => 'test-security.php',
+            'error-handling'     => 'test-error-handling.php',
+            'security'           => 'test-security.php',
+            'model-management'   => 'test-model-management.php',
         ];
 
     /**
@@ -50,6 +53,9 @@ class TestCommand {
             return;
         }
 
+        // Check if API key and model are configured
+        $this->ensureApiConfiguration();
+
         $test_dir   = $this->getTestDirectory();
         $mocks_file = $this->getMocksFile();
 
@@ -66,6 +72,57 @@ class TestCommand {
         }
         else {
             $this->runSpecificTest( $test_dir, $suite );
+        }
+    }
+
+    /**
+     * Ensure API key and model are configured before running tests
+     *
+     * @return void
+     */
+    private function ensureApiConfiguration(): void {
+        $has_key   = get_option( '84em_local_pages_claude_api_key_encrypted' );
+        $has_model = get_option( '84em_local_pages_claude_api_model' );
+
+        if ( ! $has_key || ! $has_model ) {
+            WP_CLI::line( '' );
+            WP_CLI::warning( '⚠️  API Configuration Required' );
+            WP_CLI::line( '=============================' );
+            WP_CLI::line( '' );
+
+            $missing = [];
+            if ( ! $has_key ) {
+                WP_CLI::line( '❌ Claude API key is not configured.' );
+                $missing[] = 'API key';
+            }
+
+            if ( ! $has_model ) {
+                WP_CLI::line( '❌ Claude API model is not configured.' );
+                $missing[] = 'API model';
+            }
+
+            WP_CLI::line( '' );
+            WP_CLI::line( 'Tests require both a valid Claude API key and model to run.' );
+            WP_CLI::line( '' );
+            WP_CLI::line( 'Please configure the missing ' . implode( ' and ', $missing ) . ':' );
+            WP_CLI::line( '' );
+
+            if ( ! $has_key ) {
+                WP_CLI::line( '  1. Set API key:' );
+                WP_CLI::line( '     wp 84em local-pages --set-api-key' );
+                WP_CLI::line( '' );
+            }
+
+            if ( ! $has_model ) {
+                WP_CLI::line( '  ' . ( ! $has_key ? '2' : '1' ) . '. Set API model:' );
+                WP_CLI::line( '     wp 84em local-pages --set-api-model' );
+                WP_CLI::line( '' );
+            }
+
+            WP_CLI::line( 'After configuration, run your tests again.' );
+            WP_CLI::line( '' );
+
+            WP_CLI::error( 'API configuration incomplete. Cannot proceed with tests.' );
         }
     }
 

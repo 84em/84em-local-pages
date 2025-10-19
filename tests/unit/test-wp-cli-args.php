@@ -3,60 +3,77 @@
  * Unit tests for WP-CLI argument parsing and validation
  *
  * @package EightyFourEM\LocalPages
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 require_once dirname( __DIR__ ) . '/TestCase.php';
 require_once dirname( __DIR__, 2 ) . '/vendor/autoload.php';
+require_once dirname( __DIR__ ) . '/test-config.php';
 
 use EightyFourEM\LocalPages\Cli\Commands\GenerateCommand;
 use EightyFourEM\LocalPages\Data\StatesProvider;
 use EightyFourEM\LocalPages\Data\KeywordsProvider;
 use EightyFourEM\LocalPages\Api\ApiKeyManager;
 use EightyFourEM\LocalPages\Api\ClaudeApiClient;
+use EightyFourEM\LocalPages\Api\Encryption;
 use EightyFourEM\LocalPages\Content\StateContentGenerator;
 use EightyFourEM\LocalPages\Content\CityContentGenerator;
 use EightyFourEM\LocalPages\Utils\ContentProcessor;
 use EightyFourEM\LocalPages\Schema\SchemaGenerator;
 
 class Test_WP_CLI_Args extends TestCase {
-    
-    private $generateCommand;
-    private $statesProvider;
-    private $keywordsProvider;
-    private $apiKeyManager;
-    
+
+    private GenerateCommand $generateCommand;
+    private StatesProvider $statesProvider;
+    private KeywordsProvider $keywordsProvider;
+    private ApiKeyManager $apiKeyManager;
+    private ClaudeApiClient $apiClient;
+    private Encryption $encryption;
+
     /**
      * Set up test environment
      */
     public function setUp(): void {
+        parent::setUp(); // Enables test mode (RUNNING_TESTS constant)
+
         // Initialize data providers
         $this->statesProvider = new StatesProvider();
         $this->keywordsProvider = new KeywordsProvider();
-        $this->apiKeyManager = $this->createMock( ApiKeyManager::class );
-        
-        // Create mock dependencies for GenerateCommand
-        $mockApiClient = $this->createMock( ClaudeApiClient::class );
+
+        // Create real API key manager and API client
+        // These will automatically use test_ prefixed options due to RUNNING_TESTS
+        $this->encryption = new Encryption();
+        $this->apiKeyManager = new ApiKeyManager( $this->encryption );
+
+        // Set test API key and model (will be stored in test_ prefixed options)
+        $this->apiKeyManager->setKey( TestConfig::getTestApiKey() );
+        $this->apiKeyManager->setModel( TestConfig::getTestModel() );
+
+        $this->apiClient = new ClaudeApiClient( $this->apiKeyManager );
+
+        // Create dependencies for GenerateCommand
         $contentProcessor = new ContentProcessor( $this->keywordsProvider );
         $schemaGenerator = new SchemaGenerator( $this->statesProvider );
-        
+
         $stateContentGenerator = new StateContentGenerator(
             $this->apiKeyManager,
-            $mockApiClient,
+            $this->apiClient,
             $this->statesProvider,
             $this->keywordsProvider,
             $schemaGenerator,
             $contentProcessor
         );
-        
+
         $cityContentGenerator = new CityContentGenerator(
             $this->apiKeyManager,
-            $mockApiClient,
+            $this->apiClient,
             $this->statesProvider,
             $this->keywordsProvider,
             $schemaGenerator,
             $contentProcessor
         );
-        
+
         // Initialize GenerateCommand with all dependencies
         $this->generateCommand = new GenerateCommand(
             $this->apiKeyManager,
@@ -67,6 +84,15 @@ class Test_WP_CLI_Args extends TestCase {
             $contentProcessor,
             $schemaGenerator
         );
+    }
+
+    /**
+     * Tear down test environment
+     */
+    public function tearDown(): void {
+        // Clean up test options using ApiKeyManager methods
+        $this->apiKeyManager->deleteKey();
+        $this->apiKeyManager->deleteModel();
     }
     
     
@@ -322,60 +348,5 @@ class Test_WP_CLI_Args extends TestCase {
         $method = $reflection->getMethod( $method_name );
         $method->setAccessible( true );
         return $method;
-    }
-    
-    /**
-     * Helper to create mock objects
-     */
-    private function createMock( $class ) {
-        if ( $class === ApiKeyManager::class ) {
-            return new class extends ApiKeyManager {
-                public function __construct() {
-                    // Empty constructor for mock
-                }
-                
-                public function getApiKey(): ?string {
-                    return 'mock-api-key';
-                }
-                
-                public function setApiKey( string $apiKey ): bool {
-                    return true;
-                }
-                
-                public function validateApiKey(): bool {
-                    return true;
-                }
-                
-                public function getKey(): string|false {
-                    return 'mock-api-key';
-                }
-                
-                public function hasKey(): bool {
-                    return true;
-                }
-            };
-        }
-        
-        if ( $class === ClaudeApiClient::class ) {
-            return new class( null ) extends ClaudeApiClient {
-                public function __construct( $keyManager ) {
-                    // Don't call parent constructor
-                }
-                
-                public function sendRequest( string $prompt ): string|false {
-                    return 'mock-response';
-                }
-                
-                public function isConfigured(): bool {
-                    return true;
-                }
-                
-                public function validateCredentials(): bool {
-                    return true;
-                }
-            };
-        }
-        
-        return null;
     }
 }

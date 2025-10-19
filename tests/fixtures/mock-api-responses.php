@@ -3,6 +3,8 @@
  * Mock Claude API responses for testing
  *
  * @package EightyFourEM_Local_Pages
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 class Mock_Claude_API {

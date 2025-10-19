@@ -3,6 +3,8 @@
  * Service Keywords Data Provider
  *
  * @package EightyFourEM\LocalPages\Data
+ * @license MIT License
+ * @link https://opensource.org/licenses/MIT
  */
 
 namespace EightyFourEM\LocalPages\Data;

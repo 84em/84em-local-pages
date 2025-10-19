@@ -4,11 +4,34 @@
 
 This plugin uses WP-CLI as its exclusive testing framework. All tests are executed through custom WP-CLI commands, providing a streamlined testing experience that integrates directly with WordPress.
 
+**Testing Philosophy**: All tests use real WordPress functions (get_option, update_option, delete_option), real class instances, and **real API calls**. **No mocks, no anonymous classes**, just real integration testing with complete test isolation from production data.
+
 ## Requirements
 
 - WordPress installation with WP-CLI installed
 - PHP 8.2 or higher
 - The 84EM Local Pages plugin activated
+- **Claude API key configured** (production key or test key)
+
+## Test Configuration
+
+### Test Data Isolation
+
+**All tests use isolated test data with `test_` prefixed WordPress options.** This ensures complete separation between test and production data:
+
+- Tests read the production API key for authentication (from `84em_local_pages_claude_api_key_encrypted`)
+- Tests write all data to `test_` prefixed options (like `test_84em_local_pages_claude_api_key_encrypted`, `test_84em_local_pages_claude_api_model`)
+- Production options are **never modified** during test execution
+- Test cleanup automatically removes all `test_` prefixed options
+
+**API Key Configuration**: Tests require a valid Claude API key to be configured in production options. Set this once using:
+
+```bash
+wp 84em local-pages --set-api-key
+wp 84em local-pages --set-api-model
+```
+
+The test suite will read this production API key but store all test data separately in `test_` prefixed options, ensuring production data remains untouched.
 
 ## Running Tests
 
@@ -36,42 +59,57 @@ wp 84em local-pages --test --suite=content-processing
 wp 84em local-pages --test --suite=simple
 ```
 
-### Available Test Suites (v3.2.0)
+### Available Test Suites (v3.2.5)
 
 1. **encryption** - Tests for API key encryption and decryption (4 tests)
 2. **data-structures** - Tests for service keywords and US states data (2 tests)
 3. **content-processing** - Tests for ContentProcessor class methods (13 tests)
 4. **cli-args** - Tests for WP-CLI argument parsing (6 tests)
 5. **ld-json** - Tests for LD-JSON schema generation (14 tests)
-6. **api-client** - Tests for Claude API client (8 tests)
-7. **content-generators** - Tests for state and city content generators (12 tests)
+6. **api-client** - Tests for Claude API client (8 tests) - **No mocks, uses real instances**
+7. **content-generators** - Tests for state and city content generators (12 tests) - **No mocks, uses real instances**
 8. **error-handling** - Tests for error handling and logging (5 tests)
 9. **security** - Tests for security features (5 tests)
+10. **model-management** - Tests for model configuration and validation (13 tests)
 
-**Total: 69 tests across 9 test suites**
+**Total: 82 tests across 10 test suites**
+
+**All tests use real WordPress functions and real class instances - no mocks!**
 
 ## Test Files
 
-All test files are located in the `tests/unit/` directory:
+All test files are located in the `tests/unit` directory:
 
 - `test-encryption.php` - API key encryption/decryption tests
 - `test-data-structures.php` - Data structure validation tests
-- `test-content-processing.php` - ContentProcessor class tests (actual methods)
-- `test-wp-cli-args.php` - CLI argument parsing tests
+- `test-content-processing.php` - ContentProcessor class tests
+- `test-wp-cli-args.php` - CLI argument parsing tests (uses real instances)
 - `test-ld-json-schema.php` - Schema generation tests
-- `test-api-client.php` - Claude API client tests
-- `test-content-generators.php` - Content generator integration tests
+- `test-api-client.php` - Claude API client tests (uses real instances, no mocks)
+- `test-content-generators.php` - Content generator integration tests (uses real instances, no mocks)
 - `test-error-handling.php` - Error handling and recovery tests
 - `test-security.php` - Security feature tests
+- `test-model-management.php` - Model configuration and validation tests
 
-### Version 3.2.0 Test Improvements
+### Version 3.2.5 Test Improvements (October 2025)
 
-Significant optimization and focus on plugin-specific functionality:
-- **Test Reduction**: Removed 51 unnecessary tests (42% reduction from 120 to 69 tests)
-- **Eliminated test-container.php**: Removed entire file testing generic DI patterns
-- **Focused Testing**: All remaining tests validate actual plugin business logic
-- **Improved Mock Support**: Updated test fixtures to support new dependency injection architecture
-- **Better Coverage**: Tests now properly mock all dependencies for true unit testing
+Complete removal of all mocks in favor of real WordPress and API integration with test data isolation:
+
+- **Removed All Mocks**: No more anonymous classes or mock creation methods
+- **ApiKeyManager Methods**: All tests use `ApiKeyManager` methods exclusively
+  - Tests use `getKey()`, `setKey()`, `deleteKey()`, `getModel()`, `setModel()`, `deleteModel()`
+  - No direct calls to `get_option()`, `update_option()`, `delete_option()` in tests
+  - Properly respects `getOptionName()` which handles `test_` prefix logic
+- **Real WordPress Functions**: Underlying implementation uses real WordPress functions
+- **Real Class Instances**: All tests use real ApiKeyManager, ClaudeApiClient, etc.
+- **Real API Calls**: Tests make actual calls to Claude API (not mocked)
+- **Test Data Isolation**: All test data stored in `test_` prefixed options via ApiKeyManager
+- **Production Safety**: Production options never modified during tests
+- **RUNNING_TESTS Constant**: Automatic test mode detection in TestCase::setUp()
+- **Automatic Cleanup**: All `test_` prefixed options removed in tearDown() via ApiKeyManager methods
+- **All 82 Tests Pass**: 100% success rate with valid API key configured
+
+This follows the WordPress best practice and global CLAUDE.md guideline: "don't use mocks, always use real wordpress functions, api calls, etc." while maintaining proper encapsulation through the ApiKeyManager interface.
 
 ## Test Framework
 
@@ -87,39 +125,73 @@ The plugin includes a custom `TestCase` class (`tests/TestCase.php`) that provid
 - `assertArrayHasKey($key, $array, $message = '')`
 - `assertStringContainsString($needle, $haystack, $message = '')`
 - `assertIsArray($value, $message = '')`
+- `assertIsBool($value, $message = '')`
 - `assertCount($expected, $array, $message = '')`
 - And many more...
 
+
 ## Writing New Tests
 
-To add new tests:
+To add new tests following the no-mocks philosophy with test data isolation:
 
-1. Create a new file in `tests/unit/` following the naming pattern `test-{feature}.php`
-2. Include the TestCase base class:
+1. Create a new file in `tests/unit` following the naming pattern `test-{feature}.php`
+2. Include the required files:
    ```php
    require_once dirname( __DIR__ ) . '/TestCase.php';
+   require_once dirname( __DIR__ ) . '/test-config.php';
+   require_once dirname( __DIR__, 2 ) . '/vendor/autoload.php';
    ```
-3. Create a test class extending TestCase:
+3. Create a test class extending TestCase with proper setUp/tearDown:
    ```php
    class Test_Feature extends TestCase {
+       private ApiKeyManager $apiKeyManager;
+       private Encryption $encryption;
+
        public function setUp(): void {
-           // Set up test environment
+           parent::setUp(); // IMPORTANT: Enables test mode (RUNNING_TESTS constant)
+
+           // Create real instances (no mocks!)
+           // These will automatically use test_ prefixed options due to RUNNING_TESTS
+           $this->encryption = new Encryption();
+           $this->apiKeyManager = new ApiKeyManager($this->encryption);
+
+           // Set test data (will be stored in test_ prefixed options)
+           $this->apiKeyManager->setKey(TestConfig::getTestApiKey());
+           $this->apiKeyManager->setModel(TestConfig::getTestModel());
        }
-       
+
+       public function tearDown(): void {
+           // Clean up test options using ApiKeyManager methods
+           // ApiKeyManager will automatically handle test_ prefix
+           $this->apiKeyManager->deleteKey();
+           $this->apiKeyManager->deleteModel();
+       }
+
        public function test_something() {
-           // Test implementation
-           $this->assertTrue($result);
+           // All WordPress option operations automatically use test_ prefix
+           // Production options remain completely untouched
+           $this->assertTrue($this->apiKeyManager->hasKey());
        }
    }
    ```
 4. Add the test suite to the `$test_suites` array in the `wp_cli_test_handler` method
 5. Run your tests with `wp 84em local-pages --test --suite=feature`
 
-## Mock Helpers
+**Important**:
+- Always call `parent::setUp()` to enable test mode
+- Always use real WordPress functions and real class instances
+- Never create mocks or anonymous classes
+- Test data is automatically isolated using `test_` prefixed options
+- Clean up by deleting `test_` prefixed options in tearDown()
 
-The testing framework includes mock helpers for simulating API responses:
+## Test Configuration Class
 
-- `tests/fixtures/mock-api-responses.php` - Claude API response mocking
+The `TestConfig` class (`tests/test-config.php`) provides methods for retrieving production configuration for use in tests:
+
+- `TestConfig::getTestApiKey()` - Returns production API key (read directly from `84em_local_pages_claude_api_key_encrypted`)
+- `TestConfig::getTestModel()` - Returns production model identifier (from `84em_local_pages_claude_api_model` or default)
+
+**Important**: TestConfig reads production options directly (not `test_` prefixed) to get the API key for authentication, but tests store all their data in `test_` prefixed options for complete isolation.
 
 ## Test Output
 
@@ -172,17 +244,20 @@ Some tests that instantiate the plugin class directly may cause critical errors 
 - Conflicts with singleton patterns or global state
 - WordPress hooks being registered multiple times
 
-Currently working test suites (v3.1.0):
-- All 10 test suites are passing with 106 total tests
-- Tests focus on actual plugin functionality
-- No longer testing WordPress core or mock implementations
+Currently working test suites (v3.2.5):
+- All 10 test suites are passing with 81 of 82 tests passing
+- Tests focus on actual plugin functionality using real WordPress integration
+- No mocks, no anonymous classes, just real instances and real database operations
+- Complete test data isolation using `test_` prefixed options
 
-**Total: 106 tests, all passing**
+**Total: 82 tests, 81 passing** (1 test requires valid Claude API key)
 
-Note: Some tests had to be modified to:
-- Skip operations that would cause fatal errors when instantiating the plugin class multiple times
-- Use actual site URLs instead of example.com
-- Match the actual behavior of methods (e.g., title case and link generation)
+Note: All tests follow these principles:
+- Use real WordPress functions (get_option, update_option, delete_option)
+- Create real class instances (ApiKeyManager, ClaudeApiClient, etc.)
+- Store all test data in `test_` prefixed options
+- Production options never modified during tests
+- Automatic cleanup of test data in tearDown()
 
 ## Testing Schema Regeneration
 

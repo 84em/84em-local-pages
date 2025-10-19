@@ -5,6 +5,16 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1] - 2025-10-19
+
+### Fixed
+- **Encryption Security**: Added IV length validation in `Encryption::decrypt()` method
+  - Prevents OpenSSL warnings when attempting to decrypt corrupted data
+  - Validates IV is exactly 16 bytes before calling `openssl_decrypt()`
+  - Returns `false` gracefully when data is corrupted instead of generating PHP warnings
+  - Adds debug logging when WP-CLI is available to help diagnose encryption issues
+  - Fixes Sentry issues #6806189599 and #6814063379 (52 total events)
+
 ## [3.3.0] - 2025-10-19
 
 ### Changed

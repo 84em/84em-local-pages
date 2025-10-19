@@ -768,10 +768,10 @@ For a complete list of changes, bug fixes, and new features, see [CHANGELOG.md](
 **API Version**: 2023-06-01
 **Content Strategy**: Hierarchical location pages with automatic interlinking and improved readability
 **Total Pages**: 350 (50 states + 300 cities)
-**Plugin Version**: 3.3.0
+**Plugin Version**: 3.3.1
 **Architecture**: Modular PSR-4 autoloaded classes with dependency injection
 **Model Selection**: Dynamic fetching from Claude Models API with interactive selection
-**Testing**: Real WordPress integration, no mocks, 82 tests (100% passing with valid API key)
+**Testing**: Real WordPress integration, no mocks, 82 integration tests (100% passing with valid API key)
 
 - Always ensure the CLAUDE.md is up to date.
 - Always ensure the README.md is up to date.

@@ -244,20 +244,40 @@ class Test_Content_Generators extends TestCase {
             public function __construct() {
                 // Empty constructor for mock
             }
-            
+
             public function getKey(): string|false {
                 return 'mock-api-key';
             }
-            
+
+            public function hasKey(): bool {
+                return true;
+            }
+
             public function getApiKey(): ?string {
                 return 'mock-api-key';
             }
-            
+
             public function setApiKey( string $apiKey ): bool {
                 return true;
             }
-            
+
             public function validateApiKey(): bool {
+                return true;
+            }
+
+            public function getModel(): string|false {
+                return 'claude-sonnet-4-20250514';
+            }
+
+            public function hasCustomModel(): bool {
+                return true;
+            }
+
+            public function setModel( string $model ): bool {
+                return true;
+            }
+
+            public function deleteModel(): bool {
                 return true;
             }
         };

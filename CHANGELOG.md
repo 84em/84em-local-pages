@@ -5,6 +5,63 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.4] - 2025-10-19
+
+### Added
+- **Dynamic Model Selection**: Model fetching from Claude Models API
+  - New `getAvailableModels()` method in `ClaudeApiClient`
+  - Fetches model list from `https://api.anthropic.com/v1/models`
+  - Returns structured data with model ID, display name, created date, and type
+  - Interactive numbered selection menu for choosing models
+  - Model selection highlights current model if already configured
+
+### Changed
+- **Model Configuration**: Removed all hardcoded model defaults
+  - Removed `DEFAULT_MODEL` constant from `ClaudeApiClient` and `ApiKeyManager`
+  - `ApiKeyManager::getModel()` now returns `string|false` instead of defaulting to hardcoded model
+  - Removed `ApiKeyManager::getDefaultModel()` method
+  - Users must explicitly select a model before generating content
+- **API Client Configuration**: Enhanced `isConfigured()` validation
+  - Now requires both API key AND model to be configured
+  - Returns `false` if either is missing
+  - Prevents content generation attempts without proper configuration
+- **Model Management Commands**: Updated all model-related WP-CLI commands
+  - `--set-api-model`: Fetches models from API and presents interactive selection
+  - `--get-api-model`: Shows current model or prompts to set one if not configured
+  - `--validate-api-model`: Requires model to be configured before validation
+  - `--reset-api-model`: Clears current model (no longer resets to "default")
+- **Help Text**: Updated CLI help to reflect new model fetching behavior
+  - Changed description from "Set/update Claude API model (interactive prompt)"
+  - To "Set/update Claude API model (fetches list from API)"
+  - Updated reset command description to "Clear current model configuration"
+
+### Fixed
+- **Model Validation**: Improved validation workflow
+  - Better error messages when model not configured
+  - Clear prompts directing users to `--set-api-model` command
+  - Validation only proceeds if both API key and model are set
+
+### Testing
+- **Test Suite Updates**: Updated all model management tests for new behavior
+  - Renamed `test_get_default_model` → `test_get_model_returns_false_when_not_set`
+  - Renamed `test_delete_model_reverts_to_default` → `test_delete_model_returns_false`
+  - Replaced `test_get_default_model_constant` with `test_has_key_integration`
+  - Added `test_is_configured_requires_both_key_and_model`
+  - Added `test_get_available_models_without_api_key`
+  - Added `test_get_available_models_structure`
+  - All 13 model management tests passing
+
+### Documentation
+- **CLAUDE.md**: Updated for v3.2.4
+  - Documented new Model Selection Process
+  - Removed references to default models
+  - Added Models API endpoint documentation
+  - Clarified that no default model exists
+- **README.md**: Updated API Model Configuration section
+  - Updated command descriptions and examples
+  - Added "How It Works" section explaining dynamic model fetching
+  - Removed hardcoded model list
+
 ## [3.2.3] - 2025-09-16
 
 ### Changed

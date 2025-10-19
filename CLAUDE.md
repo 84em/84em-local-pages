@@ -248,22 +248,64 @@ Clean hierarchical URLs without post type slug:
 
 ## API Configuration
 
-### Current Model Settings (v3.2.0+)
+### Current Model Settings (v3.2.4+)
 ```php
 // Located in src/Api/ClaudeApiClient.php
-private const MODEL = 'claude-sonnet-4-20250514';
 private const MAX_TOKENS = 4000;
 private const TIMEOUT = 600;  // 10 minutes
 private const API_VERSION = '2023-06-01';
-private const MAX_RETRIES = 3;  // Retry failed requests with exponential backoff
+private const MAX_RETRIES = 5;  // Retry failed requests with exponential backoff
 private const INITIAL_RETRY_DELAY = 1;  // Initial delay between retries
+private const MODELS_ENDPOINT = 'https://api.anthropic.com/v1/models';
 ```
+
+### Model Configuration (v3.2.4+)
+
+The plugin uses dynamic model selection fetched directly from the Claude API:
+
+#### Model Selection Process
+1. User runs `--set-api-model` command
+2. Plugin fetches available models from Claude API
+3. User selects model from interactive numbered list
+4. Model is validated with test API call
+5. If validation succeeds, model is saved
+
+#### Model Management Commands
+
+```bash
+# Set/update model (fetches list from Claude API)
+wp 84em local-pages --set-api-model
+
+# View current model configuration
+wp 84em local-pages --get-api-model
+
+# Validate current model
+wp 84em local-pages --validate-api-model
+
+# Clear current model configuration
+wp 84em local-pages --reset-api-model
+```
+
+#### Model Validation
+All model changes are validated with a test API call before being saved. This ensures:
+- The model exists and is accessible
+- Your API key has permission to use the model
+- The model is functioning correctly
+
+If validation fails, the model will NOT be saved and you'll see a clear error message.
+
+#### Model Storage
+- Models are stored in WordPress option: `84em_claude_api_model`
+- **No default model** - users must select a model before generating content
+- Model configuration is separate from API key storage
+- Models can be changed at any time via WP-CLI
+- Available models are fetched dynamically from Claude's Models API
 
 ### Rate Limiting and Error Handling
 - **Delay Between Requests**: 1 second minimum
 - **Timeout**: 600 seconds (10 minutes) per request
-- **Retry Logic**: Up to 3 attempts with exponential backoff for transient errors
-- **Retryable Errors**: Network issues, rate limits, server errors (500-503)
+- **Retry Logic**: Up to 5 attempts with exponential backoff for transient errors
+- **Retryable Errors**: Network issues, rate limits, server errors (500-503, 529)
 - **Progress Tracking**: Real-time duration monitoring
 - **Bulk Operations**: Progress bars with comprehensive statistics
 
@@ -588,9 +630,10 @@ For a complete list of changes, bug fixes, and new features, see [CHANGELOG.md](
 **Content Format**: WordPress Block Editor (Gutenberg)  
 **API Version**: 2023-06-01  
 **Content Strategy**: Hierarchical location pages with automatic interlinking  
-**Total Pages**: 350 (50 states + 300 cities)  
-**Plugin Version**: 3.2.0  
+**Total Pages**: 350 (50 states + 300 cities)
+**Plugin Version**: 3.2.4
 **Architecture**: Modular PSR-4 autoloaded classes with dependency injection
+**Model Selection**: Dynamic fetching from Claude Models API with interactive selection
 
 - Always ensure the CLAUDE.md is up to date.
 - Always ensure the README.md is up to date.

@@ -21,7 +21,8 @@ This plugin creates unique, locally-focused landing pages for WordPress developm
 - **Hierarchical Post Type**: Creates "Local Pages" with parent-child relationships (states → cities)
 - **Comprehensive Coverage**: 50 state pages + 300 city pages (6 cities per state) = 350 total pages
 - **WP-CLI Integration**: Complete command-line management interface with progress bars
-- **Claude AI Content**: Generates unique content using Claude Sonnet 4
+- **Claude AI Content**: Generates unique content using Claude AI
+- **Dynamic Model Selection**: Fetches available models from Claude API for interactive selection
 - **Automatic Interlinking**: City names link to city pages, service keywords link to contact page
 - **SEO Optimization**: Built-in SEO meta data and structured LD-JSON schema
 - **Geographic Relevance**: Each page focuses on local cities and geographic context
@@ -172,6 +173,40 @@ wp 84em local-pages --set-api-key
 ```bash
 wp 84em local-pages --validate-api-key
 ```
+
+### API Model Configuration
+
+**Set/Update API Model:**
+```bash
+wp 84em local-pages --set-api-model
+# Fetches available models from Claude API
+# Interactive selection from numbered list
+# Model is validated before being saved
+```
+
+**View Current Model:**
+```bash
+wp 84em local-pages --get-api-model
+```
+
+**Validate Current Model:**
+```bash
+wp 84em local-pages --validate-api-model
+```
+
+**Clear Current Model:**
+```bash
+wp 84em local-pages --reset-api-model
+# Clears current model configuration
+# You'll need to set a new model before generating content
+```
+
+**How It Works:**
+- Available models are fetched directly from Claude's Models API
+- No hardcoded model list - always up-to-date with latest offerings
+- Interactive numbered selection for ease of use
+- Every model selection is validated before saving
+- Must have both API key and model configured to generate content
 
 ### State Operations
 

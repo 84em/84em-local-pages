@@ -92,3 +92,6 @@ sitemap-local.xml
 
 # legacy deployment
 deploy.sh
+
+# planning docs for future improvements
+/planning/

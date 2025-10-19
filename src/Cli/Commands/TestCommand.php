@@ -29,8 +29,9 @@ class TestCommand {
             'ld-json'            => 'test-ld-json-schema.php',
             'api-client'         => 'test-api-client.php',
             'content-generators' => 'test-content-generators.php',
-            'error-handling'      => 'test-error-handling.php',
-            'security'            => 'test-security.php',
+            'error-handling'     => 'test-error-handling.php',
+            'security'           => 'test-security.php',
+            'model-management'   => 'test-model-management.php',
         ];
 
     /**

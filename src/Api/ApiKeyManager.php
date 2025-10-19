@@ -17,6 +17,11 @@ class ApiKeyManager {
     private const OPTION_NAME = '84em_claude_api_key_encrypted';
 
     /**
+     * Option name for storing the API model
+     */
+    private const MODEL_OPTION_NAME = '84em_claude_api_model';
+
+    /**
      * Encryption service
      *
      * @var Encryption
@@ -118,5 +123,54 @@ class ApiKeyManager {
     public function validateKeyFormat( string $key ): bool {
         // Claude API keys start with 'sk-ant-api03-' followed by 93 characters
         return (bool) preg_match( '/^sk-ant-api03-[\w\-]{93}$/', $key );
+    }
+
+    /**
+     * Get the API model
+     *
+     * @return string|false Model name or false if not set
+     */
+    public function getModel(): string|false {
+        $model = get_option( self::MODEL_OPTION_NAME );
+
+        if ( empty( $model ) ) {
+            return false;
+        }
+
+        return $model;
+    }
+
+    /**
+     * Set the API model
+     *
+     * @param  string  $model  Model name to store
+     *
+     * @return bool True on success, false on failure
+     */
+    public function setModel( string $model ): bool {
+        if ( empty( $model ) ) {
+            return false;
+        }
+
+        return update_option( self::MODEL_OPTION_NAME, $model );
+    }
+
+    /**
+     * Delete the API model (revert to default)
+     *
+     * @return bool True on success, false on failure
+     */
+    public function deleteModel(): bool {
+        return delete_option( self::MODEL_OPTION_NAME );
+    }
+
+    /**
+     * Check if a custom API model is stored
+     *
+     * @return bool
+     */
+    public function hasCustomModel(): bool {
+        $model = get_option( self::MODEL_OPTION_NAME );
+        return ! empty( $model );
     }
 }

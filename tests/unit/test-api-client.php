@@ -243,31 +243,50 @@ class Test_API_Client extends TestCase {
     private function createMockApiKeyManager( $apiKey = 'test-api-key' ) {
         return new class( $apiKey ) extends ApiKeyManager {
             private $key;
-            
+            private $model = 'claude-sonnet-4-20250514'; // Mock model
+
             public function __construct( $key ) {
                 $this->key = $key;
                 // Don't call parent constructor to avoid database dependencies
             }
-            
+
             public function getKey(): string|false {
                 return $this->key ?: false;
             }
-            
+
             public function hasKey(): bool {
                 return !empty( $this->key );
             }
-            
+
             public function getApiKey(): ?string {
                 return $this->key;
             }
-            
+
             public function setApiKey( string $apiKey ): bool {
                 $this->key = $apiKey;
                 return true;
             }
-            
+
             public function validateApiKey(): bool {
                 return !empty( $this->key );
+            }
+
+            public function getModel(): string|false {
+                return $this->model;
+            }
+
+            public function hasCustomModel(): bool {
+                return !empty( $this->model );
+            }
+
+            public function setModel( string $model ): bool {
+                $this->model = $model;
+                return true;
+            }
+
+            public function deleteModel(): bool {
+                $this->model = '';
+                return true;
             }
         };
     }

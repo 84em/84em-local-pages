@@ -5,6 +5,25 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.3] - 2025-10-19
+
+### Changed
+- **Code Quality**: Refactored `GenerateCommand.php` to standardize database query methods
+  - Replaced all 12 instances of `get_posts()` with consistent `WP_Query` usage
+  - Created three reusable helper methods: `findStatePage()`, `findCityPage()`, `findLocalPages()`
+  - Reduced code duplication by 47 lines (201 lines removed, 154 added)
+  - Improved memory management with proper `wp_reset_postdata()` calls in all queries
+  - Enhanced maintainability by centralizing query logic in helper methods
+  - Updated `buildIndexPageContent()` to accept array of posts instead of `WP_Query` object
+  - Updated `handleSitemapGeneration()` and `handleIndexGeneration()` to use helper methods
+  - All database queries now follow WordPress best practices using `WP_Query` class
+
+### Fixed
+- **Help Documentation**: Updated WP-CLI help text to list all 10 available test suites
+  - Added missing test suites: `cli-args`, `ld-json`, `api-client`, `content-generators`, `error-handling`, `security`, `model-management`
+  - Previously only showed 3 of 10 test suites (`encryption`, `data-structures`, `content-processing`)
+  - Help output now matches actual available test suites defined in `TestCommand.php`
+
 ## [3.3.2] - 2025-10-19
 
 ### Fixed

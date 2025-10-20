@@ -349,7 +349,7 @@ Present services in an UNORDERED LIST using WordPress block syntax:
 <!-- /wp:list -->
 
 Include these services from the list: {$service_keywords_list}
-Select 6-8 most relevant services and present as list items. Keep descriptions concise and focused on business benefits, NOT keyword-stuffed.
+Select 6-8 most relevant services and present as list items. Keep descriptions concise and focused on business benefits, NOT keyword-stuffed. IMPORTANT: make sure the service names are NOT similar to other services in the list.
 
 **Why Choose 84EM Section (H2: \"Why {$city} Businesses Choose 84EM\")**
 Present 3-4 key benefits as an UNORDERED LIST:

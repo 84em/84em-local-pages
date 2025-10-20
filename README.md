@@ -23,7 +23,8 @@ This plugin creates unique, locally-focused landing pages for WordPress developm
 - **WP-CLI Integration**: Complete command-line management interface with progress bars
 - **Claude AI Content**: Generates unique content using Claude AI
 - **Dynamic Model Selection**: Fetches available models from Claude API for interactive selection
-- **Automatic Interlinking**: City names link to city pages, service keywords link to contact page
+- **Fuzzy Keyword Matching**: Intelligent algorithm ensures every service list item gets linked, even when API-generated text varies from keyword list
+- **Automatic Interlinking**: City names link to city pages, service keywords link to relevant service pages
 - **SEO Optimization**: Built-in SEO meta data and structured LD-JSON schema
 - **Geographic Relevance**: Each page focuses on local cities and geographic context
 - **Bulk Operations**: Create, update, or delete multiple pages efficiently
@@ -34,7 +35,7 @@ This plugin creates unique, locally-focused landing pages for WordPress developm
 - **XML Sitemap Generation**: Generate XML sitemaps for all local pages with WP-CLI
 - **Index Page Generation**: Create or update a master index page with alphabetized state list
 - **Schema Regeneration**: Fix LD-JSON schema issues without regenerating page content
-- **Keyword Link Updates**: Update service keyword links when URLs change without API calls
+- **Keyword Link Updates**: Update service keyword links when URLs change without API calls (uses fuzzy matching)
 
 ## Requirements
 

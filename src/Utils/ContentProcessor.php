@@ -99,16 +99,25 @@ class ContentProcessor {
     private function addServiceLinks( string $content ): string {
         $service_keywords = $this->keywordsProvider->getAll();
 
+        // Process list items first - link keywords at the start of each list item
+        // This ensures service lists have all keywords linked
+        $content = $this->addServiceLinksInListItems( $content, $service_keywords );
+
+        // Then process regular content - link first occurrence in paragraphs
+        // But skip if already linked in a list item
         foreach ( $service_keywords as $keyword => $url ) {
+            // Check if this keyword (case-insensitive) is already linked to this URL anywhere in the content
+            // Use a case-insensitive regex to check for any variation of the keyword linked to this URL
+            $escaped_keyword = preg_quote( $keyword, '/' );
+            $link_check_pattern = '/<a\s+href=["\']' . preg_quote( $url, '/' ) . '["\']>\s*' . $escaped_keyword . '\s*<\/a>/i';
+            if ( preg_match( $link_check_pattern, $content ) ) {
+                continue;
+            }
+
             // Create a pattern that matches the keyword (case-insensitive)
             // but not if it's already in a link or is part of another word
             $pattern = '/(?<![\w>])(' . preg_quote( $keyword, '/' ) . ')(?![\w<])/i';
 
-            // Check if this keyword is already linked anywhere in the content
-            if ( stripos( $content, '<a href="' . $url . '">' . $keyword . '</a>' ) !== false ) {
-                continue;
-            }
-            
             // Check if keyword exists in content (case-insensitive)
             if ( ! preg_match( $pattern, $content, $matches ) ) {
                 continue;
@@ -118,15 +127,123 @@ class ContentProcessor {
             $content = preg_replace_callback(
                 $pattern,
                 function( $matches ) use ( $url ) {
-                    // Check if this match is already inside an HTML tag or link
                     return '<a href="' . esc_url( $url ) . '">' . $matches[1] . '</a>';
                 },
                 $content,
-                1 // Only replace first occurrence
+                1 // Only replace first occurrence in paragraphs
             );
         }
 
         return $content;
+    }
+
+    /**
+     * Add service links specifically within list items
+     * Uses fuzzy matching to find the best keyword match in each list item
+     *
+     * @param  string  $content  Content to process
+     * @param  array  $keywords  Keywords to link
+     *
+     * @return string Content with links added to list items
+     */
+    private function addServiceLinksInListItems( string $content, array $keywords ): string {
+        // Pattern to extract individual list items
+        preg_match_all( '/(<li[^>]*>)(.*?)(<\/li>)/is', $content, $list_items, PREG_SET_ORDER );
+
+        foreach ( $list_items as $list_item ) {
+            $li_opening = $list_item[1];  // <li> or <li class="...">
+            $li_content = $list_item[2];  // The content between <li> and </li>
+            $li_closing = $list_item[3];  // </li>
+            $original_full_item = $list_item[0];  // Full original list item
+
+            // Skip if this list item already has a link
+            if ( strpos( $li_content, '<a href=' ) !== false ) {
+                continue;
+            }
+
+            // Find the best matching keyword for this entire list item text
+            $best_match = $this->findBestKeywordMatch( $li_content, $keywords );
+
+            if ( $best_match ) {
+                // Link the matched keyword within the list item content
+                $new_li_content = $this->linkKeywordInText(
+                    $li_content,
+                    $best_match['keyword'],
+                    $best_match['url']
+                );
+
+                // Reconstruct the list item with the link
+                $new_full_item = $li_opening . $new_li_content . $li_closing;
+
+                // Replace in content
+                $content = str_replace( $original_full_item, $new_full_item, $content );
+            }
+        }
+
+        return $content;
+    }
+
+    /**
+     * Find the best matching keyword within a text string
+     * Returns the longest matching keyword (most specific)
+     *
+     * @param  string  $text  Text to search within
+     * @param  array  $keywords  Array of keywords to URLs
+     *
+     * @return array|null Array with 'keyword' and 'url' keys, or null if no match
+     */
+    private function findBestKeywordMatch( string $text, array $keywords ): ?array {
+        $matches = [];
+        $text_lower = strtolower( $text );
+
+        // Find all keywords that appear in the text
+        foreach ( $keywords as $keyword => $url ) {
+            $keyword_lower = strtolower( $keyword );
+
+            // Check if this keyword appears in the text (case-insensitive substring match)
+            if ( strpos( $text_lower, $keyword_lower ) !== false ) {
+                $matches[] = [
+                    'keyword' => $keyword,
+                    'url'     => $url,
+                    'length'  => strlen( $keyword ),
+                ];
+            }
+        }
+
+        // If no matches found, return null
+        if ( empty( $matches ) ) {
+            return null;
+        }
+
+        // Sort by length (descending) to get the longest/most specific match
+        usort( $matches, function( $a, $b ) {
+            return $b['length'] - $a['length'];
+        } );
+
+        // Return the longest match
+        return $matches[0];
+    }
+
+    /**
+     * Link a keyword within text, preserving the original case from the text
+     *
+     * @param  string  $text  Text containing the keyword
+     * @param  string  $keyword  Keyword to link
+     * @param  string  $url  URL to link to
+     *
+     * @return string Text with keyword linked
+     */
+    private function linkKeywordInText( string $text, string $keyword, string $url ): string {
+        // Case-insensitive search for the keyword in the text
+        $pattern = '/(' . preg_quote( $keyword, '/' ) . ')/i';
+
+        // Replace with link, preserving original case from text
+        return preg_replace(
+            $pattern,
+            '<a href="' . esc_url( $url ) . '">$1</a>',
+            $text,
+            1  // Only replace first occurrence
+        );
     }
 
     /**

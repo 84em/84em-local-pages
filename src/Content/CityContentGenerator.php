@@ -334,10 +334,9 @@ IMPORTANT: Create unique, original content that is different from other city pag
 
 CONTENT STRUCTURE (REQUIRED):
 
-**Opening Section (1-2 short paragraphs)**
+**Opening Section (3-4 short sentences, one per line)**
 - Professional introduction mentioning {$city}, {$state} and local business context
 - Brief overview of 84EM's WordPress expertise
-- Keep paragraphs to 2-3 sentences maximum
 - Include ONE contextual call-to-action link in the opening
 
 **Core Services Section (H2: \"WordPress Development Services in {$city}\")**
@@ -364,7 +363,7 @@ Present 3-4 key benefits as an UNORDERED LIST:
 <!-- /wp:list -->
 
 **Closing Paragraph**
-- 2-3 sentences emphasizing local relevance and 84EM's headquarters in Cedar Rapids, Iowa
+- 2 sentences, each on their own line, emphasizing local relevance and 84EM's headquarters in Cedar Rapids, Iowa
 - Strong call-to-action with contact link
 - Mention web development in {$state}
 
@@ -375,11 +374,11 @@ IMPORTANT GRAMMAR RULES:
 - Incorrect: \"{$city} businesses seeking {$city} solutions\"
 
 TARGET METRICS:
-- Total word count: 250-350 words
-- Opening: 1-2 paragraphs (2-3 sentences each)
+- Total word count: 200-300 words
+- Opening: 3-4 short sentences, each on their own line
 - Services: 6-8 list items with brief descriptions
 - Benefits: 3-4 list items
-- Closing: 1 paragraph (2-3 sentences)
+- Closing: 2 sentences, each on their own line
 - Call-to-action links: 2-3 total (contextual, not in lists)
 
 TONE: Professional and factual. Avoid hyperbole and superlatives. Focus on concrete services, technical expertise, and actual capabilities. Make it locally relevant through geographic references.

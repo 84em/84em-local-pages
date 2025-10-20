@@ -51,7 +51,7 @@ on:
         required: false
 
 env:
-  PHP_VERSION: '8.2'
+  PHP_VERSION: '8.4.10'
   PLUGIN_NAME: '84em-local-pages'
   SITE_URL: ${{ inputs.environment == 'production' && 'https://84em.com' || inputs.environment == 'dev' && 'https://dev.84em.com' || 'https://staging.84em.com' }}
   SSH_PORT: ${{ secrets.DEPLOY_PORT || 22 }}

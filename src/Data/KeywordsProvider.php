@@ -111,6 +111,7 @@ class KeywordsProvider implements DataProviderInterface {
             'theme development'                                       => $services_page,
             'web development'                                         => $work_page,
             'white-label development'                                 => $white_label_development_page,
+            'White Label Development'                                 => $white_label_development_page,
         ];
     }
 }

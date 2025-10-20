@@ -5,6 +5,59 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2025-10-20
+
+### Added
+- **Fuzzy Keyword Matching**: Intelligent algorithm ensures every service list item gets linked, even when API-generated text doesn't exactly match keyword list
+  - Scans all list items and searches for matching keywords using case-insensitive substring matching
+  - Selects the longest/most specific matching keyword when multiple matches found
+  - Preserves original text casing from generated content
+  - Works with any variation in capitalization and phrasing
+  - New methods in `ContentProcessor`: `addServiceLinksInListItems()`, `findBestKeywordMatch()`, `linkKeywordInText()`
+- **Expanded Keyword List**: Added 12+ new keyword variations in `KeywordsProvider` to improve matching coverage
+  - "Custom WordPress development"
+  - "Data migration and platform transfers"
+  - "WordPress security audits and hardening"
+  - "WordPress Maintenance and Support"
+  - "White Label Development"
+  - "Platform Migrations"
+  - "WordPress maintenance and ongoing support"
+  - "White-label development services for agencies"
+  - Multiple capitalization variations for better fuzzy matching
+
+### Changed
+- **Content Structure**: Updated prompt templates for more concise, scannable content
+  - **State Pages**: Word count reduced from 300-400 to 200-300 words
+  - **City Pages**: Word count reduced from 250-350 to 200-300 words
+  - **Opening Section**: Changed from "1-2 short paragraphs" to "3-4 short sentences, one per line"
+  - **Closing Section**: Changed from "2-3 sentences in paragraph" to "2 sentences, each on their own line"
+  - Improved readability with sentence-per-line format for better scanning
+- **Keyword Routing**: Updated several keywords to point to more specific service pages
+  - "digital agency services" now links to white-label development page
+  - "API integrations" now links to services page instead of work page
+  - "WordPress security audits" links to services page
+- **Service Link Processing**: Refactored to prioritize list items first, then process regular paragraph content
+  - Ensures service list items always get linked before paragraph occurrences
+  - Prevents duplicate linking attempts
+
+### Improved
+- **Case-Insensitive Matching**: Enhanced link detection to use regex patterns instead of string position checks
+  - Prevents missed matches due to case variations
+  - More reliable detection of existing links in content
+- **Link Coverage**: Fuzzy matching algorithm now achieves nearly 100% link coverage in service lists
+  - Tested on all 350 pages with successful links in every service list item
+  - Handles both formatted lists ("Service: description") and unformatted lists ("Service description...")
+
+### Documentation
+- **CLAUDE.md**: Comprehensive updates reflecting all changes
+  - Updated version number to 3.4.0
+  - Added "Fuzzy Keyword Matching" section with detailed explanation and examples
+  - Updated word counts throughout (200-300 for all pages)
+  - Updated prompt templates to match code implementation
+  - Expanded keyword list documentation
+  - Updated interlinking system documentation
+  - Updated "Last Updated" footer with new features
+
 ## [3.3.3] - 2025-10-19
 
 ### Changed

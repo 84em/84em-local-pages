@@ -2,9 +2,9 @@
 
 This document contains the Claude AI prompt templates and guidelines used by the 84EM Local Pages Generator plugin for creating unique, SEO-optimized content for each US state and city.
 
-## Current Prompt Templates (Updated October 2025 - v3.3.0)
+## Current Prompt Templates (Updated October 2025 - v3.4.0)
 
-The plugin uses two distinct prompt structures for generating location-specific content with improved readability using list-based formatting.
+The plugin uses two distinct prompt structures for generating location-specific content with improved readability using list-based formatting and concise sentence structures.
 
 ### State Page Prompt Template
 
@@ -17,10 +17,9 @@ IMPORTANT: Create unique, original content that is different from other state pa
 
 CONTENT STRUCTURE (REQUIRED):
 
-**Opening Section (1-2 short paragraphs)**
+**Opening Section (3-4 short sentences, one per line)**
 - Professional introduction mentioning {STATE} and ALL of these cities: {CITY_LIST} (you MUST mention all 6 cities naturally)
 - Brief overview of 84EM's WordPress expertise
-- Keep paragraphs to 2-3 sentences maximum
 - Include ONE contextual call-to-action link in the opening
 
 **Core Services Section (H2: "WordPress Development Services in {STATE}")**
@@ -48,7 +47,7 @@ Present 4-5 key benefits as an UNORDERED LIST:
 <!-- /wp:list -->
 
 **Closing Paragraph**
-- 2-3 sentences emphasizing local relevance across {STATE} and 84EM's headquarters in Cedar Rapids, Iowa
+- 2 sentences emphasizing local relevance across {STATE} and 84EM's headquarters in Cedar Rapids, Iowa, with each sentence on their own line
 - Strong call-to-action with contact link
 - Mention several cities from the list: {CITY_LIST}
 
@@ -59,11 +58,11 @@ IMPORTANT GRAMMAR RULES:
 - Incorrect: "{STATE} businesses seeking {STATE} solutions"
 
 TARGET METRICS:
-- Total word count: 300-400 words
-- Opening: 1-2 paragraphs (2-3 sentences each)
+- Total word count: 200-300 words
+- Opening: 3-4 short sentences, each on their own line
 - Services: 8-10 list items with brief descriptions
 - Benefits: 4-5 list items
-- Closing: 1 paragraph (2-3 sentences)
+- Closing: 2 sentences, each on their own line
 - Call-to-action links: 2-3 total (contextual, not in lists)
 - City mentions: All 6 cities mentioned at least once
 
@@ -103,10 +102,9 @@ IMPORTANT: Create unique, original content that is different from other city pag
 
 CONTENT STRUCTURE (REQUIRED):
 
-**Opening Section (1-2 short paragraphs)**
+**Opening Section (3-4 short sentences, one per line)**
 - Professional introduction mentioning {CITY}, {STATE} and local business context
 - Brief overview of 84EM's WordPress expertise
-- Keep paragraphs to 2-3 sentences maximum
 - Include ONE contextual call-to-action link in the opening
 
 **Core Services Section (H2: "WordPress Development Services in {CITY}")**
@@ -133,7 +131,7 @@ Present 3-4 key benefits as an UNORDERED LIST:
 <!-- /wp:list -->
 
 **Closing Paragraph**
-- 2-3 sentences emphasizing local relevance and 84EM's headquarters in Cedar Rapids, Iowa
+- 2 sentences, each on their own line, emphasizing local relevance and 84EM's headquarters in Cedar Rapids, Iowa
 - Strong call-to-action with contact link
 - Mention web development in {STATE}
 
@@ -144,11 +142,11 @@ IMPORTANT GRAMMAR RULES:
 - Incorrect: "{CITY} businesses seeking {CITY} solutions"
 
 TARGET METRICS:
-- Total word count: 250-350 words
-- Opening: 1-2 paragraphs (2-3 sentences each)
+- Total word count: 200-300 words
+- Opening: 3-4 short sentences, each on their own line
 - Services: 6-8 list items with brief descriptions
 - Benefits: 3-4 list items
-- Closing: 1 paragraph (2-3 sentences)
+- Closing: 2 sentences, each on their own line
 - Call-to-action links: 2-3 total (contextual, not in lists)
 
 TONE: Professional and factual. Avoid hyperbole and superlatives. Focus on concrete services, technical expertise, and actual capabilities. Make it locally relevant through geographic references.
@@ -173,17 +171,17 @@ Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for 
 ## Hierarchical Content Structure
 
 ### State Pages (Parent Pages)
-- **Content Length**: 300-400 words
+- **Content Length**: 200-300 words
 - **Geographic Focus**: State and 6 largest cities
 - **Automatic Interlinking**: City names link to child city pages
-- **Service Keywords**: Link to https://84em.com/contact/
+- **Service Keywords**: Link to relevant service pages using fuzzy matching
 - **URL Format**: `/wordpress-development-services-california/`
 
 ### City Pages (Child Pages)
-- **Content Length**: 250-350 words
+- **Content Length**: 200-300 words
 - **Geographic Focus**: Specific city and state context
 - **Parent Relationship**: Child of respective state page
-- **Service Keywords**: Link to https://84em.com/contact/
+- **Service Keywords**: Link to relevant service pages using fuzzy matching
 - **URL Format**: `/wordpress-development-services-california/los-angeles/`
 
 ## Automatic Interlinking System
@@ -194,23 +192,45 @@ The plugin automatically processes state page content after generation:
 1. **City Name Detection**: Identifies city names from the state's city list
 2. **Link Generation**: Creates URLs in format `/wordpress-development-services-{state}/{city}/`
 3. **Content Replacement**: Replaces first occurrence of each city name with link
-4. **Service Keyword Linking**: Links service keywords to contextually relevant pages
+4. **Service Keyword Linking**: Links service keywords using intelligent fuzzy matching
 
 ### City Page Interlinking
 City pages receive automatic service keyword linking only:
 
-1. **Service Keyword Detection**: Identifies WordPress development service terms
+1. **Service Keyword Detection**: Identifies WordPress development service terms using fuzzy matching
 2. **Smart Link Generation**: Links keywords to appropriate pages based on context:
+   - Custom plugin development → /services/custom-wordpress-plugin-development/
+   - White-label development → /services/white-label-wordpress-development-for-agencies/
+   - General services → /services/
    - Development work → /work/
-   - Service offerings → /services/
-   - Project examples → /projects/
-   - Location-specific → respective local pages
-3. **Single Replacement**: Only first occurrence of each keyword is linked
+3. **Fuzzy Matching**: Intelligently matches service text to keywords even with variation
 
-### Interlinking Implementation (v3.0.0+)
+### Fuzzy Keyword Matching (v3.4.0+)
+
+The plugin uses intelligent fuzzy matching to ensure every service list item gets linked:
+
+**How It Works:**
+1. **List Item Scanning**: Extracts all list items from generated content
+2. **Keyword Searching**: For each list item, searches for ALL matching keywords (case-insensitive substring match)
+3. **Best Match Selection**: Selects the longest/most specific matching keyword
+4. **Link Insertion**: Links the matched keyword within the list item, preserving original case
+
+**Benefits:**
+- Works with any API-generated text that contains keyword substrings
+- Ensures maximum link coverage in service lists
+- Handles variations in capitalization and phrasing
+- Prioritizes more specific keywords when multiple matches found
+
+**Example:**
+- List item: "Custom WordPress Development – Tailored solutions..."
+- Matches: "WordPress development", "Custom WordPress development"
+- Selected: "Custom WordPress development" (longer/more specific)
+- Result: `<a href="...">Custom WordPress development</a> – Tailored solutions...`
+
+### Interlinking Implementation (v3.4.0+)
 Content processing is handled by the `ContentProcessor` class:
 ```php
-// ContentProcessor handles all content enhancements
+// ContentProcessor handles all content enhancements including fuzzy matching
 $contentProcessor = new ContentProcessor( $keywordsProvider );
 $processed = $contentProcessor->processContent( $raw_content, $context );
 ```
@@ -225,7 +245,9 @@ The plugin replaces the following variables in prompts:
 - `{CITY_LIST}`: Comma-separated list of 6 largest cities - state pages only
 
 ### Service Keywords
-- `{SERVICE_KEYWORDS_LIST}`: WordPress development, custom plugin development, API integrations, security audits, white-label development, WordPress maintenance, WordPress support, data migration, platform transfers, WordPress troubleshooting, custom WordPress themes, WordPress security, web development, WordPress migrations, digital agency services, WordPress plugin development
+- `{SERVICE_KEYWORDS_LIST}`: WordPress development, custom plugin development, Custom WordPress development, Data migration and platform transfers, WordPress security audits and hardening, WordPress Maintenance and Support, API integrations, WordPress security audits, security audits, white-label development, White Label Development, WordPress maintenance, WordPress support, data migration, platform transfers, Platform Migrations, WordPress maintenance and ongoing support, WordPress troubleshooting, custom WordPress themes, WordPress security, web development, WordPress migrations, digital agency services, WordPress plugin development, Custom WordPress plugin development, White label WordPress development, White label web development, White-label development services for agencies, WordPress plugin development services
+
+**Note**: The expanded keyword list (v3.4.0+) includes multiple variations and capitalizations to improve fuzzy matching coverage. The interlinking system will automatically select the most specific/relevant match for each service list item.
 
 ## Content Structure Guidelines
 
@@ -762,15 +784,17 @@ For a complete list of changes, bug fixes, and new features, see [CHANGELOG.md](
 
 ---
 
-**Last Updated**: October 19, 2025
+**Last Updated**: October 20, 2025
 **Claude Model**: claude-sonnet-4-20250514
-**Content Format**: WordPress Block Editor (Gutenberg) with list-based structure
+**Content Format**: WordPress Block Editor (Gutenberg) with concise sentence-per-line structure
 **API Version**: 2023-06-01
-**Content Strategy**: Hierarchical location pages with automatic interlinking and improved readability
+**Content Strategy**: Hierarchical location pages with fuzzy-matched keyword linking
+**Word Count**: 200-300 words per page (both states and cities)
 **Total Pages**: 350 (50 states + 300 cities)
-**Plugin Version**: 3.3.2
+**Plugin Version**: 3.4.0
 **Architecture**: Modular PSR-4 autoloaded classes with dependency injection
 **Model Selection**: Dynamic fetching from Claude Models API with interactive selection
+**Keyword Matching**: Intelligent fuzzy matching ensures every service list item gets linked
 **Testing**: Real WordPress integration, no mocks, 82 integration tests (100% passing with valid API key)
 
 - Always ensure the CLAUDE.md is up to date.

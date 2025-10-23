@@ -5,6 +5,35 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0] - 2025-10-23
+
+### Changed
+- **Service List Standardization**: Updated content generation prompts to use fixed, consistent service list format
+  - State pages now use 3-item standardized list: Development, Support, Consulting
+  - City pages now use 3-item standardized list: Development, Support, Consulting
+  - Removed dynamic service selection from AI prompts to ensure consistency across all pages
+  - Service descriptions now use colons format: "Service Category: Brief description"
+  - Updated both `StateContentGenerator.php` and `CityContentGenerator.php` prompts
+- **CTA Button Text**: Changed call-to-action button text from "Start Your WordPress Project" to "Free Consult"
+  - More concise and action-oriented
+  - Lower barrier to entry for potential clients
+  - Updated in both state and city page prompts
+- **Visual Separators**: Added code-style SVG separator elements before all H2 headings
+  - Uses `wp-block-uagb-separator` block with code bracket icon
+  - Provides visual separation between content sections
+  - Consistent with 84EM's developer-focused brand identity
+- **CTA Positioning**: Moved primary CTA button block from before H2 headings to end of content
+  - Reduces visual clutter in content body
+  - Places conversion opportunity after value proposition
+  - Separator now appears before H2s instead of CTA block
+
+### Updated
+- **Keywords Provider**: Refined service keyword list
+  - Added: "Plugins", "Custom Solutions", "Agency Partnership"
+  - Removed: "custom theme development" (redundant with other theme keywords)
+  - Reordered keywords for better logical grouping
+  - All keywords link to appropriate service pages
+
 ## [3.4.0] - 2025-10-20
 
 ### Added

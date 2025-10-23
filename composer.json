@@ -30,9 +30,14 @@
     "test": "wp 84em local-pages --test --all",
     "test:encryption": "wp 84em local-pages --test --suite=encryption",
     "test:data": "wp 84em local-pages --test --suite=data-structures",
-    "test:url": "wp 84em local-pages --test --suite=url-generation",
+    "test:content": "wp 84em local-pages --test --suite=content-processing",
+    "test:cli": "wp 84em local-pages --test --suite=cli-args",
     "test:schema": "wp 84em local-pages --test --suite=ld-json",
-    "test:cli": "wp 84em local-pages --test --suite=cli-args"
+    "test:api": "wp 84em local-pages --test --suite=api-client",
+    "test:generators": "wp 84em local-pages --test --suite=content-generators",
+    "test:errors": "wp 84em local-pages --test --suite=error-handling",
+    "test:security": "wp 84em local-pages --test --suite=security",
+    "test:models": "wp 84em local-pages --test --suite=model-management"
   },
   "config": {
     "allow-plugins": {

@@ -276,11 +276,11 @@ class StateContentGenerator implements ContentGeneratorInterface {
      */
     public function getPostTitle( $data ): string {
 
-        return "WordPress consulting & engineering, including custom plugins, security, enterprise integrations, and white‑label agency work in {$data} | 84EM";
+        return "Custom WordPress Plugin Development, Consulting, and White-Label services in {$data} | 84EM";
     }
 
     /**
-     * Generate the meta descirption based on the provided data.
+     * Generate the meta description based on the provided data.
      *
      * @param string $data
      * @param string|null $cities
@@ -289,7 +289,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
      */
     public function getMetaDescription( string $data, string $cities = null ): string {
 
-        return "Professional WordPress development, custom plugins, and web solutions for businesses in {$data}. White-label services and expert support in {$cities}";
+        return "Custom WordPress Plugin Development, Consulting, and White-Label services in {$data}, including {$cities}";
     }
 
     /**

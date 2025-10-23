@@ -340,25 +340,24 @@ CONTENT STRUCTURE (REQUIRED):
 - Include ONE contextual call-to-action link in the opening
 
 **Core Services Section (H2: \"WordPress Development Services in {$city}\")**
-Present services in an UNORDERED LIST using WordPress block syntax:
+***IMPORTANT: Present services using THIS EXACT HTML.  DO NOT MODIFY:
 <!-- wp:list -->
 <ul>
-<li>Service name with brief 5-8 word benefit-focused description</li>
-<li>Service name with brief 5-8 word benefit-focused description</li>
+<li><strong>Development</strong>: Plugins, Themes, Custom Solutions</li>
+<li><strong>Support</strong>: Maintenance, Security, Migration</li>
+<li><strong>Consulting</strong>: Strategy, Audits, Agency Partnership</li>
 </ul>
 <!-- /wp:list -->
-
-Include these services from the list: {$service_keywords_list}
-Select 6-8 most relevant services and present as list items. Keep descriptions concise and focused on business benefits, NOT keyword-stuffed. IMPORTANT: make sure the service names are NOT similar to other services in the list.
 
 **Why Choose 84EM Section (H2: \"Why {$city} Businesses Choose 84EM\")**
 Present 3-4 key benefits as an UNORDERED LIST:
 <!-- wp:list -->
 <ul>
+<li>30 years building for the web. 12 years of WordPress expertise</li>
 <li>Fully remote team serving clients nationwide with proven processes</li>
-<li>30 years of combined WordPress development experience</li>
 <li>Proven track record across diverse industries</li>
-<li>Scalable solutions designed to grow with your business</li>
+<li>Reliable delivery with consistent communication</li>
+<li>Scalable solutions designed to grow with your business or agency</li>
 </ul>
 <!-- /wp:list -->
 
@@ -376,7 +375,7 @@ IMPORTANT GRAMMAR RULES:
 TARGET METRICS:
 - Total word count: 200-300 words
 - Opening: 3-4 short sentences, each on their own line
-- Services: 6-8 list items with brief descriptions
+- Services: Use the PRECISE HTML as specified.
 - Benefits: 3-4 list items
 - Closing: 2 sentences, each on their own line
 - Call-to-action links: 2-3 total (contextual, not in lists)
@@ -393,15 +392,20 @@ IMPORTANT:
 - All headings (h2, h3) must be wrapped in <strong> tags to ensure they appear bold.
 - Include 2-3 call-to-action links throughout the content that link to /contact/ using phrases like \"contact us today\", \"get started\", \"reach out\", \"discuss your project\", etc.
 - Make the call-to-action links natural and contextual within PARAGRAPH content (not within list items).
-- Insert this exact CTA block BEFORE every H2 heading:
+- Insert this exact CTA block at the very end:
 
 <!-- wp:group {\"className\":\"get-started-local\",\"style\":{\"spacing\":{\"margin\":{\"top\":\"0\"},\"padding\":{\"bottom\":\"var:preset|spacing|40\",\"top\":\"var:preset|spacing|40\",\"right\":\"0\"}}},\"layout\":{\"type\":\"constrained\",\"contentSize\":\"1280px\"}} -->
 <div class=\"wp-block-group get-started-local\" style=\"margin-top:0;padding-top:var(--wp--preset--spacing--40);padding-right:0;padding-bottom:var(--wp--preset--spacing--40)\"><!-- wp:buttons {\"className\":\"animated bounceIn\",\"layout\":{\"type\":\"flex\",\"justifyContent\":\"center\"}} -->
 <div class=\"wp-block-buttons animated bounceIn\"><!-- wp:button {\"style\":{\"border\":{\"radius\":{\"topLeft\":\"0px\",\"topRight\":\"30px\",\"bottomLeft\":\"30px\",\"bottomRight\":\"0px\"}},\"shadow\":\"var:preset|shadow|crisp\"},\"fontSize\":\"large\"} -->
-<div class=\"wp-block-button\"><a class=\"wp-block-button__link has-large-font-size has-custom-font-size wp-element-button\" href=\"/contact/\" style=\"border-top-left-radius:0px;border-top-right-radius:30px;border-bottom-left-radius:30px;border-bottom-right-radius:0px;box-shadow:var(--wp--preset--shadow--crisp)\">Start Your WordPress Project</a></div>
+<div class=\"wp-block-button\"><a class=\"wp-block-button__link has-large-font-size has-custom-font-size wp-element-button\" href=\"/contact/\" style=\"border-top-left-radius:0px;border-top-right-radius:30px;border-bottom-left-radius:30px;border-bottom-right-radius:0px;box-shadow:var(--wp--preset--shadow--crisp)\">Free Consult</a></div>
 <!-- /wp:button --></div>
 <!-- /wp:buttons --></div>
 <!-- /wp:group -->
+
+- Insert this exact HTML BEFORE every H2 heading:
+
+<div class=\"wp-block-uagb-separator uagb-block-81b37b6a wp-block-uagb-separator--icon\"><div class=\"wp-block-uagb-separator__inner\" style=\"--my-background-image:\"><div class=\"wp-block-uagb-separator-element\"><svg xmlns=\"https://www.w3.org/2000/svg\" viewBox=\"0 0 640 512\"><path d=\"M414.8 40.79L286.8 488.8C281.9 505.8 264.2 515.6 247.2 510.8C230.2 505.9 220.4 488.2 225.2 471.2L353.2 23.21C358.1 6.216 375.8-3.624 392.8 1.232C409.8 6.087 419.6 23.8 414.8 40.79H414.8zM518.6 121.4L630.6 233.4C643.1 245.9 643.1 266.1 630.6 278.6L518.6 390.6C506.1 403.1 485.9 403.1 473.4 390.6C460.9 378.1 460.9 357.9 473.4 345.4L562.7 256L473.4 166.6C460.9 154.1 460.9 133.9 473.4 121.4C485.9 108.9 506.1 108.9 518.6 121.4V121.4zM166.6 166.6L77.25 256L166.6 345.4C179.1 357.9 179.1 378.1 166.6 390.6C154.1 403.1 133.9 403.1 121.4 390.6L9.372 278.6C-3.124 266.1-3.124 245.9 9.372 233.4L121.4 121.4C133.9 108.9 154.1 108.9 166.6 121.4C179.1 133.9 179.1 154.1 166.6 166.6V166.6z\"></path></svg></div></div></div>
+
 
 Do NOT use markdown syntax or plain HTML. Use proper WordPress block markup for all content.";
 

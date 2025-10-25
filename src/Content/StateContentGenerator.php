@@ -306,8 +306,7 @@ class StateContentGenerator implements ContentGeneratorInterface {
         $city_list  = implode( ', ', array_slice( $cities, 0, 6 ) );
 
         // Get service keywords for the prompt
-        $service_keywords      = $this->keywordsProvider->getAll();
-        $service_keywords_list = implode( ', ', array_keys( $service_keywords ) );
+        $service_keywords = $this->keywordsProvider->getAll();
 
         $prompt = "Write a concise, SEO-optimized landing page for 84EM's WordPress development services specifically for businesses in {$state}.
 
@@ -326,6 +325,7 @@ CONTENT STRUCTURE (REQUIRED):
 Present services in an UNORDERED LIST using WordPress block syntax:
 <!-- wp:list -->
 <ul>
+<li><strong>AI Services</strong>: Development, Research, Troubleshooting, Security, Code Review</li>
 <li><strong>Development</strong>: Plugins, Themes, Custom Solutions</li>
 <li><strong>Support</strong>: Maintenance, Security, Migration</li>
 <li><strong>Consulting</strong>: Strategy, Audits, Agency Partnership</li>

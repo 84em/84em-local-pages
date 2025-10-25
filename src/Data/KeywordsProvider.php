@@ -78,42 +78,53 @@ class KeywordsProvider implements DataProviderInterface {
      * Load keywords data
      */
     private function loadData(): void {
-        $work_page     = site_url( '/work/' );
-        $services_page = site_url( '/services/' );
-        $custom_plugin_development_page = site_url( '/services/custom-wordpress-plugin-development/' );
-        $white_label_development_page = site_url( '/services/white-label-wordpress-development-for-agencies/' );
+        $work_page   = site_url( '/work/' );
+        $services    = site_url( '/services/' );
+        $plugins     = site_url( '/services/custom-wordpress-plugin-development/' );
+        $whitelabel  = site_url( '/services/white-label-wordpress-development-for-agencies/' );
+        $ai          = site_url( '/services/ai-enhanced-wordpress-development/' );
+        $consulting  = site_url( '/services/wordpress-consulting-strategy/' );
+        $maintenance = site_url( '/services/wordpress-maintenance-support/' );
 
         $this->data = [
-            'API integrations'                          => $services_page,
-            'Plugins'                                   => $custom_plugin_development_page,
-            'Custom Solutions'                          => $custom_plugin_development_page,
-            'Custom WordPress development'              => $custom_plugin_development_page,
-            'Data migration and platform transfers'     => $services_page,
-            'Platform Migrations'                       => $services_page,
-            'White label WordPress development'         => $white_label_development_page,
-            'WordPress Maintenance and Support'         => $services_page,
-            'WordPress development'                     => $work_page,
-            'WordPress maintenance and ongoing support' => $services_page,
-            'WordPress maintenance'                     => $services_page,
-            'WordPress migrations'                      => $services_page,
-            'WordPress plugin development services'     => $custom_plugin_development_page,
-            'WordPress plugin development'              => $custom_plugin_development_page,
-            'WordPress security audits and hardening'   => $services_page,
-            'WordPress security audits'                 => $services_page,
-            'WordPress security'                        => $services_page,
-            'WordPress support'                         => $services_page,
-            'custom WordPress themes'                   => $services_page,
-            'WordPress troubleshooting'                 => $services_page,
-            'custom plugin development'                 => $custom_plugin_development_page,
-            'data migration'                            => $services_page,
-            'digital agency services'                   => $white_label_development_page,
-            'platform transfers'                        => $services_page,
+            'AI Enhanced WordPress Development'         => $ai,
+            'AI'                                        => $ai,
+            'AI WordPress'                              => $ai,
+            'API integrations'                          => $services,
+            'AI WordPress development'                  => $ai,
+            'AI Plugins'                                => $ai,
+            'AI WordPress Plugins'                      => $ai,
+            'Consulting'                                => $consulting,
+            'WordPress Consulting'                      => $consulting,
+            'Plugins'                                   => $plugins,
+            'Custom Solutions'                          => $plugins,
+            'Custom WordPress development'              => $plugins,
+            'Data migration and platform transfers'     => $services,
+            'Platform Migrations'                       => $services,
+            'White label WordPress development'         => $whitelabel,
+            'WordPress Maintenance and Support'         => $maintenance,
+            'WordPress development'                     => $ai,
+            'WordPress maintenance and ongoing support' => $maintenance,
+            'WordPress maintenance'                     => $maintenance,
+            'WordPress migrations'                      => $services,
+            'WordPress plugin development services'     => $plugins,
+            'WordPress plugin development'              => $plugins,
+            'WordPress security audits and hardening'   => $services,
+            'WordPress security audits'                 => $services,
+            'WordPress security'                        => $services,
+            'WordPress support'                         => $maintenance,
+            'custom WordPress themes'                   => $services,
+            'WordPress troubleshooting'                 => $maintenance,
+            'custom plugin development'                 => $plugins,
+            'data migration'                            => $services,
+            'digital agency services'                   => $whitelabel,
+            'platform transfers'                        => $services,
             'security audits'                           => $work_page,
-            'theme development'                         => $services_page,
+            'theme development'                         => $services,
             'web development'                           => $work_page,
-            'white-label development'                   => $white_label_development_page,
-            'White Label Development'                   => $white_label_development_page,
-            'Agency Partnership'                        => $white_label_development_page,
+            'white-label development'                   => $whitelabel,
+            'White Label Development'                   => $whitelabel,
+            'Agency Partnership'                        => $whitelabel,
         ];
     }
 }

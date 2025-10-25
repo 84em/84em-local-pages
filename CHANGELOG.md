@@ -5,6 +5,31 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.0] - 2025-10-25
+
+### Added
+- **AI Services Listing**: Added "AI Services" as the first item in service lists for both state and city pages
+  - New service line: "AI Services: Development, Research, Troubleshooting, Security, Code Review"
+  - Positions 84EM's AI capabilities prominently in all local pages
+  - Reflects the company's expanded AI service offerings
+
+### Changed
+- **Enhanced Keywords Provider**: Expanded and reorganized keyword mapping with AI-focused services
+  - Added new AI-related keywords: "AI Enhanced WordPress Development", "AI", "AI WordPress", "AI WordPress development", "AI Plugins", "AI WordPress Plugins"
+  - Added "Consulting" and "WordPress Consulting" keywords
+  - Reorganized keyword URLs to point to specific service pages (AI, Consulting, Maintenance)
+  - Updated "WordPress development" to link to AI services page instead of work page
+  - Created shorter, cleaner URL variable names for better code readability
+- **Code Cleanup**: Removed unused `$service_keywords_list` variable from content generators
+  - Variable was declared but never used in `CityContentGenerator.php` and `StateContentGenerator.php`
+  - Simplifies code and reduces memory footprint
+
+### Improved
+- **Service Page Routing**: More specific keyword-to-page mappings for better user navigation
+  - Consulting-related keywords → `/services/wordpress-consulting-strategy/`
+  - Maintenance-related keywords → `/services/wordpress-maintenance-support/`
+  - AI development keywords → `/services/ai-enhanced-wordpress-development/`
+
 ## [3.5.1] - 2025-10-23
 
 ### Changed

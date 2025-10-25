@@ -323,8 +323,7 @@ class CityContentGenerator implements ContentGeneratorInterface {
      */
     private function buildPrompt( string $state, string $city ): string {
         // Get service keywords for the prompt
-        $service_keywords      = $this->keywordsProvider->getAll();
-        $service_keywords_list = implode( ', ', array_keys( $service_keywords ) );
+        $service_keywords = $this->keywordsProvider->getAll();
 
         $prompt = "Write a concise, SEO-optimized landing page for 84EM's WordPress development services specifically for businesses in {$city}, {$state}.
 
@@ -343,6 +342,7 @@ CONTENT STRUCTURE (REQUIRED):
 ***IMPORTANT: Present services using THIS EXACT HTML.  DO NOT MODIFY:
 <!-- wp:list -->
 <ul>
+<li><strong>AI Services</strong>: Development, Research, Troubleshooting, Security, Code Review</li>
 <li><strong>Development</strong>: Plugins, Themes, Custom Solutions</li>
 <li><strong>Support</strong>: Maintenance, Security, Migration</li>
 <li><strong>Consulting</strong>: Strategy, Audits, Agency Partnership</li>

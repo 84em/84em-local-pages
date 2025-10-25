@@ -103,6 +103,26 @@ class ContentProcessor {
         // This ensures service lists have all keywords linked
         $content = $this->addServiceLinksInListItems( $content, $service_keywords );
 
+        // Extract list items that contain <strong> tags (these are service category lists)
+        // We'll protect these from any keyword linking
+        preg_match_all( '/(<li[^>]*>)(.*?)(<\/li>)/is', $content, $list_items_matches, PREG_SET_ORDER );
+        $protected_list_items = [];
+        foreach ( $list_items_matches as $list_match ) {
+            $li_content = $list_match[2];
+            // If this list item contains a <strong> tag, protect it from linking
+            if ( strpos( $li_content, '<strong>' ) !== false || strpos( $li_content, '<strong ' ) !== false ) {
+                $protected_list_items[] = $list_match[0];
+            }
+        }
+
+        // Replace protected list items with placeholders
+        $placeholders = [];
+        foreach ( $protected_list_items as $i => $protected_item ) {
+            $placeholder = "___PROTECTED_LIST_ITEM_{$i}___";
+            $placeholders[$placeholder] = $protected_item;
+            $content = str_replace( $protected_item, $placeholder, $content );
+        }
+
         // Then process regular content - link first occurrence in paragraphs
         // But skip if already linked in a list item
         foreach ( $service_keywords as $keyword => $url ) {
@@ -114,24 +134,57 @@ class ContentProcessor {
                 continue;
             }
 
-            // Create a pattern that matches the keyword (case-insensitive)
-            // but not if it's already in a link or is part of another word
-            $pattern = '/(?<![\w>])(' . preg_quote( $keyword, '/' ) . ')(?![\w<])/i';
+            // Split content by HTML tags to avoid matching text inside tags/attributes
+            $parts = preg_split( '/(<[^>]+>)/i', $content, -1, PREG_SPLIT_DELIM_CAPTURE );
+            $replaced = false;
 
-            // Check if keyword exists in content (case-insensitive)
-            if ( ! preg_match( $pattern, $content, $matches ) ) {
-                continue;
+            foreach ( $parts as $index => $part ) {
+                // Skip empty parts
+                if ( empty( $part ) ) {
+                    continue;
+                }
+
+                // Skip HTML tags (odd indices after split)
+                if ( preg_match( '/^<[^>]+>$/', $part ) ) {
+                    continue;
+                }
+
+                // Skip placeholders
+                if ( strpos( $part, '___PROTECTED_LIST_ITEM_' ) !== false ) {
+                    continue;
+                }
+
+                // Skip if we already replaced once
+                if ( $replaced ) {
+                    continue;
+                }
+
+                // Create a pattern that matches the keyword (case-insensitive)
+                // but not if it's part of another word
+                $pattern = '/\b(' . preg_quote( $keyword, '/' ) . ')\b/i';
+
+                // Check if keyword exists in this text part
+                if ( preg_match( $pattern, $part, $matches ) ) {
+                    // Replace in this part only
+                    $parts[$index] = preg_replace_callback(
+                        $pattern,
+                        function( $matches ) use ( $url ) {
+                            return '<a href="' . esc_url( $url ) . '">' . $matches[1] . '</a>';
+                        },
+                        $part,
+                        1 // Only replace first occurrence
+                    );
+                    $replaced = true;
+                }
             }
 
-            // Use a callback to preserve the original case from the content
-            $content = preg_replace_callback(
-                $pattern,
-                function( $matches ) use ( $url ) {
-                    return '<a href="' . esc_url( $url ) . '">' . $matches[1] . '</a>';
-                },
-                $content,
-                1 // Only replace first occurrence in paragraphs
-            );
+            // Rejoin the parts
+            $content = implode( '', $parts );
+        }
+
+        // Restore protected list items
+        foreach ( $placeholders as $placeholder => $original ) {
+            $content = str_replace( $placeholder, $original, $content );
         }
 
         return $content;
@@ -158,6 +211,12 @@ class ContentProcessor {
 
             // Skip if this list item already has a link
             if ( strpos( $li_content, '<a href=' ) !== false ) {
+                continue;
+            }
+
+            // Skip if this list item starts with a <strong> tag (bolded service title)
+            // These are the hardcoded service titles that should not be linked
+            if ( preg_match( '/^\s*<strong>/i', $li_content ) ) {
                 continue;
             }
 

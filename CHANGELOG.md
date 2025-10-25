@@ -5,6 +5,37 @@ All notable changes to the 84EM Local Pages Generator plugin will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.1] - 2025-10-25
+
+### Fixed
+- **Keyword Linking Safeguards**: Fixed automatic keyword linking creating malformed HTML and unwanted links in service lists
+  - Fixed nested links within href attributes (e.g., "ai" being linked inside `href="...ai-enhanced-wordpress-development/"`)
+  - Prevented automatic linking of text inside service list items that contain `<strong>` tags
+  - Implemented placeholder-based protection for service category lists
+  - Added tag-aware content splitting to prevent matching text inside HTML attributes
+- **Prompt Structure Cleanup**: Removed `<strong>` tags from "Learn More →" links in both state and city page prompts
+  - Only service category titles remain bolded (e.g., `<strong>AI Services</strong>`)
+  - "Learn More →" links are now unbolded for cleaner appearance
+  - Fixed HTML typo in `CityContentGenerator.php` where `</strong>` was misplaced
+- **Service List Protection**: Service list items now have ONLY the hardcoded "Learn More →" links
+  - No automatic keyword linking occurs within service descriptions
+  - Preserves clean, readable service lists as specified in prompts
+  - Words like "Plugins", "Themes", "Custom Solutions" are no longer auto-linked
+
+### Changed
+- **ContentProcessor Enhancement**: Improved `addServiceLinks()` method with comprehensive protection
+  - Extracts and protects list items containing `<strong>` tags using placeholder replacement
+  - Splits content by HTML tags before keyword matching to avoid attribute matches
+  - Restores protected content after all keyword linking is complete
+
+### Technical Details
+- **Files Modified**:
+  - `src/Utils/ContentProcessor.php`: Added placeholder-based list item protection and tag-aware splitting
+  - `src/Content/StateContentGenerator.php`: Removed `<strong>` tags from Learn More links
+  - `src/Content/CityContentGenerator.php`: Removed `<strong>` tags from Learn More links, fixed HTML structure
+  - `CLAUDE.md`: Updated documentation with version 3.6.1 and new safeguards
+  - `84em-local-pages.php`: Version bump to 3.6.1
+
 ## [3.6.0] - 2025-10-25
 
 ### Added

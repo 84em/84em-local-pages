@@ -227,6 +227,12 @@ The plugin uses intelligent fuzzy matching to ensure every service list item get
 - Selected: "Custom WordPress development" (longer/more specific)
 - Result: `<a href="...">Custom WordPress development</a> – Tailored solutions...`
 
+**Safeguards (v3.6.1+):**
+1. **Protected Service Lists**: List items containing `<strong>` tags are completely protected from automatic keyword linking using placeholder replacement
+2. **Tag-Aware Linking**: Content is split by HTML tags before keyword matching to prevent linking text inside href attributes or other tag attributes
+3. **Prevent Double-Linking**: List items that already contain `<a href=` tags are skipped by the list-item-specific linking logic
+4. **Preserve Hardcoded Structure**: Both state and city page prompts include hardcoded service lists with "Learn More →" links that are protected from modification
+
 ### Interlinking Implementation (v3.4.0+)
 Content processing is handled by the `ContentProcessor` class:
 ```php
@@ -695,6 +701,30 @@ For detailed testing documentation, see [TESTING.md](TESTING.md).
 
 ## Recent Updates
 
+### Version 3.6.1 (2025-10-25)
+
+#### Enhanced Keyword Linking Safeguards
+- **Problem Solved**: Automatic keyword linking was adding unwanted links to bolded service titles, creating nested links within href attributes, and double-linking existing content
+- **Solution**: Implemented comprehensive protection for service list items
+  1. **List Item Protection**: List items containing `<strong>` tags are completely protected from automatic linking via placeholder replacement
+  2. **Tag-Aware Splitting**: Content is split by HTML tags before linking to prevent matches inside tag attributes
+  3. **Clean Prompt Structure**: Removed `<strong>` tags from "Learn More →" links in prompts (keeping only service category titles bolded)
+- **Benefits**:
+  - Preserves hardcoded service lists exactly as specified in prompts
+  - Prevents nested links and malformed HTML
+  - Maintains clean, readable service lists with only the intended "Learn More →" links
+  - Works for both state and city pages
+- **Updated Files**:
+  - `src/Utils/ContentProcessor.php` - Added placeholder-based protection for list items with `<strong>` tags
+  - `src/Content/StateContentGenerator.php` - Removed `<strong>` tags from "Learn More →" links
+  - `src/Content/CityContentGenerator.php` - Removed `<strong>` tags from "Learn More →" links, fixed HTML typo
+  - `CLAUDE.md` - Updated documentation with new safeguards
+- **Technical Implementation**:
+  - Protected list items are replaced with placeholders before keyword linking
+  - Content is split by HTML tags to avoid matching text inside attributes
+  - Placeholders are restored after all keyword linking is complete
+  - Service category titles remain bolded while "Learn More →" links are unbolded for cleaner appearance
+
 ### Version 3.3.0 (2025-10-19)
 
 #### Enhanced Content Readability with List-Based Structure
@@ -784,17 +814,17 @@ For a complete list of changes, bug fixes, and new features, see [CHANGELOG.md](
 
 ---
 
-**Last Updated**: October 20, 2025
+**Last Updated**: October 25, 2025
 **Claude Model**: claude-sonnet-4-20250514
 **Content Format**: WordPress Block Editor (Gutenberg) with concise sentence-per-line structure
 **API Version**: 2023-06-01
 **Content Strategy**: Hierarchical location pages with fuzzy-matched keyword linking
 **Word Count**: 200-300 words per page (both states and cities)
 **Total Pages**: 350 (50 states + 300 cities)
-**Plugin Version**: 3.4.0
+**Plugin Version**: 3.6.1
 **Architecture**: Modular PSR-4 autoloaded classes with dependency injection
 **Model Selection**: Dynamic fetching from Claude Models API with interactive selection
-**Keyword Matching**: Intelligent fuzzy matching ensures every service list item gets linked
+**Keyword Matching**: Intelligent fuzzy matching with safeguards to prevent linking bolded titles and double-linking
 **Testing**: Real WordPress integration, no mocks, 82 integration tests (100% passing with valid API key)
 
 - Always ensure the CLAUDE.md is up to date.

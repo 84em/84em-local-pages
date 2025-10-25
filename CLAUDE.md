@@ -830,3 +830,5 @@ For a complete list of changes, bug fixes, and new features, see [CHANGELOG.md](
 - Always ensure the CLAUDE.md is up to date.
 - Always ensure the README.md is up to date.
 - Always ensure TESTING.md is up to date after any change to the test framework.
+- Always ensure CHANGELOG.md is up to date with all changes following Keep a Changelog format.
+- Always work on the `dev` branch, never commit directly to `main`.
